@@ -1,0 +1,27 @@
+Yapýlan Deðiþiklikler
+03-07-2025
+DialogService ConfirmationDialog düzeltildi.
+WindowManagerService içine MainWindow AppClosing Eventi Eklendi.
+
+
+Bilinen Hatalar
+03-07-2025
+AnaSayfa açýldýðýnda Back Butonu aktif ve týklandýðýnda Login Sayfasýna geri yönlendiriliyor.
+
+04-07-2025
+ContextService yenilendi ve düzeltildi.
+Anasayfa açýldýðýnda back butonu düzeltildi. LoginView'den yönlendirme kaldýrýldý.
+Card görünümleri modernleþtirildi.
+TextBox stilleri yenilendi.
+
+Bilinen Hatalar
+DashBoardView iki defa yükleniyor, ve geri butonu iki defa dashboard'a yönlendiriliyor.
+
+06-07-2025
+Veri doðrulama iþlemi için FluentValidation'a geçildi.
+GenericDetailsViewModel' da doðrulama iþlemi FluentValidation ile yapýldý.
+	-Eski doðrulama sýnýfý kaldýrýldý.
+	-FirmaDetailsViewModel doðrulama iþlemi test edildi.
+Muhasebe.Business => Validator klösörüne FirmaValidator Eklendi.-Düzenlenecek.
+
+Bilinen Hatalar => Devam ediyor.
