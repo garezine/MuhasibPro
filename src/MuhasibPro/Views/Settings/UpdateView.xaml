@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MuhasibPro.Views.Settings.UpdateView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:i="using:Microsoft.Xaml.Interactivity"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    mc:Ignorable="d"
+    Loaded="Page_Loaded">
+
+    <Page.Resources>
+        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
+        <Style
+            x:Key="SettingsSectionHeaderTextBlockStyle"
+            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            TargetType="TextBlock">
+            <Style.Setters>
+                <Setter Property="Margin" Value="1,30,0,6" />
+            </Style.Setters>
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock
+            Grid.Row="0"
+            MaxWidth="1064"
+            Margin="36,24,36,0"
+            AutomationProperties.HeadingLevel="Level1"
+            Style="{StaticResource TitleTextBlockStyle}"
+            Text="Güncelleme" />
+
+        <!-- Update Status Card -->
+        <Grid
+            Grid.Row="1"
+            MaxWidth="1064"
+            Margin="36,20,36,20">
+            <Border
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid Padding="24,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Update Icon with Badge -->
+                    <Grid Grid.Column="0">
+                        <Border
+                            Width="56"
+                            Height="56"
+                            Background="{ThemeResource SystemFillColorSuccessBrush}"
+                            CornerRadius="12">
+                            <FontIcon
+                                FontSize="28"
+                                Foreground="White"
+                                Glyph="&#xE895;" />
+                        </Border>
+
+                        <!-- Notification Badge -->
+                        <Border
+                            x:Name="UpdateBadge"
+                            Width="20"
+                            Height="20"
+                            Margin="0,-4,-4,0"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Background="{ThemeResource SystemFillColorCriticalBrush}"
+                            CornerRadius="10"
+                            Visibility="{x:Bind ViewModel.UpdateBadgeVisibility, Mode=OneWay}">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="1" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Update Info -->
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="16,0,0,0"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="20"
+                            FontWeight="SemiBold"
+                            Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
+                        <TextBlock
+                            FontSize="14"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="{x:Bind ViewModel.VersionText, Mode=OneWay}" />
+                        <TextBlock
+                            FontSize="13"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="{x:Bind ViewModel.LastCheckText, Mode=OneWay}" />
+
+                        <!-- İndirme durumu göstergesi -->
+                        <ProgressBar
+                            Margin="0,8,0,0"
+                            Value="{x:Bind ViewModel.DownloadProgress, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <!-- Update Button -->
+                    <Button
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        Command="{x:Bind ViewModel.UpdateActionCommand}"
+                        Content="{x:Bind ViewModel.UpdateButtonText, Mode=OneWay}"
+                        IsEnabled="{x:Bind ViewModel.IsUpdateButtonEnabled, Mode=OneWay}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="AccentStates">
+                                <VisualState x:Name="Normal">
+                                    <VisualState.Setters>
+                                        <Setter Value="{ThemeResource ButtonBackground}" Target="ButtonBackground.Background" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Accent">
+                                    <VisualState.Setters>
+                                        <Setter Value="{ThemeResource AccentButtonBackground}" Target="ButtonBackground.Background" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Settings Content -->
+        <ScrollView
+            Grid.Row="2"
+            Padding="36,0,36,0"
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto">
+            <StackPanel MaxWidth="1064" Spacing="{StaticResource SettingsCardSpacing}">
+                <StackPanel.ChildrenTransitions>
+                    <RepositionThemeTransition />
+                </StackPanel.ChildrenTransitions>
+
+                <!-- Update Settings Section -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="Güncelleme Ayarları" />
+
+                <toolkit:SettingsCard Description="Uygulama başlangıcında otomatik olarak güncellemeleri kontrol et" Header="Otomatik güncelleme kontrolü">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE895;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.Settings.AutoCheckOnStartup, Mode=TwoWay}">
+                        <i:Interaction.Behaviors>
+                            <i:EventTriggerBehavior EventName="Toggled">
+                                <i:InvokeCommandAction Command="{x:Bind ViewModel.ToggleAutoCheckCommand}" />
+                            </i:EventTriggerBehavior>
+                        </i:Interaction.Behaviors>
+                    </ToggleSwitch>
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard
+                    Description="Güncellemeleri otomatik olarak indir (kurulum için onay istenir)"
+                    Header="Otomatik indirme"
+                    IsEnabled="{x:Bind ViewModel.IsAutoDownloadEnabled, Mode=OneWay}">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE896;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.Settings.AutoDownload, Mode=TwoWay}">
+                        <i:Interaction.Behaviors>
+                            <i:EventTriggerBehavior EventName="Toggled">
+                                <i:InvokeCommandAction Command="{x:Bind ViewModel.ToggleAutoDownloadCommand}" />
+                            </i:EventTriggerBehavior>
+                        </i:Interaction.Behaviors>
+                    </ToggleSwitch>
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard
+                    Description="Güncelleme mevcut olduğunda bildirim göster"
+                    Header="Güncelleme bildirimleri"
+                    IsEnabled="{x:Bind ViewModel.IsNotificationEnabled, Mode=OneWay}">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE91C;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.Settings.ShowNotifications, Mode=TwoWay}">
+                        <i:Interaction.Behaviors>
+                            <i:EventTriggerBehavior EventName="Toggled">
+                                <i:InvokeCommandAction Command="{x:Bind ViewModel.ToggleShowNotificationsCommand}" />
+                            </i:EventTriggerBehavior>
+                        </i:Interaction.Behaviors>
+                    </ToggleSwitch>
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard Description="Güncellemeleri kontrol etme sıklığı" Header="Kontrol aralığı">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE916;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ComboBox
+                        x:Name="CheckIntervalComboBox"
+                        MinWidth="150"
+                        SelectionChanged="CheckIntervalComboBox_SelectionChanged">
+                        <ComboBoxItem Content="Her başlangıçta" Tag="0" />
+                        <ComboBoxItem Content="6 saatte bir" Tag="6" />
+                        <ComboBoxItem Content="12 saatte bir" Tag="12" />
+                        <ComboBoxItem
+                            Content="24 saatte bir"
+                            IsSelected="True"
+                            Tag="24" />
+                        <ComboBoxItem Content="Haftada bir" Tag="168" />
+                    </ComboBox>
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard Description="Beta ve geliştirici sürümlerini dahil et" Header="Beta sürümleri">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE7BA;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.Settings.IncludeBetaVersions, Mode=TwoWay}">
+                        <i:Interaction.Behaviors>
+                            <i:EventTriggerBehavior EventName="Toggled">
+                                <i:InvokeCommandAction Command="{x:Bind ViewModel.ToggleIncludeBetaCommand}" />
+                            </i:EventTriggerBehavior>
+                        </i:Interaction.Behaviors>
+                    </ToggleSwitch>
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard Description="Şimdi güncellemeleri kontrol et" Header="Manuel güncelleme kontrolü">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE72C;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="{x:Bind ViewModel.LastCheckText, Mode=OneWay}" />
+                        <Button
+                            Command="{x:Bind ViewModel.CheckNowCommand}"
+                            Content="Kontrol Et"
+                            IsEnabled="{x:Bind ViewModel.IsCheckButtonEnabled, Mode=OneWay}" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
+
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+</Page>

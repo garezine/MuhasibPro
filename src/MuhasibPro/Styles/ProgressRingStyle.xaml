@@ -1,0 +1,116 @@
+<!-- App.xaml veya ResourceDictionary dosyasına ekleyin -->
+
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 1. Glassmorphism Style -->
+    <Style x:Key="GlassmorphismProgressRing" TargetType="ProgressRing">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.2">
+                    <GradientStop Color="White" Offset="0"/>
+                    <GradientStop Color="LightBlue" Offset="0.5"/>
+                    <GradientStop Color="White" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressRing">
+                    <Grid>
+                        <!-- Glassmorphism background -->
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="50"
+                                Width="{TemplateBinding Width}"
+                                Height="{TemplateBinding Height}">
+                            <Border.Shadow>
+                                <ThemeShadow/>
+                            </Border.Shadow>
+                        </Border>
+
+                        <!-- Progress Ring -->
+                        <ProgressRing Foreground="{TemplateBinding Foreground}"
+                                     IsActive="{TemplateBinding IsActive}"
+                                     Width="{TemplateBinding Width}"
+                                     Height="{TemplateBinding Height}"
+                                     Background="Transparent"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+
+
+    <!-- 4. Minimal Thin Style -->
+    <Style x:Key="MinimalProgressRing" TargetType="ProgressRing">
+        <Setter Property="Foreground" Value="#007ACC"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressRing">
+                    <Grid>
+                        <!-- Thin background circle -->
+                        <Ellipse Width="{TemplateBinding Width}"
+                                Height="{TemplateBinding Height}"
+                                Fill="Transparent"
+                                Stroke="#E0E0E0"
+                                StrokeThickness="2"/>
+
+                        <!-- Thin progress ring -->
+                        <ProgressRing Foreground="{TemplateBinding Foreground}"
+                                     IsActive="{TemplateBinding IsActive}"
+                                     Width="{TemplateBinding Width}"
+                                     Height="{TemplateBinding Height}"
+                                     Background="Transparent">
+                            <ProgressRing.Resources>
+                                <x:Double x:Key="ProgressRingStrokeThickness">2</x:Double>
+                            </ProgressRing.Resources>
+                        </ProgressRing>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+
+
+    <!-- 6. Dark Theme Mica Style -->
+    <Style x:Key="MicaProgressRing" TargetType="ProgressRing">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressRing">
+                    <Grid>
+                        <!-- Mica background effect -->
+                        <Border Background="Transparent"
+                                CornerRadius="50"
+                                Width="{TemplateBinding Width}"
+                                Height="{TemplateBinding Height}">
+                            <Border.BackgroundTransition>
+                                <BrushTransition Duration="0:0:0.3"/>
+                            </Border.BackgroundTransition>
+                        </Border>
+
+                        <!-- Progress ring with subtle shadow -->
+                        <ProgressRing Foreground="{TemplateBinding Foreground}"
+                                     IsActive="{TemplateBinding IsActive}"
+                                     Width="{TemplateBinding Width}"
+                                     Height="{TemplateBinding Height}"
+                                     Background="Transparent">
+                            <ProgressRing.Shadow>
+                                <ThemeShadow/>
+                            </ProgressRing.Shadow>
+                        </ProgressRing>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+   
+   
+
+</ResourceDictionary>

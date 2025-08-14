@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MuhasibPro.Views.Settings.SettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:control="using:MuhasibPro.Core.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:MuhasibPro.Views.Settings"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    mc:Ignorable="d"
+    Loaded="Page_Loaded">
+    <Page.Resources>
+        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
+        <Style
+            x:Key="SettingsSectionHeaderTextBlockStyle"
+            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            TargetType="TextBlock">
+            <Style.Setters>
+                <Setter Property="Margin" Value="1,30,0,6" />
+            </Style.Setters>
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock
+            x:Name="PageHeader"
+            MaxWidth="1064"
+            Margin="36,24,36,0"
+            AutomationProperties.HeadingLevel="Level1"
+            Style="{StaticResource TitleTextBlockStyle}"
+            Text="Ayarlar" />
+
+        <!-- Mevcut Grid'inizi bu kod ile değiştirin -->
+        <Grid
+            Grid.Row="1"
+            MaxWidth="1064"
+            Margin="36,20,36,20">
+
+            <!-- Ana Grid - Responsive düzen -->
+            <Grid x:Name="HeaderCardsGrid">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Company Info Card -->
+                <Border
+                    x:Name="CompanyCard"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="1"
+                    Margin="0,0,8,0"
+                    Background="Transparent"
+                    BorderThickness="0">
+                    <control:RoundButton
+                        Height="75"
+                        Click="ChangeCompanyButton_Click"
+                        CornerRadius="10">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Company Icon -->
+                            <Border
+                                Grid.Column="0"
+                                Width="48"
+                                Height="48"
+                                Margin="5 0 0 0"
+                                Background="{ThemeResource LayerFillColorAltBrush}"
+                                CornerRadius="90">
+                                <FontIcon
+                                    FontSize="28"
+                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                    Glyph="&#xE7F8;" />
+                            </Border>
+
+                            <!-- Company Info -->
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="20,0,16,0"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="14"
+                                    Foreground="{ThemeResource TextFillColorDisabledBrush}"
+                                    Text="Seçili Firma" />
+                                <TextBlock
+                                    Width="200"
+                                    FontSize="18"
+                                    FontWeight="Thin"
+                                    Foreground="{ThemeResource TextFillColorPrimary}"
+                                    Text="Korkut Mermer Sanayi"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <!-- Chevron Icon -->
+                            <FontIcon
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                FontSize="16"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Glyph="&#xE76C;" />
+                        </Grid>
+                    </control:RoundButton>
+                </Border>
+
+                <!-- Working Period Card -->
+
+                <Border
+                    x:Name="PeriodCard"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="1"
+                    Margin="0,0,8,0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    >
+                    <control:RoundButton                       
+                        Height="75"
+                        Click="ChangeCompanyButton_Click"
+                        CornerRadius="10">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- period Icon -->
+                            <Border
+                                Grid.Column="0"
+                                Width="48"
+                                Height="48"
+                                Margin="5 0 0 0"
+                                Background="{ThemeResource LayerFillColorAltBrush}"
+                                CornerRadius="90">
+                                <FontIcon
+                                    FontSize="28"
+                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                    Glyph="&#xE787;" />
+                            </Border>
+
+                            <!-- Period Info -->
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="20,0,16,0"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="14"
+                                    Foreground="{ThemeResource TextFillColorDisabledBrush}"
+                                    Text="Seçili Dönem" />
+                                <TextBlock
+                                    Width="200"
+                                    FontSize="18"
+                                    FontWeight="Thin"
+                                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                    Text="2025"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <!-- Chevron Icon -->
+                            <FontIcon
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                FontSize="16"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Glyph="&#xE76C;" />
+                        </Grid>
+                    </control:RoundButton>
+                </Border>
+                
+                <!-- Update Settings Card -->
+
+                <Border
+                    x:Name="UpdateCard"
+                    Grid.Column="2"
+                    Grid.ColumnSpan="1"
+                    Margin="0,0,8,0"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    >
+                    <control:RoundButton                       
+                        Height="75"
+                        Click="UpdateSettingsButton_Click"
+                        CornerRadius="10">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- period Icon -->
+                            <Border
+                                Grid.Column="0"
+                                Width="48"
+                                Height="48"
+                                Margin="5 0 0 0"
+                                Background="{ThemeResource LayerFillColorAltBrush}"
+                                CornerRadius="90">
+                                <FontIcon
+                                    FontSize="28"
+                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                    Glyph="&#xE895;" />
+                            </Border>
+
+                            <!-- Period Info -->
+                            <StackPanel
+                                Grid.Column="1"
+                                Margin="20,0,16,0"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    Width="auto"
+                                    FontSize="14"
+                                    Foreground="{ThemeResource TextFillColorDisabledBrush}"
+                                    Text="Güncelleme ayarları"
+                                    TextTrimming="CharacterEllipsis"/>
+                                <TextBlock
+                                    Width="200"
+                                    FontSize="18"
+                                    FontWeight="Thin"
+                                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                    Text="Güncelleme "
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <!-- Chevron Icon -->
+                            <FontIcon
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                FontSize="16"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Glyph="&#xE76C;" />
+                        </Grid>
+                    </control:RoundButton>
+                </Border>
+
+                <!-- Responsive Layout için VisualStateManager -->
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup x:Name="LayoutStates">
+                        <!-- Geniş ekran durumu (varsayılan) -->
+                        <VisualState x:Name="WideLayout">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="900" />
+                            </VisualState.StateTriggers>
+                            <!-- Varsayılan durum, değişiklik yok -->
+                        </VisualState>
+
+                        <!-- Dar ekran durumu -->
+                        <VisualState x:Name="NarrowLayout">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="0" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <!-- Grid'i tek sütun yap -->
+                                <Setter Value="0" Target="HeaderCardsGrid.ColumnDefinitions[1].Width" />
+                                <Setter Value="0" Target="HeaderCardsGrid.ColumnDefinitions[2].Width" />
+
+                                <!-- İkinci kartı ikinci satıra taşı -->
+                                <Setter Value="0" Target="PeriodCard.(Grid.Column)" />
+                                <Setter Value="1" Target="PeriodCard.(Grid.Row)" />
+                                <Setter Value="0,8,0,0" Target="PeriodCard.Margin" />
+
+                                <!-- Üçüncü kartı üçüncü satıra taşı -->
+                                <Setter Value="0" Target="UpdateCard.(Grid.Column)" />
+                                <Setter Value="2" Target="UpdateCard.(Grid.Row)" />
+                                <Setter Value="0,8,0,0" Target="UpdateCard.Margin" />
+
+                                <!-- İlk kartın margin'ini sıfırla -->
+                                <Setter Value="0" Target="CompanyCard.Margin" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
+            </Grid>
+        </Grid>
+
+
+        <!-- Settings Content -->
+        <ScrollView
+            Grid.Row="2"
+            Padding="36,0,36,0"
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto">
+            <StackPanel MaxWidth="1064" Spacing="{StaticResource SettingsCardSpacing}">
+                <!--<StackPanel.ChildrenTransitions>
+                    <RepositionThemeTransition />
+                </StackPanel.ChildrenTransitions>-->
+
+                <!-- Appearance Section -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="Görünüm &amp; Davranış" />
+
+                <toolkit:SettingsCard Description="Uygulanacak temayı seçin" Header="Uygulama Teması">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE790;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ComboBox
+                        x:Name="themeMode"
+                        MinWidth="150"
+                        AutomationProperties.AutomationId="themeModeComboBox"
+                        SelectionChanged="themeMode_SelectionChanged">
+                        <ComboBoxItem Content="Açık" Tag="Light" />
+                        <ComboBoxItem Content="Koyu" Tag="Dark" />
+                        <ComboBoxItem Content="Cihaz" Tag="Default" />
+                    </ComboBox>
+                </toolkit:SettingsCard>
+
+                <!-- About Section -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="Hakkında" />
+
+                <toolkit:SettingsExpander
+                    Margin="0,0,0,24"
+                    Description="© 2025 MuhasibPro. Tüm hakları saklıdır."
+                    Header="MuhasibPro, Profesyonel Muhasebe">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <BitmapIcon ShowAsMonochrome="False" UriSource="/Assets/Images/AppLogo.png" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        IsTextSelectionEnabled="True"
+                        Text="{x:Bind Version}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="Son güncellemelerde yapılan değişiklikleri görüntüle" Header="Sürüm Notları">
+                            <Button Click="ViewReleaseNotes_Click" Content="Görüntüle" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Yazılım lisans bilgileri" Header="Lisans">
+                            <Button Click="ViewLicense_Click" Content="Görüntüle" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+</Page>
