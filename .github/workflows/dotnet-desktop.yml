@@ -14,7 +14,7 @@ jobs:
 
     env:
       SOLUTION_NAME: MuhasibPro.sln
-      WAP_PROJECT_PATH: MuhasibPro\MuhasibPro.Package.wapproj
+      WAP_PROJECT_PATH: src/MuhasibPro (Package)/MuhasibPro.Package.wapproj
       RUNTIME_IDENTIFIER: win-x64
 
     steps:
@@ -31,6 +31,14 @@ jobs:
 
     - name: Debug .NET Info
       run: dotnet --info
+
+    - name: Debug file structure
+      run: |
+        Write-Host "Repository structure:"
+        Get-ChildItem -Recurse -Filter "*.wapproj" | ForEach-Object { 
+            Write-Host "Found wapproj: $($_.FullName)" 
+        }
+        Write-Host "WAP_PROJECT_PATH: $env:WAP_PROJECT_PATH"
 
     - name: Restore dependencies
       run: dotnet restore $env:SOLUTION_NAME -r $env:RUNTIME_IDENTIFIER
@@ -54,7 +62,7 @@ jobs:
 
     - name: Create MSIX package
       run: |
-        msbuild $env:WAP_PROJECT_PATH `
+        msbuild "$env:WAP_PROJECT_PATH" `
           /p:Configuration=Release `
           /p:Platform="x64" `
           /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
