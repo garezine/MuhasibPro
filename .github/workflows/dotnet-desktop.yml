@@ -1,0 +1,65 @@
+name: .NET Desktop CI/CD with Delta Updates
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-package:
+    runs-on: windows-latest
+
+    env:
+      SOLUTION_NAME: MuhasibPro.sln
+      WAP_PROJECT_PATH: MuhasibPro.Package\MuhasibPro.Package.wapproj
+      RUNTIME_IDENTIFIER: win-x64
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Debug .NET Info
+      run: dotnet --info
+
+    - name: Restore dependencies
+      run: dotnet restore $env:SOLUTION_NAME -r $env:RUNTIME_IDENTIFIER
+
+    - name: Build solution
+      run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false
+
+    - name: Ensure MuhasibPro.Package directory exists
+      shell: pwsh
+      run: |
+        if (!(Test-Path "MuhasibPro.Package")) {
+            New-Item -ItemType Directory -Path "MuhasibPro.Package" | Out-Null
+        }
+
+    - name: Decode signing certificate
+      shell: pwsh
+      run: |
+        $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.BASE64_ENCODED_PFX }}")
+        $certPath = Join-Path -Path MuhasibPro.Package -ChildPath workflow_cert.pfx
+        [IO.File]::WriteAllBytes("$certPath", $pfxBytes)
+
+    - name: Create MSIX package
+      run: |
+        msbuild $env:WAP_PROJECT_PATH `
+          /p:Configuration=Release `
+          /p:Platform="x64" `
+          /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
+          /p:PackageCertificateKeyFile=workflow_cert.pfx `
+          /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}" `
+          /p:UapAppxPackageBuildMode=StoreUpload `
+          /p:AppxBundle=Always `
+          /p:PublishReadyToRun=false
