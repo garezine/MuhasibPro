@@ -143,15 +143,10 @@ jobs:
       run: |
         New-Item -ItemType Directory -Path "AppxPackages" -Force
         
-        msbuild `"$env:WAP_PROJECT_PATH`" `
-          /p:Configuration=Release `
-          /p:Platform="x64" `
-          /p:PackageCertificateKeyFile=MuhasibPro.Package/workflow_cert.pfx `
-          /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}" `
-          /p:AppxPackageDir="AppxPackages\\" `
-          /p:AppxBundle=Always `
-          /p:GenerateAppxPackageOnBuild=true `
-          /p:PublishReadyToRun=false
+        Write-Host "Building with path: $env:WAP_PROJECT_PATH"
+        Write-Host "File exists: $(Test-Path $env:WAP_PROJECT_PATH)"
+        
+        msbuild "$env:WAP_PROJECT_PATH" /p:Configuration=Release /p:Platform="x64" /p:PackageCertificateKeyFile=MuhasibPro.Package/workflow_cert.pfx /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}" /p:AppxPackageDir="AppxPackages\\" /p:AppxBundle=Always /p:GenerateAppxPackageOnBuild=true /p:PublishReadyToRun=false
 
     - name: Find generated packages
       id: find-packages
