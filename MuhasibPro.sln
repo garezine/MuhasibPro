@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MuhasibPro.ViewModels", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MuhasibPro", "src\MuhasibPro\MuhasibPro.csproj", "{9451BD5A-0EB3-DDA0-9C91-F3F3EDBB8F30}"
 EndProject
-Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "MuhasibPro.Wap", "src\MuhasibProWap\MuhasibPro.Wap.wapproj", "{2F31CA8A-1616-4D7D-89C5-28660126423D}"
+Project("{C7167F0D-BC9F-4E6E-AFE1-012C56B48DB5}") = "MuhasibProWap", "src\MuhasibProWap\MuhasibProWap.wapproj", "{2F31CA8A-1616-4D7D-89C5-28660126423D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
