@@ -80,7 +80,7 @@ public class DeltaDownloader : IDeltaDownloader
             // Manifest dosyasını kontrol et
             var manifestEntry = archive.GetEntry("delta_manifest.json");
             if (manifestEntry == null)
-                return false;
+                return await Task.FromResult(false);
 
             // Beklenen dosyaların varlığını kontrol et
             foreach (var expectedFile in deltaInfo.ChangedFiles)
@@ -88,16 +88,16 @@ public class DeltaDownloader : IDeltaDownloader
                 if (archive.GetEntry(expectedFile) == null)
                 {
                     System.Diagnostics.Debug.WriteLine($"Expected file not found in delta package: {expectedFile}");
-                    return false;
+                    return await Task.FromResult(false);
                 }
             }
 
-            return true;
+            return await Task.FromResult(true);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Delta package validation failed: {ex.Message}");
-            return false;
+            return await Task.FromResult(false);
         }
     }
 
