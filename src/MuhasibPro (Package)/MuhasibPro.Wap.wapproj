@@ -87,5 +87,8 @@
   <ItemGroup>
     <ProjectReference Include="..\MuhasibPro\MuhasibPro.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
   <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
 </Project>
