@@ -1,9 +1,11 @@
+# .github/workflows/dotnet-desktop-cicd.yml
+
 name: .NET Desktop CI/CD with Delta Updates
 
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*" ]
+    tags: [ "v*" ] # Workflow'un tag'ler ile tetiklenmesini sağlar
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -30,15 +32,14 @@ jobs:
 
     - name: Generate version number
       id: version
+      shell: pwsh
       run: |
         if ("${{ github.ref }}" -like "refs/tags/v*") {
+          # Gelen tag'i al ve sonuna .0 ekle (örn: v1.2.3 -> 1.2.3.0)
           $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
-          if ($tagVersion -match "^(\d+)\.(\d+)\.(\d+)$") {
-            $version = "$($matches[1]).$($matches[2]).$($matches[3]).0"
-          } else {
-            $version = "$tagVersion.0"
-          }
+          $version = "$tagVersion.0"
         } else {
+          # Tag yoksa, main branch'ine push için bir versiyon oluştur
           $buildNumber = ${{ github.run_number }}
           $version = "1.0.0.$buildNumber"
         }
@@ -89,6 +90,7 @@ jobs:
 
     - name: Download previous MSIX (if exists)
       if: steps.download-previous.outputs.has-previous == 'true'
+      shell: pwsh
       run: |
         $previousUrl = "${{ steps.download-previous.outputs.previous-download-url }}"
         $previousFile = "${{ steps.download-previous.outputs.previous-filename }}"
@@ -101,6 +103,7 @@ jobs:
         }
 
     - name: Update version in manifest
+      shell: pwsh
       run: |
         $manifestPath = "src/MuhasibProWap/Package.appxmanifest"
         if (Test-Path $manifestPath) {
@@ -117,12 +120,14 @@ jobs:
       run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false
 
     - name: Ensure Package directory exists
+      shell: pwsh
       run: |
         if (!(Test-Path "MuhasibPro.Package")) {
             New-Item -ItemType Directory -Path "MuhasibPro.Package" | Out-Null
         }
 
     - name: Decode signing certificate
+      shell: pwsh
       run: |
         $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.BASE64_ENCODED_PFX }}")
         $certPath = Join-Path -Path MuhasibPro.Package -ChildPath workflow_cert.pfx
@@ -139,6 +144,7 @@ jobs:
 
     - name: Find generated packages
       id: find-packages
+      shell: pwsh
       run: |
         $msixFiles = Get-ChildItem -Recurse -Filter "*.msix" | Where-Object { $_.Name -notlike "*_Test*" }
         $msixBundleFiles = Get-ChildItem -Recurse -Filter "*.msixbundle"
@@ -157,10 +163,11 @@ jobs:
         Write-Host "Found package: $mainPackage"
         echo "main-package=$mainPackage" >> $env:GITHUB_OUTPUT
         echo "package-type=$packageType" >> $env:GITHUB_OUTPUT
-        echo "package-name=$($mainPackage | Split-Path -Leaf)" >> $env:GITHUB_OUTPUT
+        echo "package-name=$(Split-Path -Leaf $mainPackage)" >> $env:GITHUB_OUTPUT
 
     - name: Calculate package hash
       id: hash
+      shell: pwsh
       run: |
         $packagePath = "${{ steps.find-packages.outputs.main-package }}"
         $hash = Get-FileHash -Path $packagePath -Algorithm SHA256
@@ -168,6 +175,7 @@ jobs:
         Write-Host "Package hash: $($hash.Hash)"
 
     - name: Generate update manifest
+      shell: pwsh
       run: |
         $manifest = @{
           version = "$env:VERSION"
@@ -202,9 +210,16 @@ jobs:
   release:
     needs: build-and-package
     runs-on: ubuntu-latest
-    # HER DURUMDA ÇALIŞSIN - ARTIK SIKINTI YOK!
-    if: always() && needs.build-and-package.result == 'success'
     
+    # GÜNCELLEME 1: Bu işin sadece bir tag (örn: v1.0.2) push'landığında çalışmasını sağla.
+    # Bu, her main commit'inde gereksiz release oluşturulmasını engeller.
+    if: success() && startsWith(github.ref, 'refs/tags/v')
+    
+    # GÜNCELLEME 2: Hatanın ana çözümü. Bu blok, GITHUB_TOKEN'a release oluşturma ve
+    # dosya yükleme izni verir. "Resource not accessible" hatasını bu düzeltir.
+    permissions:
+      contents: write
+
     steps:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
@@ -242,7 +257,6 @@ jobs:
       run: |
         echo "🎁 Release assets yükleniyor..."
         
-        # MSIX/MSIXBUNDLE dosyalarını yükle
         for file in *.msix *.msixbundle; do
           if [ -f "$file" ]; then
             echo "📦 Uploading: $file"
@@ -256,7 +270,6 @@ jobs:
           fi
         done
         
-        # Update manifest yükle
         if [ -f "update-manifest.json" ]; then
           echo "📝 Uploading: update-manifest.json"
           curl -L \
@@ -273,7 +286,9 @@ jobs:
   deploy-update-server:
     needs: [build-and-package, release]
     runs-on: ubuntu-latest
-    if: always() && needs.release.result == 'success'
+
+    # GÜNCELLEME 3: Bu işin de sadece bir release başarıyla oluşturulduğunda çalışmasını sağla.
+    if: success() && startsWith(github.ref, 'refs/tags/v')
     
     steps:
     - name: Download artifacts
@@ -287,7 +302,8 @@ jobs:
         echo "📋 Version: ${{ needs.build-and-package.outputs.version }}"
         echo "✅ Update manifest deployment ready!"
         
-        # Buraya kendi update server deployment kodunuzu ekleyin:
+        # Buraya kendi update sunucunuza yükleme yapacak olan kodunuzu ekleyebilirsiniz.
+        # Örneğin:
         # curl -X POST https://your-server.com/api/releases \
         #   -H "Authorization: Bearer $UPDATE_SERVER_TOKEN" \
         #   -H "Content-Type: application/json" \
