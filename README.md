@@ -6,6 +6,6 @@ Modern muhasebe yazılımı - WinUI3 ile geliştirilmiş.
 - Modern arayüz
 - Otomatik güncellemeler  
 - Delta update sistemi
-- AI ile güçlü altyapı
+
 ## Kurulum
 -Çalışıyorum... :)
