@@ -14,7 +14,7 @@ jobs:
 
     env:
       SOLUTION_NAME: MuhasibPro.sln
-      WAP_PROJECT_PATH: "src/MuhasibProWap/MuhasibProWap.wapproj"
+      WAP_PROJECT_PATH: "MuhasibPro/src/MuhasibProWap/MuhasibProWap.wapproj"
       RUNTIME_IDENTIFIER: win-x64
 
     steps:
