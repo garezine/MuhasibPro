@@ -41,10 +41,12 @@ jobs:
         Write-Host "WAP_PROJECT_PATH: $env:WAP_PROJECT_PATH"
 
     - name: Restore dependencies
-      run: dotnet restore $env:SOLUTION_NAME
+      run: |
+        dotnet restore $env:SOLUTION_NAME --runtime $env:RUNTIME_IDENTIFIER --verbosity normal
+        Write-Host "Restore completed successfully"
 
     - name: Build solution
-      run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:PublishReadyToRun=false
+      run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false
 
     - name: Ensure MuhasibPro.Package directory exists
       shell: pwsh
