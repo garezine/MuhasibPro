@@ -14,7 +14,7 @@ jobs:
 
     env:
       SOLUTION_NAME: MuhasibPro.sln
-      WAP_PROJECT_PATH: "MuhasibPro/src/MuhasibProWap/MuhasibProWap.wapproj"
+      WAP_PROJECT_PATH: "src/MuhasibProWap/MuhasibProWap.wapproj"
       RUNTIME_IDENTIFIER: win-x64
 
     steps:
@@ -39,6 +39,8 @@ jobs:
             Write-Host "Found wapproj: $($_.FullName)" 
         }
         Write-Host "WAP_PROJECT_PATH: $env:WAP_PROJECT_PATH"
+        Write-Host "File exists check:"
+        Test-Path $env:WAP_PROJECT_PATH
 
     - name: Restore dependencies
       run: |
