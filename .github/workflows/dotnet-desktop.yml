@@ -14,7 +14,8 @@ jobs:
 
     env:
       SOLUTION_NAME: MuhasibPro.sln
-      WAP_PROJECT_PATH: src/MuhasibPro (Package)
+      WAP_PROJECT_PATH: src/MuhasibPro (Package)/MuhasibPro.Package.wapproj
+      RUNTIME_IDENTIFIER: win-x64
 
     steps:
     - name: Checkout repository
@@ -40,10 +41,10 @@ jobs:
         Write-Host "WAP_PROJECT_PATH: $env:WAP_PROJECT_PATH"
 
     - name: Restore dependencies
-      run: dotnet restore $env:SOLUTION_NAME -r $env:RUNTIME_IDENTIFIER
+      run: dotnet restore $env:SOLUTION_NAME
 
     - name: Build solution
-      run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false
+      run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:PublishReadyToRun=false
 
     - name: Ensure MuhasibPro.Package directory exists
       shell: pwsh
@@ -64,7 +65,6 @@ jobs:
         msbuild "$env:WAP_PROJECT_PATH" `
           /p:Configuration=Release `
           /p:Platform="x64" `
-          /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
           /p:PackageCertificateKeyFile=workflow_cert.pfx `
           /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}" `
           /p:UapAppxPackageBuildMode=StoreUpload `
