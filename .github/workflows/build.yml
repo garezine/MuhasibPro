@@ -3,7 +3,7 @@ name: .NET Desktop CI/CD with Delta Updates
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*" ] # Workflow'un tag'ler ile tetiklenmesini sağlar
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -30,21 +30,29 @@ jobs:
 
     - name: Generate version number
       id: version
-      shell: pwsh
       run: |
         if ("${{ github.ref }}" -like "refs/tags/v*") {
-          # Gelen tag'i al ve sonuna .0 ekle (örn: v1.2.3 -> 1.2.3.0)
           $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
-          $version = "$tagVersion.0"
+          if ($tagVersion -match "^(\d+)\.(\d+)\.(\d+)$") {
+            $version = "$($matches[1]).$($matches[2]).$($matches[3]).0"
+          } else {
+            $version = "$tagVersion.0"
+          }
         } else {
-          # Tag yoksa, main branch'ine push için bir versiyon oluştur
           $buildNumber = ${{ github.run_number }}
           $version = "1.0.0.$buildNumber"
         }
         echo "version=$version" >> $env:GITHUB_OUTPUT
         echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
         echo "VERSION=$version" >> $env:GITHUB_ENV
-        Write-Host "Generated version: $version"
+
+    - name: Auto create tag if not from tag
+      if: startsWith(github.ref, 'refs/tags/') == false
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag v${{ steps.version.outputs.version }}
+        git push origin v${{ steps.version.outputs.version }}
 
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
@@ -65,15 +73,12 @@ jobs:
               repo: context.repo.repo,
               per_page: 1
             });
-            
             if (releases.data.length > 0) {
               const latestRelease = releases.data[0];
               core.setOutput('has-previous', 'true');
               core.setOutput('previous-version', latestRelease.tag_name);
-              
               const assets = latestRelease.assets;
               const msixAsset = assets.find(asset => asset.name.endsWith('.msix') || asset.name.endsWith('.msixbundle'));
-              
               if (msixAsset) {
                 core.setOutput('previous-download-url', msixAsset.browser_download_url);
                 core.setOutput('previous-filename', msixAsset.name);
@@ -81,51 +86,42 @@ jobs:
             } else {
               core.setOutput('has-previous', 'false');
             }
-          } catch (error) {
-            console.log('No previous release found');
+          } catch {
             core.setOutput('has-previous', 'false');
           }
 
     - name: Download previous MSIX (if exists)
       if: steps.download-previous.outputs.has-previous == 'true'
-      shell: pwsh
       run: |
         $previousUrl = "${{ steps.download-previous.outputs.previous-download-url }}"
         $previousFile = "${{ steps.download-previous.outputs.previous-filename }}"
-        
         if ($previousUrl -and $previousFile) {
-          Write-Host "Downloading previous version: $previousFile"
           New-Item -ItemType Directory -Path "previous" -Force
           Invoke-WebRequest -Uri $previousUrl -OutFile "previous/$previousFile"
-          Write-Host "Previous version downloaded successfully"
         }
 
     - name: Update version in manifest
-      shell: pwsh
       run: |
         $manifestPath = "src/MuhasibProWap/Package.appxmanifest"
         if (Test-Path $manifestPath) {
           [xml]$manifest = Get-Content $manifestPath
           $manifest.Package.Identity.Version = "$env:VERSION"
           $manifest.Save($manifestPath)
-          Write-Host "Updated manifest version to: $env:VERSION"
         }
 
     - name: Restore dependencies
-      run: dotnet restore $env:SOLUTION_NAME --runtime $env:RUNTIME_IDENTIFIER --verbosity normal
+      run: dotnet restore $env:SOLUTION_NAME --runtime $env:RUNTIME_IDENTIFIER
 
     - name: Build solution
       run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false
 
     - name: Ensure Package directory exists
-      shell: pwsh
       run: |
         if (!(Test-Path "MuhasibPro.Package")) {
             New-Item -ItemType Directory -Path "MuhasibPro.Package" | Out-Null
         }
 
     - name: Decode signing certificate
-      shell: pwsh
       run: |
         $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.BASE64_ENCODED_PFX }}")
         $certPath = Join-Path -Path MuhasibPro.Package -ChildPath workflow_cert.pfx
@@ -134,46 +130,63 @@ jobs:
     - name: Create MSIX package
       run: |
         New-Item -ItemType Directory -Path "AppxPackages" -Force
-        
-        Write-Host "Building MSIX package..."
-        Write-Host "WAP Project: $env:WAP_PROJECT_PATH"
-        
         msbuild "$env:WAP_PROJECT_PATH" /p:Configuration=Release /p:Platform="x64" /p:PackageCertificateKeyFile=MuhasibPro.Package/workflow_cert.pfx /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}" /p:AppxPackageDir="AppxPackages\\" /p:AppxBundle=Always /p:GenerateAppxPackageOnBuild=true /p:PublishReadyToRun=false
 
     - name: Find generated packages
       id: find-packages
-      shell: pwsh
       run: |
         $msixFiles = Get-ChildItem -Recurse -Filter "*.msix" | Where-Object { $_.Name -notlike "*_Test*" }
         $msixBundleFiles = Get-ChildItem -Recurse -Filter "*.msixbundle"
-        
         if ($msixBundleFiles.Count -gt 0) {
           $mainPackage = $msixBundleFiles[0].FullName
-          $packageType = "msixbundle"
         } elseif ($msixFiles.Count -gt 0) {
           $mainPackage = $msixFiles[0].FullName
-          $packageType = "msix"
         } else {
           Write-Error "No MSIX package found!"
           exit 1
         }
-        
-        Write-Host "Found package: $mainPackage"
         echo "main-package=$mainPackage" >> $env:GITHUB_OUTPUT
-        echo "package-type=$packageType" >> $env:GITHUB_OUTPUT
-        echo "package-name=$(Split-Path -Leaf $mainPackage)" >> $env:GITHUB_OUTPUT
+        echo "package-name=$($mainPackage | Split-Path -Leaf)" >> $env:GITHUB_OUTPUT
 
     - name: Calculate package hash
       id: hash
-      shell: pwsh
       run: |
         $packagePath = "${{ steps.find-packages.outputs.main-package }}"
         $hash = Get-FileHash -Path $packagePath -Algorithm SHA256
         echo "package-hash=$($hash.Hash)" >> $env:GITHUB_OUTPUT
-        Write-Host "Package hash: $($hash.Hash)"
+
+    - name: Create delta package (if previous exists)
+      id: create-delta
+      if: steps.download-previous.outputs.has-previous == 'true'
+      run: |
+        $newPackage = "${{ steps.find-packages.outputs.main-package }}"
+        $oldPackage = Get-ChildItem -Path "previous" -Filter "*.msix*" | Select-Object -First 1
+
+        if ($oldPackage -and (Test-Path $oldPackage.FullName)) {
+          # MakeAppx path fix
+          $sdkPaths = @(
+            "$Env:ProgramFiles (x86)\Windows Kits\10\bin\x64",
+            "$Env:ProgramFiles (x86)\Windows Kits\10\bin\10.0.19041.0\x64"
+          )
+          foreach ($path in $sdkPaths) {
+            if (Test-Path "$path\makeappx.exe") {
+              $makeappx = "$path\makeappx.exe"
+              break
+            }
+          }
+          if (-not $makeappx) {
+            Write-Error "makeappx.exe not found in standard SDK paths!"
+            exit 1
+          }
+
+          $deltaPath = Join-Path (Split-Path $newPackage -Parent) "delta.msix"
+          & $makeappx diff /p "$($oldPackage.FullName)" /n "$newPackage" /o "$deltaPath"
+          if (Test-Path $deltaPath) {
+            echo "delta-package=$deltaPath" >> $env:GITHUB_OUTPUT
+          }
+        }
 
     - name: Generate update manifest
-      shell: pwsh
       run: |
         $manifest = @{
           version = "$env:VERSION"
@@ -190,11 +203,18 @@ jobs:
           previousVersion = "${{ steps.download-previous.outputs.previous-version }}"
           updateType = "full"
         }
-        
-        $manifestJson = $manifest | ConvertTo-Json -Depth 10
-        $manifestJson | Out-File -FilePath "update-manifest.json" -Encoding utf8
-        
-        Write-Host "Update manifest generated successfully"
+        if ("${{ steps.create-delta.outputs.delta-package }}" -ne "") {
+          $deltaFile = "${{ steps.create-delta.outputs.delta-package }}"
+          $deltaHash = (Get-FileHash -Path $deltaFile -Algorithm SHA256).Hash
+          $manifest.packages.delta = @{
+            name = (Split-Path $deltaFile -Leaf)
+            size = (Get-Item $deltaFile).Length
+            hash = $deltaHash
+            url = "https://github.com/${{ github.repository }}/releases/download/v$env:VERSION/$(Split-Path $deltaFile -Leaf)"
+          }
+          $manifest.updateType = "delta"
+        }
+        $manifest | ConvertTo-Json -Depth 10 | Out-File -FilePath "update-manifest.json" -Encoding utf8
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -202,22 +222,14 @@ jobs:
         name: msix-packages-${{ steps.version.outputs.version }}
         path: |
           ${{ steps.find-packages.outputs.main-package }}
+          ${{ steps.create-delta.outputs.delta-package }}
           update-manifest.json
         retention-days: 90
 
   release:
     needs: build-and-package
     runs-on: ubuntu-latest
-    
-    # GÜNCELLEME 1: Bu işin sadece bir tag (örn: v1.0.2) push'landığında çalışmasını sağla.
-    # Bu, her main commit'inde gereksiz release oluşturulmasını engeller.
-    if: success() && startsWith(github.ref, 'refs/tags/v')
-    
-    # GÜNCELLEME 2: Hatanın ana çözümü. Bu blok, GITHUB_TOKEN'a release oluşturma ve
-    # dosya yükleme izni verir. "Resource not accessible" hatasını bu düzeltir.
-    permissions:
-      contents: write
-
+    if: needs.build-and-package.result == 'success'
     steps:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
@@ -232,32 +244,13 @@ jobs:
       with:
         tag_name: v${{ needs.build-and-package.outputs.version }}
         release_name: MuhasibPro v${{ needs.build-and-package.outputs.version }}
-        body: |
-          ## MuhasibPro v${{ needs.build-and-package.outputs.version }}
-          
-          ### 📦 Bu Sürümde
-          - Otomatik build #${{ needs.build-and-package.outputs.build-number }}
-          - Commit: ${{ github.sha }}
-          
-          ### 🚀 Kurulum
-          1. Aşağıdaki MSIX paketini indirin
-          2. Gerekirse sertifika kurun  
-          3. Çift tıklayıp kurun
-          
-          ### ✨ Özellikler
-          - Otomatik güncellemeler
-          - Delta update desteği
-          - Güvenli imza
         draft: false
         prerelease: false
 
     - name: Upload Release Assets
       run: |
-        echo "🎁 Release assets yükleniyor..."
-        
-        for file in *.msix *.msixbundle; do
+        for file in *.msix *.msixbundle delta.msix update-manifest.json; do
           if [ -f "$file" ]; then
-            echo "📦 Uploading: $file"
             curl -L \
               -X POST \
               -H "Accept: application/vnd.github+json" \
@@ -267,42 +260,3 @@ jobs:
               "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=$file"
           fi
         done
-        
-        if [ -f "update-manifest.json" ]; then
-          echo "📝 Uploading: update-manifest.json"
-          curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data-binary "@update-manifest.json" \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=update-manifest.json"
-        fi
-        
-        echo "🎉 Release başarıyla oluşturuldu!"
-
-  deploy-update-server:
-    needs: [build-and-package, release]
-    runs-on: ubuntu-latest
-
-    # GÜNCELLEME 3: Bu işin de sadece bir release başarıyla oluşturulduğunda çalışmasını sağla.
-    if: success() && startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: msix-packages-${{ needs.build-and-package.outputs.version }}
-
-    - name: Deploy to update server
-      run: |
-        echo "🚀 Update manifest hazırlanıyor..."
-        echo "📋 Version: ${{ needs.build-and-package.outputs.version }}"
-        echo "✅ Update manifest deployment ready!"
-        
-        # Buraya kendi update sunucunuza yükleme yapacak olan kodunuzu ekleyebilirsiniz.
-        # Örneğin:
-        # curl -X POST https://your-server.com/api/releases \
-        #   -H "Authorization: Bearer $UPDATE_SERVER_TOKEN" \
-        #   -H "Content-Type: application/json" \
-        #   --data-binary "@update-manifest.json"
