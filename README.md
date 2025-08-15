@@ -8,4 +8,4 @@ Modern muhasebe yazılımı - WinUI3 ile geliştirilmiş.
 - Delta update sistemi
 
 ## Kurulum
--Çalışıyorum... :)
+-Çalışıyorum...! :)
