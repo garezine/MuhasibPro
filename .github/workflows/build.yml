@@ -189,40 +189,46 @@ jobs:
       if: steps.download-previous.outputs.has-previous == 'true'
       run: |
         $currentPackage = "${{ steps.find-packages.outputs.main-package }}"
-        $previousFiles = Get-ChildItem -Path "previous" -Filter "*.${{ steps.find-packages.outputs.package-type }}"
         
-        if ($previousFiles.Count -gt 0) {
-          $previousPackage = $previousFiles[0].FullName
-          $deltaOutputDir = "delta-output"
-          New-Item -ItemType Directory -Path $deltaOutputDir -Force
+        if (Test-Path "previous") {
+          $previousFiles = Get-ChildItem -Path "previous" -Filter "*.${{ steps.find-packages.outputs.package-type }}"
           
-          Write-Host "Creating delta between:"
-          Write-Host "Previous: $previousPackage"
-          Write-Host "Current: $currentPackage"
-          
-          # Delta package oluştur (basitleştirilmiş)
-          $deltaName = "$env:APP_NAME-$env:VERSION-delta.${{ steps.find-packages.outputs.package-type }}"
-          $deltaPath = Join-Path $deltaOutputDir $deltaName
-          
-          # Gerçek delta hesaplama burada yapılacak
-          # Şimdilik current package'ı kopyalayıp delta olarak işaretliyoruz
-          Copy-Item $currentPackage $deltaPath
-          
-          $deltaSize = (Get-Item $deltaPath).Length
-          $currentSize = (Get-Item $currentPackage).Length
-          $compressionRatio = [math]::Round(($deltaSize / $currentSize) * 100, 2)
-          
-          echo "delta-created=true" >> $env:GITHUB_OUTPUT
-          echo "delta-path=$deltaPath" >> $env:GITHUB_OUTPUT
-          echo "delta-name=$deltaName" >> $env:GITHUB_OUTPUT
-          echo "delta-size=$deltaSize" >> $env:GITHUB_OUTPUT
-          echo "compression-ratio=$compressionRatio" >> $env:GITHUB_OUTPUT
-          
-          Write-Host "Delta package created: $deltaName"
-          Write-Host "Delta size: $deltaSize bytes ($compressionRatio% of full package)"
+          if ($previousFiles.Count -gt 0) {
+            $previousPackage = $previousFiles[0].FullName
+            $deltaOutputDir = "delta-output"
+            New-Item -ItemType Directory -Path $deltaOutputDir -Force
+            
+            Write-Host "Creating delta between:"
+            Write-Host "Previous: $previousPackage"
+            Write-Host "Current: $currentPackage"
+            
+            # Delta package oluştur (basitleştirilmiş)
+            $deltaName = "$env:APP_NAME-$env:VERSION-delta.${{ steps.find-packages.outputs.package-type }}"
+            $deltaPath = Join-Path $deltaOutputDir $deltaName
+            
+            # Gerçek delta hesaplama burada yapılacak
+            # Şimdilik current package'ı kopyalayıp delta olarak işaretliyoruz
+            Copy-Item $currentPackage $deltaPath
+            
+            $deltaSize = (Get-Item $deltaPath).Length
+            $currentSize = (Get-Item $currentPackage).Length
+            $compressionRatio = [math]::Round(($deltaSize / $currentSize) * 100, 2)
+            
+            echo "delta-created=true" >> $env:GITHUB_OUTPUT
+            echo "delta-path=$deltaPath" >> $env:GITHUB_OUTPUT
+            echo "delta-name=$deltaName" >> $env:GITHUB_OUTPUT
+            echo "delta-size=$deltaSize" >> $env:GITHUB_OUTPUT
+            echo "compression-ratio=$compressionRatio" >> $env:GITHUB_OUTPUT
+            
+            Write-Host "Delta package created: $deltaName"
+            Write-Host "Delta size: $deltaSize bytes ($compressionRatio% of full package)"
+          } else {
+            echo "delta-created=false" >> $env:GITHUB_OUTPUT
+            Write-Host "No previous package found in previous folder"
+          }
         } else {
           echo "delta-created=false" >> $env:GITHUB_OUTPUT
-          Write-Host "No previous package found for delta creation"
+          Write-Host "Previous folder does not exist"
         }
 
     - name: Generate update manifest
