@@ -174,10 +174,63 @@ jobs:
         }
 
     # FİX 5: MSIX build işlemini optimize edin
+    - name: Verify project structure
+      shell: pwsh
+      run: |
+        Write-Host "=== PROJECT STRUCTURE VERIFICATION ==="
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Solution file check:"
+        if (Test-Path $env:SOLUTION_NAME) {
+          Write-Host "✅ Solution found: $env:SOLUTION_NAME"
+        } else {
+          Write-Host "❌ Solution NOT found: $env:SOLUTION_NAME"
+        }
+        
+        Write-Host "WAP Project check:"
+        if (Test-Path $env:WAP_PROJECT_PATH) {
+          Write-Host "✅ WAP project found: $env:WAP_PROJECT_PATH"
+          Write-Host "WAP project content preview:"
+          Get-Content $env:WAP_PROJECT_PATH | Select-Object -First 20
+        } else {
+          Write-Host "❌ WAP project NOT found: $env:WAP_PROJECT_PATH"
+          Write-Host "Available src directories:"
+          if (Test-Path "src") {
+            Get-ChildItem "src" -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
+          }
+        }
+        
+        Write-Host "Certificate check:"
+        $certPath = "MuhasibPro.Package/workflow_cert.pfx"
+        if (Test-Path $certPath) {
+          $certSize = (Get-Item $certPath).Length
+          Write-Host "✅ Certificate found: $certPath ($certSize bytes)"
+        } else {
+          Write-Host "❌ Certificate NOT found: $certPath"
+        }
+
     - name: Create MSIX package
       shell: pwsh
       run: |
         try {
+          # Proje dosyası varlığını kontrol et
+          if (!(Test-Path $env:WAP_PROJECT_PATH)) {
+            Write-Error "WAP project file not found: $env:WAP_PROJECT_PATH"
+            Write-Host "Available files in src:"
+            if (Test-Path "src") {
+              Get-ChildItem "src" -Recurse -File "*.wapproj" | ForEach-Object { 
+                Write-Host "Found WAP project: $($_.FullName)" 
+              }
+            }
+            exit 1
+          }
+          
+          # Certificate varlığını kontrol et
+          $certPath = "MuhasibPro.Package/workflow_cert.pfx"
+          if (!(Test-Path $certPath)) {
+            Write-Error "Certificate file not found: $certPath"
+            exit 1
+          }
+          
           # AppxPackages klasörünü temizle ve oluştur
           if (Test-Path "AppxPackages") {
             Remove-Item "AppxPackages" -Recurse -Force
@@ -188,52 +241,80 @@ jobs:
           Write-Host "WAP Project: $env:WAP_PROJECT_PATH"
           Write-Host "Version: $env:VERSION"
           
-          # Absolute path kullan
-          $wapProjectFullPath = Resolve-Path $env:WAP_PROJECT_PATH
-          $certFullPath = Resolve-Path "MuhasibPro.Package/workflow_cert.pfx"
+          # Absolute path'leri al
+          $wapProjectFullPath = (Resolve-Path $env:WAP_PROJECT_PATH).Path
+          $certFullPath = (Resolve-Path $certPath).Path
+          $outputDirFullPath = (Resolve-Path "AppxPackages").Path + "\"
           
           Write-Host "Full WAP Project Path: $wapProjectFullPath"
           Write-Host "Full Certificate Path: $certFullPath"
+          Write-Host "Output Directory: $outputDirFullPath"
           
-          # MSBuild ile MSIX package oluştur
-          $buildArgs = @(
-            "`"$wapProjectFullPath`""
-            "/p:Configuration=Release"
-            "/p:Platform=x64"
-            "/p:PackageCertificateKeyFile=`"$certFullPath`""
-            "/p:PackageCertificatePassword=`"${{ secrets.PFX_KEY }}`""
-            "/p:AppxPackageDir=`"AppxPackages\\`""
-            "/p:AppxBundle=Always"
-            "/p:GenerateAppxPackageOnBuild=true"
-            "/p:PublishReadyToRun=false"
-            "/p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER"
-            "/verbosity:detailed"
-          )
+          # MSBuild ile MSIX package oluştur - Daha basit yaklaşım
+          Write-Host "=== Starting MSBuild ==="
           
-          Write-Host "MSBuild arguments:"
-          $buildArgs | ForEach-Object { Write-Host "  $_" }
+          msbuild "$wapProjectFullPath" `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:PackageCertificateKeyFile="$certFullPath" `
+            /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}" `
+            /p:AppxPackageDir="$outputDirFullPath" `
+            /p:AppxBundle=Always `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:UapAppxPackageBuildMode=StoreUpload `
+            /verbosity:detailed
           
-          $buildCmd = "msbuild " + ($buildArgs -join " ")
-          Write-Host "Executing: $buildCmd"
-          
-          Invoke-Expression $buildCmd
+          Write-Host "MSBuild exit code: $LASTEXITCODE"
           
           if ($LASTEXITCODE -ne 0) {
             Write-Error "MSIX package build failed with exit code: $LASTEXITCODE"
+            
+            # Hata analizi
+            Write-Host "=== ERROR ANALYSIS ==="
+            Write-Host "Checking for common issues..."
+            
+            # Manifest kontrolü
+            $manifestPath = "src/MuhasibProWap/Package.appxmanifest"
+            if (Test-Path $manifestPath) {
+              Write-Host "Manifest exists, checking version:"
+              Get-Content $manifestPath | Select-String "Version="
+            }
+            
+            # Dependencies kontrolü
+            Write-Host "Checking dependencies in AppxPackages:"
+            if (Test-Path "AppxPackages") {
+              Get-ChildItem "AppxPackages" -Recurse | ForEach-Object {
+                Write-Host "File: $($_.Name)"
+              }
+            }
+            
             exit $LASTEXITCODE
           }
           
           Write-Host "MSIX package build completed successfully"
           
-          # Build sonrası dosya kontrolü
-          Write-Host "Checking build output..."
+          # Build sonrası detaylı dosya kontrolü
+          Write-Host "=== BUILD OUTPUT ANALYSIS ==="
           if (Test-Path "AppxPackages") {
+            Write-Host "AppxPackages directory contents:"
             Get-ChildItem "AppxPackages" -Recurse | ForEach-Object {
-              Write-Host "Found: $($_.FullName) (Size: $($_.Length) bytes)"
+              $sizeInfo = if ($_.PSIsContainer) { "[DIR]" } else { "[$($_.Length) bytes]" }
+              Write-Host "  $($_.FullName) $sizeInfo"
             }
+          } else {
+            Write-Host "❌ AppxPackages directory was not created!"
           }
+          
+          # Workspace'deki tüm MSIX dosyalarını ara
+          Write-Host "Searching for MSIX files in entire workspace:"
+          Get-ChildItem -Recurse -Include "*.msix", "*.msixbundle" | ForEach-Object {
+            Write-Host "Found MSIX: $($_.FullName) [$($_.Length) bytes]"
+          }
+          
         } catch {
-          Write-Error "MSIX build failed: $_"
+          Write-Error "MSIX build failed with exception: $_"
+          Write-Host "Exception details: $($_.Exception.Message)"
+          Write-Host "Stack trace: $($_.ScriptStackTrace)"
           exit 1
         }
 
@@ -243,53 +324,106 @@ jobs:
       shell: pwsh
       run: |
         try {
+          Write-Host "=== PACKAGE SEARCH ANALYSIS ==="
           Write-Host "Searching for generated packages..."
           
-          # Önce AppxPackages klasörünü kontrol et
+          # Önce tüm workspace'i tara
+          Write-Host "Scanning entire workspace for MSIX files:"
+          $allMsixFiles = Get-ChildItem -Recurse -Include "*.msix", "*.msixbundle" -ErrorAction SilentlyContinue
+          
+          if ($allMsixFiles.Count -gt 0) {
+            Write-Host "Found MSIX files in workspace:"
+            $allMsixFiles | ForEach-Object {
+              Write-Host "  $($_.FullName) [$($_.Length) bytes]"
+            }
+          } else {
+            Write-Host "No MSIX files found in entire workspace!"
+          }
+          
+          # AppxPackages klasörünü kontrol et
           if (!(Test-Path "AppxPackages")) {
-            Write-Error "AppxPackages directory not found!"
-            exit 1
+            Write-Host "❌ AppxPackages directory not found!"
+            Write-Host "Available directories:"
+            Get-ChildItem -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
+            
+            # Alternatif output dizinlerini ara
+            Write-Host "Searching for alternative output directories:"
+            Get-ChildItem -Recurse -Directory -Include "*Package*", "*Output*", "*Publish*" -ErrorAction SilentlyContinue | ForEach-Object {
+              Write-Host "Found directory: $($_.FullName)"
+              $msixInDir = Get-ChildItem $_.FullName -Include "*.msix", "*.msixbundle" -Recurse -ErrorAction SilentlyContinue
+              if ($msixInDir.Count -gt 0) {
+                Write-Host "  Contains MSIX files:"
+                $msixInDir | ForEach-Object { Write-Host "    $($_.Name)" }
+              }
+            }
+            
+            # Eğer hiç MSIX bulunamazsa, build işlemi başarısız
+            if ($allMsixFiles.Count -eq 0) {
+              Write-Error "No MSIX packages found anywhere! Build may have failed."
+              Write-Host "Please check the MSBuild logs above for errors."
+              exit 1
+            }
           }
           
-          # Tüm dosyaları listele
-          Write-Host "Contents of AppxPackages:"
-          Get-ChildItem "AppxPackages" -Recurse | ForEach-Object {
-            Write-Host "  $($_.FullName)"
+          # AppxPackages içeriğini kontrol et (varsa)
+          if (Test-Path "AppxPackages") {
+            Write-Host "AppxPackages directory contents:"
+            Get-ChildItem "AppxPackages" -Recurse | ForEach-Object {
+              $type = if ($_.PSIsContainer) { "[DIR]" } else { "[FILE]" }
+              Write-Host "  $type $($_.FullName)"
+            }
           }
           
-          # MSIX ve MSIXBUNDLE dosyalarını ara
-          $msixFiles = Get-ChildItem "AppxPackages" -Recurse -Filter "*.msix" | Where-Object { $_.Name -notlike "*_Test*" -and $_.Name -notlike "*Dependencies*" }
-          $msixBundleFiles = Get-ChildItem "AppxPackages" -Recurse -Filter "*.msixbundle"
+          # MSIX ve MSIXBUNDLE dosyalarını ara (tüm workspace'de)
+          $msixFiles = Get-ChildItem -Recurse -Include "*.msix" -ErrorAction SilentlyContinue | Where-Object { 
+            $_.Name -notlike "*_Test*" -and $_.Name -notlike "*Dependencies*" -and $_.Name -notlike "*_x86_*" -and $_.Name -notlike "*_arm*"
+          }
+          $msixBundleFiles = Get-ChildItem -Recurse -Include "*.msixbundle" -ErrorAction SilentlyContinue
           
-          Write-Host "Found MSIX files: $($msixFiles.Count)"
-          Write-Host "Found MSIXBUNDLE files: $($msixBundleFiles.Count)"
+          Write-Host "Filtered MSIX files: $($msixFiles.Count)"
+          Write-Host "Filtered MSIXBUNDLE files: $($msixBundleFiles.Count)"
+          
+          # En uygun paketi seç
+          $mainPackage = $null
+          $packageType = $null
           
           if ($msixBundleFiles.Count -gt 0) {
-            $mainPackage = $msixBundleFiles[0].FullName
+            # MSIXBUNDLE tercih et
+            $mainPackage = $msixBundleFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
             $packageType = "msixbundle"
-            Write-Host "Using MSIXBUNDLE: $mainPackage"
+            Write-Host "Selected MSIXBUNDLE: $($mainPackage.FullName)"
           } elseif ($msixFiles.Count -gt 0) {
-            $mainPackage = $msixFiles[0].FullName
+            # MSIX kullan
+            $mainPackage = $msixFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
             $packageType = "msix"
-            Write-Host "Using MSIX: $mainPackage"
+            Write-Host "Selected MSIX: $($mainPackage.FullName)"
           } else {
-            Write-Error "No MSIX package found!"
-            Write-Host "Available files in AppxPackages:"
-            Get-ChildItem "AppxPackages" -Recurse | ForEach-Object { Write-Host "  $($_.Name)" }
+            # Hiçbir uygun paket bulunamadı
+            Write-Error "No suitable MSIX package found!"
+            Write-Host "All found files:"
+            Get-ChildItem -Recurse -Include "*.msix", "*.msixbundle" | ForEach-Object { 
+              Write-Host "  $($_.Name) (excluded: Test=$($_.Name -like '*_Test*'), Dep=$($_.Name -like '*Dependencies*'), x86=$($_.Name -like '*_x86_*'), arm=$($_.Name -like '*_arm*'))"
+            }
             exit 1
           }
           
-          $packageName = Split-Path -Leaf $mainPackage
-          Write-Host "Selected package: $packageName"
-          Write-Host "Package type: $packageType"
-          Write-Host "Full path: $mainPackage"
+          $packageName = $mainPackage.Name
+          $packageFullPath = $mainPackage.FullName
           
-          echo "main-package=$mainPackage" >> $env:GITHUB_OUTPUT
+          Write-Host "=== FINAL SELECTION ==="
+          Write-Host "Selected package: $packageName"
+          Write-Host "Package type: $packageType"  
+          Write-Host "Full path: $packageFullPath"
+          Write-Host "Size: $($mainPackage.Length) bytes"
+          Write-Host "Created: $($mainPackage.CreationTime)"
+          
+          echo "main-package=$packageFullPath" >> $env:GITHUB_OUTPUT
           echo "package-type=$packageType" >> $env:GITHUB_OUTPUT
           echo "package-name=$packageName" >> $env:GITHUB_OUTPUT
           
         } catch {
           Write-Error "Package finding failed: $_"
+          Write-Host "Exception: $($_.Exception.Message)"
           exit 1
         }
 
