@@ -594,12 +594,26 @@ jobs:
       run: |
         echo "📋 Copying artifacts to root directory..."
         if [ -d "artifacts" ]; then
-          # Tüm dosyaları root'a kopyala
-          cp -v artifacts/* . 2>/dev/null || echo "No files to copy or copy failed"
+          # MSIX dosyalarını özyinelemeli olarak ara ve root'a kopyala
+          echo "🔍 Searching for MSIX files in artifacts..."
+          find artifacts/ -name "*.msix" -o -name "*.msixbundle" | while read file; do
+            filename=$(basename "$file")
+            echo "📦 Copying: $file -> $filename ($(du -h "$file" | cut -f1))"
+            cp "$file" "$filename"
+          done
+          
+          # JSON dosyalarını da kopyala
+          find artifacts/ -name "*.json" | while read file; do
+            filename=$(basename "$file")
+            if [ ! -f "$filename" ]; then
+              echo "📝 Copying: $file -> $filename"
+              cp "$file" "$filename"
+            fi
+          done
           
           # Sonucu kontrol et
-          echo "Files in root after copy:"
-          ls -la *.msix *.msixbundle *.json 2>/dev/null || echo "No MSIX files found in root"
+          echo "✅ Files in root after copy:"
+          ls -la *.msix *.msixbundle *.json 2>/dev/null || echo "No target files found in root"
         fi
 
     - name: Create GitHub Release
