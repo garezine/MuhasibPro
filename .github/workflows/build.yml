@@ -5,7 +5,7 @@ name: .NET Desktop CI/CD with Delta Updates
 on:
   push:
     branches: [ "main" ]
-    tags: [ "v*" ] # Workflow'un tag'ler ile tetiklenmesini sağlar
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -35,11 +35,9 @@ jobs:
       shell: pwsh
       run: |
         if ("${{ github.ref }}" -like "refs/tags/v*") {
-          # Gelen tag'i al ve sonuna .0 ekle (örn: v1.2.3 -> 1.2.3.0)
           $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
           $version = "$tagVersion.0"
         } else {
-          # Tag yoksa, main branch'ine push için bir versiyon oluştur
           $buildNumber = ${{ github.run_number }}
           $version = "1.0.0.$buildNumber"
         }
@@ -55,6 +53,14 @@ jobs:
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
+
+    # FİX 1: NuGet restore işlemini ayrı bir adım olarak ekleyin
+    - name: Restore NuGet packages
+      shell: pwsh
+      run: |
+        Write-Host "Restoring NuGet packages..."
+        nuget restore $env:SOLUTION_NAME
+        Write-Host "NuGet restore completed"
 
     - name: Download previous release (for delta)
       id: download-previous
@@ -102,81 +108,217 @@ jobs:
           Write-Host "Previous version downloaded successfully"
         }
 
+    # FİX 2: Manifest güncelleme işlemini daha güvenli hale getirin
     - name: Update version in manifest
       shell: pwsh
       run: |
         $manifestPath = "src/MuhasibProWap/Package.appxmanifest"
         if (Test-Path $manifestPath) {
-          [xml]$manifest = Get-Content $manifestPath
+          Write-Host "Updating manifest at: $manifestPath"
+          [xml]$manifest = Get-Content $manifestPath -Encoding UTF8
           $manifest.Package.Identity.Version = "$env:VERSION"
           $manifest.Save($manifestPath)
           Write-Host "Updated manifest version to: $env:VERSION"
+          
+          # Manifest içeriğini kontrol et
+          Write-Host "Manifest content check:"
+          Get-Content $manifestPath | Select-String "Version="
+        } else {
+          Write-Error "Manifest file not found at: $manifestPath"
+          exit 1
         }
 
     - name: Restore dependencies
       run: dotnet restore $env:SOLUTION_NAME --runtime $env:RUNTIME_IDENTIFIER --verbosity normal
 
+    # FİX 3: Build işlemini daha detaylı hale getirin ve hata kontrolü ekleyin
     - name: Build solution
-      run: msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false
-
-    - name: Ensure Package directory exists
       shell: pwsh
       run: |
-        if (!(Test-Path "MuhasibPro.Package")) {
-            New-Item -ItemType Directory -Path "MuhasibPro.Package" | Out-Null
+        Write-Host "Building solution: $env:SOLUTION_NAME"
+        
+        $buildResult = msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false /verbosity:detailed
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Solution build failed with exit code: $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+        
+        Write-Host "Solution build completed successfully"
+
+    # FİX 4: Certificate handling işlemini güvenli hale getirin
+    - name: Prepare certificate directory
+      shell: pwsh
+      run: |
+        $certDir = "MuhasibPro.Package"
+        if (!(Test-Path $certDir)) {
+            New-Item -ItemType Directory -Path $certDir -Force | Out-Null
+            Write-Host "Created certificate directory: $certDir"
         }
 
     - name: Decode signing certificate
       shell: pwsh
       run: |
-        $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.BASE64_ENCODED_PFX }}")
-        $certPath = Join-Path -Path MuhasibPro.Package -ChildPath workflow_cert.pfx
-        [IO.File]::WriteAllBytes("$certPath", $pfxBytes)
+        try {
+          $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.BASE64_ENCODED_PFX }}")
+          $certPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "workflow_cert.pfx"
+          [IO.File]::WriteAllBytes($certPath, $pfxBytes)
+          Write-Host "Certificate decoded successfully to: $certPath"
+          
+          # Certificate file size kontrolü
+          $certSize = (Get-Item $certPath).Length
+          Write-Host "Certificate file size: $certSize bytes"
+        } catch {
+          Write-Error "Failed to decode certificate: $_"
+          exit 1
+        }
 
+    # FİX 5: MSIX build işlemini optimize edin
     - name: Create MSIX package
+      shell: pwsh
       run: |
-        New-Item -ItemType Directory -Path "AppxPackages" -Force
-        
-        Write-Host "Building MSIX package..."
-        Write-Host "WAP Project: $env:WAP_PROJECT_PATH"
-        
-        msbuild "$env:WAP_PROJECT_PATH" /p:Configuration=Release /p:Platform="x64" /p:PackageCertificateKeyFile=MuhasibPro.Package/workflow_cert.pfx /p:PackageCertificatePassword="${{ secrets.PFX_KEY }}" /p:AppxPackageDir="AppxPackages\\" /p:AppxBundle=Always /p:GenerateAppxPackageOnBuild=true /p:PublishReadyToRun=false
+        try {
+          # AppxPackages klasörünü temizle ve oluştur
+          if (Test-Path "AppxPackages") {
+            Remove-Item "AppxPackages" -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path "AppxPackages" -Force
+          
+          Write-Host "Building MSIX package..."
+          Write-Host "WAP Project: $env:WAP_PROJECT_PATH"
+          Write-Host "Version: $env:VERSION"
+          
+          # Absolute path kullan
+          $wapProjectFullPath = Resolve-Path $env:WAP_PROJECT_PATH
+          $certFullPath = Resolve-Path "MuhasibPro.Package/workflow_cert.pfx"
+          
+          Write-Host "Full WAP Project Path: $wapProjectFullPath"
+          Write-Host "Full Certificate Path: $certFullPath"
+          
+          # MSBuild ile MSIX package oluştur
+          $buildArgs = @(
+            "`"$wapProjectFullPath`""
+            "/p:Configuration=Release"
+            "/p:Platform=x64"
+            "/p:PackageCertificateKeyFile=`"$certFullPath`""
+            "/p:PackageCertificatePassword=`"${{ secrets.PFX_KEY }}`""
+            "/p:AppxPackageDir=`"AppxPackages\\`""
+            "/p:AppxBundle=Always"
+            "/p:GenerateAppxPackageOnBuild=true"
+            "/p:PublishReadyToRun=false"
+            "/p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER"
+            "/verbosity:detailed"
+          )
+          
+          Write-Host "MSBuild arguments:"
+          $buildArgs | ForEach-Object { Write-Host "  $_" }
+          
+          $buildCmd = "msbuild " + ($buildArgs -join " ")
+          Write-Host "Executing: $buildCmd"
+          
+          Invoke-Expression $buildCmd
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "MSIX package build failed with exit code: $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          
+          Write-Host "MSIX package build completed successfully"
+          
+          # Build sonrası dosya kontrolü
+          Write-Host "Checking build output..."
+          if (Test-Path "AppxPackages") {
+            Get-ChildItem "AppxPackages" -Recurse | ForEach-Object {
+              Write-Host "Found: $($_.FullName) (Size: $($_.Length) bytes)"
+            }
+          }
+        } catch {
+          Write-Error "MSIX build failed: $_"
+          exit 1
+        }
 
+    # FİX 6: Package finding işlemini daha robust hale getirin
     - name: Find generated packages
       id: find-packages
       shell: pwsh
       run: |
-        $msixFiles = Get-ChildItem -Recurse -Filter "*.msix" | Where-Object { $_.Name -notlike "*_Test*" }
-        $msixBundleFiles = Get-ChildItem -Recurse -Filter "*.msixbundle"
-        
-        if ($msixBundleFiles.Count -gt 0) {
-          $mainPackage = $msixBundleFiles[0].FullName
-          $packageType = "msixbundle"
-        } elseif ($msixFiles.Count -gt 0) {
-          $mainPackage = $msixFiles[0].FullName
-          $packageType = "msix"
-        } else {
-          Write-Error "No MSIX package found!"
+        try {
+          Write-Host "Searching for generated packages..."
+          
+          # Önce AppxPackages klasörünü kontrol et
+          if (!(Test-Path "AppxPackages")) {
+            Write-Error "AppxPackages directory not found!"
+            exit 1
+          }
+          
+          # Tüm dosyaları listele
+          Write-Host "Contents of AppxPackages:"
+          Get-ChildItem "AppxPackages" -Recurse | ForEach-Object {
+            Write-Host "  $($_.FullName)"
+          }
+          
+          # MSIX ve MSIXBUNDLE dosyalarını ara
+          $msixFiles = Get-ChildItem "AppxPackages" -Recurse -Filter "*.msix" | Where-Object { $_.Name -notlike "*_Test*" -and $_.Name -notlike "*Dependencies*" }
+          $msixBundleFiles = Get-ChildItem "AppxPackages" -Recurse -Filter "*.msixbundle"
+          
+          Write-Host "Found MSIX files: $($msixFiles.Count)"
+          Write-Host "Found MSIXBUNDLE files: $($msixBundleFiles.Count)"
+          
+          if ($msixBundleFiles.Count -gt 0) {
+            $mainPackage = $msixBundleFiles[0].FullName
+            $packageType = "msixbundle"
+            Write-Host "Using MSIXBUNDLE: $mainPackage"
+          } elseif ($msixFiles.Count -gt 0) {
+            $mainPackage = $msixFiles[0].FullName
+            $packageType = "msix"
+            Write-Host "Using MSIX: $mainPackage"
+          } else {
+            Write-Error "No MSIX package found!"
+            Write-Host "Available files in AppxPackages:"
+            Get-ChildItem "AppxPackages" -Recurse | ForEach-Object { Write-Host "  $($_.Name)" }
+            exit 1
+          }
+          
+          $packageName = Split-Path -Leaf $mainPackage
+          Write-Host "Selected package: $packageName"
+          Write-Host "Package type: $packageType"
+          Write-Host "Full path: $mainPackage"
+          
+          echo "main-package=$mainPackage" >> $env:GITHUB_OUTPUT
+          echo "package-type=$packageType" >> $env:GITHUB_OUTPUT
+          echo "package-name=$packageName" >> $env:GITHUB_OUTPUT
+          
+        } catch {
+          Write-Error "Package finding failed: $_"
           exit 1
         }
-        
-        Write-Host "Found package: $mainPackage"
-        echo "main-package=$mainPackage" >> $env:GITHUB_OUTPUT
-        echo "package-type=$packageType" >> $env:GITHUB_OUTPUT
-        echo "package-name=$(Split-Path -Leaf $mainPackage)" >> $env:GITHUB_OUTPUT
 
     - name: Calculate package hash
       id: hash
       shell: pwsh
       run: |
         $packagePath = "${{ steps.find-packages.outputs.main-package }}"
+        
+        if (!(Test-Path $packagePath)) {
+          Write-Error "Package file not found: $packagePath"
+          exit 1
+        }
+        
         $hash = Get-FileHash -Path $packagePath -Algorithm SHA256
         echo "package-hash=$($hash.Hash)" >> $env:GITHUB_OUTPUT
         Write-Host "Package hash: $($hash.Hash)"
+        
+        # Package bilgilerini göster
+        $packageInfo = Get-Item $packagePath
+        Write-Host "Package size: $($packageInfo.Length) bytes"
+        Write-Host "Package created: $($packageInfo.CreationTime)"
 
     - name: Generate update manifest
       shell: pwsh
       run: |
+        $packagePath = "${{ steps.find-packages.outputs.main-package }}"
+        $packageItem = Get-Item $packagePath
+        
         $manifest = @{
           version = "$env:VERSION"
           buildNumber = "${{ steps.version.outputs.build-number }}"
@@ -184,7 +326,7 @@ jobs:
           packages = @{
             full = @{
               name = "${{ steps.find-packages.outputs.package-name }}"
-              size = (Get-Item "${{ steps.find-packages.outputs.main-package }}").Length
+              size = $packageItem.Length
               hash = "${{ steps.hash.outputs.package-hash }}"
               url = "https://github.com/${{ github.repository }}/releases/download/v$env:VERSION/${{ steps.find-packages.outputs.package-name }}"
             }
@@ -196,8 +338,10 @@ jobs:
         $manifestJson = $manifest | ConvertTo-Json -Depth 10
         $manifestJson | Out-File -FilePath "update-manifest.json" -Encoding utf8
         
-        Write-Host "Update manifest generated successfully"
+        Write-Host "Update manifest generated successfully:"
+        Write-Host $manifestJson
 
+    # FİX 7: Artifact upload'u daha güvenli hale getirin
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -207,16 +351,30 @@ jobs:
           update-manifest.json
         retention-days: 90
 
+    # FİX 8: Debug için build sonuçlarını listeleyin
+    - name: List all build outputs (Debug)
+      if: always()
+      shell: pwsh
+      run: |
+        Write-Host "=== BUILD OUTPUT DEBUG ==="
+        
+        if (Test-Path "AppxPackages") {
+          Write-Host "AppxPackages contents:"
+          Get-ChildItem "AppxPackages" -Recurse | ForEach-Object {
+            Write-Host "  $($_.FullName) - $($_.Length) bytes"
+          }
+        }
+        
+        Write-Host "Current directory contents:"
+        Get-ChildItem -Force | ForEach-Object {
+          Write-Host "  $($_.Name) - $($_.Length) bytes"
+        }
+
   release:
     needs: build-and-package
     runs-on: ubuntu-latest
-    
-    # GÜNCELLEME 1: Bu işin sadece bir tag (örn: v1.0.2) push'landığında çalışmasını sağla.
-    # Bu, her main commit'inde gereksiz release oluşturulmasını engeller.
     if: success() && startsWith(github.ref, 'refs/tags/v')
     
-    # GÜNCELLEME 2: Hatanın ana çözümü. Bu blok, GITHUB_TOKEN'a release oluşturma ve
-    # dosya yükleme izni verir. "Resource not accessible" hatasını bu düzeltir.
     permissions:
       contents: write
 
@@ -225,6 +383,21 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: msix-packages-${{ needs.build-and-package.outputs.version }}
+
+    - name: Verify downloaded artifacts
+      run: |
+        echo "📋 Verifying downloaded artifacts..."
+        ls -la
+        
+        # MSIX/MSIXBUNDLE dosyalarını kontrol et
+        msix_count=$(find . -name "*.msix" -o -name "*.msixbundle" | wc -l)
+        if [ "$msix_count" -eq 0 ]; then
+          echo "❌ No MSIX packages found in artifacts!"
+          exit 1
+        fi
+        
+        echo "✅ Found $msix_count MSIX package(s)"
+        find . -name "*.msix" -o -name "*.msixbundle" -exec ls -lh {} \;
 
     - name: Create GitHub Release
       id: create-release
@@ -259,7 +432,7 @@ jobs:
         
         for file in *.msix *.msixbundle; do
           if [ -f "$file" ]; then
-            echo "📦 Uploading: $file"
+            echo "📦 Uploading: $file ($(du -h "$file" | cut -f1))"
             curl -L \
               -X POST \
               -H "Accept: application/vnd.github+json" \
@@ -286,8 +459,6 @@ jobs:
   deploy-update-server:
     needs: [build-and-package, release]
     runs-on: ubuntu-latest
-
-    # GÜNCELLEME 3: Bu işin de sadece bir release başarıyla oluşturulduğunda çalışmasını sağla.
     if: success() && startsWith(github.ref, 'refs/tags/v')
     
     steps:
@@ -301,10 +472,3 @@ jobs:
         echo "🚀 Update manifest hazırlanıyor..."
         echo "📋 Version: ${{ needs.build-and-package.outputs.version }}"
         echo "✅ Update manifest deployment ready!"
-        
-        # Buraya kendi update sunucunuza yükleme yapacak olan kodunuzu ekleyebilirsiniz.
-        # Örneğin:
-        # curl -X POST https://your-server.com/api/releases \
-        #   -H "Authorization: Bearer $UPDATE_SERVER_TOKEN" \
-        #   -H "Content-Type: application/json" \
-        #   --data-binary "@update-manifest.json"
