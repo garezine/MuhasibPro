@@ -497,7 +497,14 @@ jobs:
       if: always()
       shell: pwsh
       run: |
-        Write-Host "=== BUILD OUTPUT DEBUG ==="
+        Write-Host "=== FINAL BUILD OUTPUT DEBUG ==="
+        
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Current directory contents:"
+        Get-ChildItem -Force | ForEach-Object {
+          $size = if ($_.PSIsContainer) { "[DIR]" } else { "[$($_.Length) bytes]" }
+          Write-Host "  $($_.Name) $size"
+        }
         
         if (Test-Path "AppxPackages") {
           Write-Host "AppxPackages contents:"
@@ -506,9 +513,33 @@ jobs:
           }
         }
         
-        Write-Host "Current directory contents:"
-        Get-ChildItem -Force | ForEach-Object {
-          Write-Host "  $($_.Name) - $($_.Length) bytes"
+        Write-Host "All MSIX files in workspace:"
+        Get-ChildItem -Recurse -Include "*.msix", "*.msixbundle" -ErrorAction SilentlyContinue | ForEach-Object {
+          Write-Host "  $($_.FullName) - $($_.Length) bytes"
+        }
+        
+        Write-Host "Artifact upload paths:"
+        Write-Host "Main package path: ${{ steps.find-packages.outputs.main-package }}"
+        Write-Host "Package name: ${{ steps.find-packages.outputs.package-name }}"
+        Write-Host "Package type: ${{ steps.find-packages.outputs.package-type }}"
+        
+        # Package dosyasının gerçekten var olup olmadığını kontrol et
+        $packagePath = "${{ steps.find-packages.outputs.main-package }}"
+        if (Test-Path $packagePath) {
+          $packageInfo = Get-Item $packagePath
+          Write-Host "✅ Package file exists: $($packageInfo.FullName)"
+          Write-Host "   Size: $($packageInfo.Length) bytes"
+          Write-Host "   Modified: $($packageInfo.LastWriteTime)"
+        } else {
+          Write-Host "❌ Package file NOT found: $packagePath"
+        }
+        
+        if (Test-Path "update-manifest.json") {
+          Write-Host "✅ Update manifest exists"
+          Write-Host "Manifest content:"
+          Get-Content "update-manifest.json" | Write-Host
+        } else {
+          Write-Host "❌ Update manifest NOT found"
         }
 
   release:
@@ -528,17 +559,29 @@ jobs:
     - name: Verify downloaded artifacts
       run: |
         echo "📋 Verifying downloaded artifacts..."
+        echo "Current directory contents:"
         ls -la
         
+        echo "All files recursively:"
+        find . -type f -exec ls -lh {} \;
+        
         # MSIX/MSIXBUNDLE dosyalarını kontrol et
+        echo "Searching for MSIX files:"
+        find . -name "*.msix" -o -name "*.msixbundle" | while read file; do
+          echo "Found MSIX: $file ($(du -h "$file" | cut -f1))"
+        done
+        
         msix_count=$(find . -name "*.msix" -o -name "*.msixbundle" | wc -l)
+        echo "Total MSIX files found: $msix_count"
+        
         if [ "$msix_count" -eq 0 ]; then
           echo "❌ No MSIX packages found in artifacts!"
+          echo "Available files:"
+          find . -type f | head -20
           exit 1
         fi
         
         echo "✅ Found $msix_count MSIX package(s)"
-        find . -name "*.msix" -o -name "*.msixbundle" -exec ls -lh {} \;
 
     - name: Create GitHub Release
       id: create-release
@@ -571,31 +614,65 @@ jobs:
       run: |
         echo "🎁 Release assets yükleniyor..."
         
+        # Önce tüm dosyaları listele
+        echo "Available files in current directory:"
+        ls -la
+        
+        # MSIX dosyalarını yükle
+        uploaded_count=0
         for file in *.msix *.msixbundle; do
           if [ -f "$file" ]; then
             echo "📦 Uploading: $file ($(du -h "$file" | cut -f1))"
-            curl -L \
+            
+            curl_response=$(curl -w "%{http_code}" -s -L \
               -X POST \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "Content-Type: application/octet-stream" \
               --data-binary "@$file" \
-              "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=$file"
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=$file")
+            
+            http_code="${curl_response: -3}"
+            if [ "$http_code" = "201" ]; then
+              echo "✅ Successfully uploaded: $file"
+              uploaded_count=$((uploaded_count + 1))
+            else
+              echo "❌ Failed to upload $file (HTTP: $http_code)"
+              echo "Response: $curl_response"
+            fi
+          else
+            echo "⚠️ File not found: $file"
           fi
         done
         
+        # Update manifest'i yükle
         if [ -f "update-manifest.json" ]; then
           echo "📝 Uploading: update-manifest.json"
-          curl -L \
+          curl_response=$(curl -w "%{http_code}" -s -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data-binary "@update-manifest.json" \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=update-manifest.json"
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=update-manifest.json")
+          
+          http_code="${curl_response: -3}"
+          if [ "$http_code" = "201" ]; then
+            echo "✅ Successfully uploaded: update-manifest.json"
+          else
+            echo "❌ Failed to upload update-manifest.json (HTTP: $http_code)"
+          fi
         fi
         
-        echo "🎉 Release başarıyla oluşturuldu!"
+        echo "📊 Upload Summary:"
+        echo "   MSIX files uploaded: $uploaded_count"
+        
+        if [ "$uploaded_count" -eq 0 ]; then
+          echo "❌ No MSIX files were uploaded!"
+          exit 1
+        fi
+        
+        echo "🎉 Release assets başarıyla yüklendi!"
 
   deploy-update-server:
     needs: [build-and-package, release]
