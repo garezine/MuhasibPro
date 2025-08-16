@@ -137,7 +137,13 @@ jobs:
       run: |
         Write-Host "Building solution: $env:SOLUTION_NAME"
         
-        $buildResult = msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false /verbosity:detailed
+        msbuild $env:SOLUTION_NAME `
+          /p:Configuration=Release `
+          /p:Platform="x64" `
+          /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
+          /p:PublishReadyToRun=false `
+          /p:RestorePackagesConfig=false `
+          /verbosity:detailed
         
         if ($LASTEXITCODE -ne 0) {
           Write-Error "Solution build failed with exit code: $LASTEXITCODE"
@@ -250,7 +256,7 @@ jobs:
           Write-Host "Full Certificate Path: $certFullPath"
           Write-Host "Output Directory: $outputDirFullPath"
           
-          # MSBuild ile MSIX package oluştur - Daha basit yaklaşım
+          # MSBuild ile MSIX package oluştur - PublishReadyToRun=false FIX
           Write-Host "=== Starting MSBuild ==="
           
           msbuild "$wapProjectFullPath" `
@@ -261,6 +267,7 @@ jobs:
             /p:AppxPackageDir="$outputDirFullPath" `
             /p:AppxBundle=Always `
             /p:GenerateAppxPackageOnBuild=true `
+            /p:PublishReadyToRun=false `
             /p:UapAppxPackageBuildMode=StoreUpload `
             /verbosity:detailed
           
