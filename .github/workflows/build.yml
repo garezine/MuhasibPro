@@ -555,6 +555,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: msix-packages-${{ needs.build-and-package.outputs.version }}
+        path: ./artifacts  # Artifact'ları belirli bir klasöre indir
 
     - name: Verify downloaded artifacts
       run: |
@@ -562,8 +563,14 @@ jobs:
         echo "Current directory contents:"
         ls -la
         
-        echo "All files recursively:"
-        find . -type f -exec ls -lh {} \;
+        echo "Artifacts directory contents:"
+        if [ -d "artifacts" ]; then
+          ls -la artifacts/
+          echo "All files in artifacts recursively:"
+          find artifacts/ -type f -exec ls -lh {} \;
+        else
+          echo "❌ Artifacts directory not found!"
+        fi
         
         # MSIX/MSIXBUNDLE dosyalarını kontrol et
         echo "Searching for MSIX files:"
@@ -582,6 +589,18 @@ jobs:
         fi
         
         echo "✅ Found $msix_count MSIX package(s)"
+
+    - name: Copy artifacts to root directory
+      run: |
+        echo "📋 Copying artifacts to root directory..."
+        if [ -d "artifacts" ]; then
+          # Tüm dosyaları root'a kopyala
+          cp -v artifacts/* . 2>/dev/null || echo "No files to copy or copy failed"
+          
+          # Sonucu kontrol et
+          echo "Files in root after copy:"
+          ls -la *.msix *.msixbundle *.json 2>/dev/null || echo "No MSIX files found in root"
+        fi
 
     - name: Create GitHub Release
       id: create-release
@@ -618,11 +637,13 @@ jobs:
         echo "Available files in current directory:"
         ls -la
         
-        # MSIX dosyalarını yükle
+        # MSIX dosyalarını yükle (hem root'ta hem artifacts'ta ara)
         uploaded_count=0
+        
+        # Root directory'de ara
         for file in *.msix *.msixbundle; do
           if [ -f "$file" ]; then
-            echo "📦 Uploading: $file ($(du -h "$file" | cut -f1))"
+            echo "📦 Uploading from root: $file ($(du -h "$file" | cut -f1))"
             
             curl_response=$(curl -w "%{http_code}" -s -L \
               -X POST \
@@ -640,14 +661,42 @@ jobs:
               echo "❌ Failed to upload $file (HTTP: $http_code)"
               echo "Response: $curl_response"
             fi
-          else
-            echo "⚠️ File not found: $file"
           fi
         done
         
-        # Update manifest'i yükle
+        # Eğer root'ta bulunamadıysa artifacts klasöründe ara
+        if [ "$uploaded_count" -eq 0 ] && [ -d "artifacts" ]; then
+          echo "🔍 Searching in artifacts directory..."
+          for file in artifacts/*.msix artifacts/*.msixbundle; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "📦 Uploading from artifacts: $file -> $filename ($(du -h "$file" | cut -f1))"
+              
+              curl_response=$(curl -w "%{http_code}" -s -L \
+                -X POST \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Content-Type: application/octet-stream" \
+                --data-binary "@$file" \
+                "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=$filename")
+              
+              http_code="${curl_response: -3}"
+              if [ "$http_code" = "201" ]; then
+                echo "✅ Successfully uploaded: $filename"
+                uploaded_count=$((uploaded_count + 1))
+              else
+                echo "❌ Failed to upload $filename (HTTP: $http_code)"
+                echo "Response: $curl_response"
+              fi
+            fi
+          done
+        fi
+        
+        # Update manifest'i yükle (hem root'ta hem artifacts'ta ara)
+        manifest_uploaded=false
+        
         if [ -f "update-manifest.json" ]; then
-          echo "📝 Uploading: update-manifest.json"
+          echo "📝 Uploading update-manifest.json from root"
           curl_response=$(curl -w "%{http_code}" -s -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
@@ -659,16 +708,33 @@ jobs:
           http_code="${curl_response: -3}"
           if [ "$http_code" = "201" ]; then
             echo "✅ Successfully uploaded: update-manifest.json"
-          else
-            echo "❌ Failed to upload update-manifest.json (HTTP: $http_code)"
+            manifest_uploaded=true
+          fi
+        elif [ -f "artifacts/update-manifest.json" ]; then
+          echo "📝 Uploading update-manifest.json from artifacts"
+          curl_response=$(curl -w "%{http_code}" -s -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-binary "@artifacts/update-manifest.json" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create-release.outputs.id }}/assets?name=update-manifest.json")
+          
+          http_code="${curl_response: -3}"
+          if [ "$http_code" = "201" ]; then
+            echo "✅ Successfully uploaded: update-manifest.json"
+            manifest_uploaded=true
           fi
         fi
         
         echo "📊 Upload Summary:"
         echo "   MSIX files uploaded: $uploaded_count"
+        echo "   Manifest uploaded: $manifest_uploaded"
         
         if [ "$uploaded_count" -eq 0 ]; then
           echo "❌ No MSIX files were uploaded!"
+          echo "🔍 Final debug - all files in workspace:"
+          find . -name "*.msix" -o -name "*.msixbundle" -o -name "*.json" | head -10
           exit 1
         fi
         
