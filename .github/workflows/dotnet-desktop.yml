@@ -33,20 +33,38 @@ jobs:
         fetch-depth: 0
 
     - name: Generate version number
-      id: version
-      shell: pwsh
-      run: |
-        if ("${{ github.ref }}" -like "refs/tags/v*") {
-          $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
-          $version = "$tagVersion.0"
-        } else {
-          $buildNumber = ${{ github.run_number }}
-          $version = "1.0.0.$buildNumber"
-        }
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
-        echo "VERSION=$version" >> $env:GITHUB_ENV
-        Write-Host "Generated version: $version"
+  id: version
+  shell: pwsh
+  run: |
+    if ("${{ github.ref }}" -like "refs/tags/v*") {
+      $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
+      
+      # Sürüm formatını kontrol et ve düzelt
+      if ($tagVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        $version = "$tagVersion.0"
+      }
+      elseif ($tagVersion -match '^(\d+)\.(\d+)\.(\d+)\.(\d+)$') {
+        $version = $tagVersion
+      }
+      else {
+        Write-Error "❌ Invalid version format: $tagVersion"
+        exit 1
+      }
+    } else {
+      $buildNumber = ${{ github.run_number }}
+      $version = "1.0.0.$buildNumber"
+    }
+    
+    # Manifest için 4 bölümlü sürüm
+    echo "version=$version" >> $env:GITHUB_OUTPUT
+    echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
+    echo "VERSION=$version" >> $env:GITHUB_ENV
+    Write-Host "Generated version: $version"
+    
+    # Debug için ek bilgi
+    Write-Host "GitHub Ref: ${{ github.ref }}"
+    Write-Host "Tag Version: $tagVersion"
+    Write-Host "Final Version: $version"
 
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
@@ -153,32 +171,90 @@ jobs:
         New-Item -ItemType Directory -Path $certDir -Force | Out-Null
 
     - name: Decode and prepare signing certificate
-      shell: pwsh
-      run: |
-        try {
-          # PFX sertifikasını decode et
-          $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_CERTIFICATE }}")
-          $pfxPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "workflow_cert.pfx"
-          [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
-          Write-Host "✅ PFX certificate decoded to: $pfxPath"
-          
-          # CER sertifikasını oluştur (kullanıcılar için)
-          $cerPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "MuhasibPro_Setup_Certificate.cer"
-          $password = ConvertTo-SecureString -String "${{ secrets.PFX_PASSWORD }}" -AsPlainText -Force
-          
-          $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
-          $cert.Import($pfxPath, $password, [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable)
-          [System.IO.File]::WriteAllBytes($cerPath, $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-          
-          Write-Host "✅ CER certificate created: $cerPath"
-          Write-Host "Certificate subject: $($cert.Subject)"
-          Write-Host "Certificate expiration: $($cert.NotAfter)"
-          
-        } catch {
-          Write-Error "❌ Certificate processing failed: $_"
-          exit 1
-        }
+    shell: pwsh
+    run: |
+    try {
+      # PFX sertifikasını decode et
+      $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_CERTIFICATE_PFX }}")
+      $pfxPath = "MuhasibPro.Package/workflow_cert.pfx"
+      [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+      Write-Host "✅ PFX certificate decoded to: $pfxPath"
+      
+      # .NET Core uyumlu sertifika yükleme
+      $password = ConvertTo-SecureString -String "${{ secrets.PFX_PASSWORD }}" -AsPlainText -Force
+      
+      # Yapıcı kullanarak sertifikayı yükle
+      $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(
+        $pfxPath,
+        $password,
+        [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable
+      )
+      
+      # CER dosyasını oluştur
+      $cerPath = "MuhasibPro.Package/MuhasibPro_Setup_Certificate.cer"
+      [System.IO.File]::WriteAllBytes($cerPath, $cert.GetRawCertData())
+      Write-Host "✅ CER certificate created: $cerPath"
+      
+      # Thumbprint'i loglara yaz
+      Write-Host "Certificate thumbprint: $($cert.Thumbprint)"
+      Write-Host "Certificate subject: $($cert.Subject)"
+      Write-Host "Certificate expiration: $($cert.NotAfter)"
+      
+      # Güven scriptini oluştur
+      $trustScript = @"
+      @echo off
+      setlocal
+      echo MuhasibPro sertifikasını yükleniyor...
+      :: Sertifikayı indir
+      curl -L -o MuhasibPro.cer "https://github.com/${{ github.repository }}/releases/download/v$env:VERSION/MuhasibPro_Setup_Certificate.cer"
+      :: Sertifikayı yükle
+      certutil -addstore -f "Root" MuhasibPro.cer
+      :: Temizlik
+      del MuhasibPro.cer
+      echo Sertifika başarıyla yüklendi! Uygulamayı kurabilirsiniz.
+      pause
+      "@
+      $trustScript | Out-File -FilePath "MuhasibPro.Package/InstallCertificate.cmd" -Encoding ASCII
+      Write-Host "✅ Created trust script: InstallCertificate.cmd"
+      
+    } catch {
+      Write-Error "❌ Certificate processing failed: $_"
+      exit 1
+    }
 
+    - name: Generate version number
+  id: version
+  shell: pwsh
+  run: |
+    if ("${{ github.ref }}" -like "refs/tags/v*") {
+      $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
+      
+      # Sürüm formatını kontrol et ve düzelt
+      if ($tagVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        $version = "$tagVersion.0"
+      }
+      elseif ($tagVersion -match '^(\d+)\.(\d+)\.(\d+)\.(\d+)$') {
+        $version = $tagVersion
+      }
+      else {
+        Write-Error "❌ Invalid version format: $tagVersion"
+        exit 1
+      }
+    } else {
+      $buildNumber = ${{ github.run_number }}
+      $version = "1.0.0.$buildNumber"
+    }
+    
+    # Manifest için 4 bölümlü sürüm
+    echo "version=$version" >> $env:GITHUB_OUTPUT
+    echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
+    echo "VERSION=$version" >> $env:GITHUB_ENV
+    Write-Host "Generated version: $version"
+    
+    # Debug için ek bilgi
+    Write-Host "GitHub Ref: ${{ github.ref }}"
+    Write-Host "Tag Version: $tagVersion"
+    Write-Host "Final Version: $version"
     - name: Create MSIX package
       shell: pwsh
       run: |
