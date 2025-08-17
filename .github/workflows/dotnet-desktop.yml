@@ -144,7 +144,6 @@ jobs:
           /p:PublishReadyToRun=false `
           /p:RestorePackagesConfig=false `
           /verbosity:detailed
-
         
         if ($LASTEXITCODE -ne 0) {
           Write-Error "Solution build failed with exit code: $LASTEXITCODE"
@@ -167,15 +166,14 @@ jobs:
       shell: pwsh
       run: |
         try {
-          $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_CERTIFICATE }}")
-          $certPath = "pfx_certificate.pfx"
+          $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_CERTIFICATE_PFX }}")
+          $certPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "workflow_cert.pfx"
           [IO.File]::WriteAllBytes($certPath, $pfxBytes)
           Write-Host "Certificate decoded successfully to: $certPath"
           
           # Certificate file size kontrolü
           $certSize = (Get-Item $certPath).Length
           Write-Host "Certificate file size: $certSize bytes"
-          echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
         } catch {
           Write-Error "Failed to decode certificate: $_"
           exit 1
@@ -233,7 +231,7 @@ jobs:
           }
           
           # Certificate varlığını kontrol et
-          $certPath = "MuhasibPro.Package/pfx_certificate.pfx"
+          $certPath = "MuhasibPro.Package/workflow_cert.pfx"
           if (!(Test-Path $certPath)) {
             Write-Error "Certificate file not found: $certPath"
             exit 1
