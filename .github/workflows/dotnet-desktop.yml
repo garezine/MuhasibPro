@@ -233,7 +233,7 @@ jobs:
           }
           
           # Certificate varlığını kontrol et
-          $certPath = "MuhasibPro.Package/workflow_cert.pfx"
+          $certPath = "MuhasibPro.Package/pfx_certificate.pfx"
           if (!(Test-Path $certPath)) {
             Write-Error "Certificate file not found: $certPath"
             exit 1
