@@ -262,10 +262,10 @@ jobs:
         } else {
           Write-Host "❌ Certificate NOT found: $certPath"
         }
-
-    - name: Create MSIX package
-      shell: pwsh
-      run: |
+        
+        - name: Create MSIX package
+        shell: pwsh
+        run: |
         try {
           # Proje dosyası varlığını kontrol et
           if (!(Test-Path $env:WAP_PROJECT_PATH)) {
@@ -375,8 +375,8 @@ jobs:
         }
 
     # FİX 6: Package finding işlemini daha robust hale getirin
-    - name: Find generated packages
-      id: find-packages
+        - name: Find generated packages
+        id: find-packages
       shell: pwsh
       run: |
         try {
