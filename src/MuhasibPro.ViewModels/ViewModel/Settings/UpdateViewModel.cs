@@ -283,7 +283,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
         }
 
         private async Task UpdateUIState(UpdateInfo updateInfo)
-        {
+        {            
             VersionText = ProcessInfoHelper.Version;
             if (updateInfo.HasError)
             {

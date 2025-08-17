@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using MuhasibPro.ViewModels.ViewModel.Settings;
+using System.Threading.Tasks;
 
 namespace MuhasibPro.Views.Settings
 {
@@ -18,10 +20,13 @@ namespace MuhasibPro.Views.Settings
             ViewModel.InfoDialogRequested += ShowInfoDialog;
         }
 
-        private async void Page_Loaded(object sender, RoutedEventArgs e)
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {            
+            SetCheckIntervalSelection();
+        }
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             await ViewModel.InitializeAsync();
-            SetCheckIntervalSelection();
         }
 
         private void SetCheckIntervalSelection()
