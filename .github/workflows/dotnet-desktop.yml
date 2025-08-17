@@ -35,16 +35,33 @@ jobs:
       shell: pwsh
       run: |
         if ("${{ github.ref }}" -like "refs/tags/v*") {
-          $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
-          $version = "$tagVersion.0"
-        } else {
-          $buildNumber = ${{ github.run_number }}
-          $version = "1.0.0.$buildNumber"
+        $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
+        # Sürüm formatını kontrol et ve düzelt
+        if ($tagVersion -match '^(\d+)\.(\d+)\.(\d+)$') {
+        $version = "$tagVersion.0"
         }
+        elseif ($tagVersion -match '^(\d+)\.(\d+)\.(\d+)\.(\d+)$') {
+        $version = $tagVersion
+        }
+        else {
+        Write-Error "❌ Invalid version format: $tagVersion"
+        exit 1
+        }
+        } else {
+        $buildNumber = ${{ github.run_number }}
+        $version = "1.0.0.$buildNumber"
+        }
+        
+        # Manifest için 4 bölümlü sürüm
         echo "version=$version" >> $env:GITHUB_OUTPUT
         echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
         echo "VERSION=$version" >> $env:GITHUB_ENV
         Write-Host "Generated version: $version"
+        Write-Host "GitHub Ref: ${{ github.ref }}"
+        Write-Host "Tag Version: $tagVersion"
+        Write-Host "Final Version: $version"
+    
+    
 
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
@@ -179,10 +196,42 @@ jobs:
           exit 1
         }
 
-    # FİX 5: MSIX build işlemini optimize edin
-    - name: Verify project structure
-      shell: pwsh
-      run: |
+   #Paket imzalama
+    - name: Sign package with SignTool
+    shell: pwsh
+    run: |
+       $signToolPath = "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+        $certFullPath = (Resolve-Path "MuhasibPro.Package/workflow_cert.pfx").Path    
+        $packages = Get-ChildItem -Path "AppxPackages" -Recurse -Include *.msix, *.msixbundle
+        
+        foreach ($package in $packages) {
+          Write-Host "Signing package: $($package.FullName)"
+        
+          # İmzalama komutu (zaman damgası ile)
+            & "$signToolPath" sign `
+            /fd SHA256 `
+            /tr http://timestamp.digicert.com `
+            /td SHA256 `
+            /f "$certFullPath" `
+            /p "${{ secrets.PFX_PASSWORD }}" `
+            "$($package.FullName)"
+      
+        # İmzayı doğrula
+          & "$signToolPath" verify `
+          /pa `
+          /v `
+          "$($package.FullName)"
+          if ($LASTEXITCODE -ne 0) {
+        Write-Error "❌ Verification failed for $($package.Name)"
+        exit 1
+        }
+        Write-Host "✅ Successfully signed and verified: $($package.Name)"
+        }
+        
+      # FİX 5: MSIX build işlemini optimize edin
+        - name: Verify project structure
+        shell: pwsh
+        run: |
         Write-Host "=== PROJECT STRUCTURE VERIFICATION ==="
         Write-Host "Current directory: $(Get-Location)"
         Write-Host "Solution file check:"
