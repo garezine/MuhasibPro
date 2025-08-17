@@ -140,8 +140,7 @@ jobs:
         msbuild $env:SOLUTION_NAME `
           /p:Configuration=Release `
           /p:AppxPackageSigningEnabled=true `
-          /p:PackageCertificateKeyFile=${{ env.CERT_PATH }}`
-          /p:PackageCertificatePassword="${{ secrets.PFX_PASSWORD }}"`
+          /p:PackageCertificateKeyFile=${{ env.CERT_PATH }}`         
           /p:Platform="x64" `
           /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
           /p:PublishReadyToRun=false `
