@@ -139,6 +139,9 @@ jobs:
         
         msbuild $env:SOLUTION_NAME `
           /p:Configuration=Release `
+          /p:AppxPackageSigningEnabled=true `
+          /p:PackageCertificateKeyFile=${{ env.CERT_PATH }}`
+          /p:PackageCertificatePassword="${{ secrets.PFX_PASSWORD }}"`
           /p:Platform="x64" `
           /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
           /p:PublishReadyToRun=false `
@@ -167,13 +170,14 @@ jobs:
       run: |
         try {
           $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_CERTIFICATE }}")
-          $certPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "workflow_cert.pfx"
+          $certPath = "pfx_certificate.pfx"
           [IO.File]::WriteAllBytes($certPath, $pfxBytes)
           Write-Host "Certificate decoded successfully to: $certPath"
           
           # Certificate file size kontrolü
           $certSize = (Get-Item $certPath).Length
           Write-Host "Certificate file size: $certSize bytes"
+          echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
         } catch {
           Write-Error "Failed to decode certificate: $_"
           exit 1
