@@ -5,11 +5,11 @@ using Muhasebe.Business.Services.Abstract.Common;
 using Muhasebe.Business.Services.Concreate.Common;
 using Muhasebe.Data.EfRepositories.App;
 using Muhasebe.Domain.Interfaces.App;
-using MuhasibPro.Core.Infrastructure.Update;
 using MuhasibPro.Core.Models;
 using MuhasibPro.Core.Services;
 using MuhasibPro.Core.Services.Common;
 using MuhasibPro.Core.Services.Concreate.App;
+using MuhasibPro.Core.Services.Update;
 using MuhasibPro.Services;
 using MuhasibPro.Services.Common;
 
@@ -39,6 +39,7 @@ public static class AddAppServiceHostBuilderExtensions
             services.AddScoped<IUpdateService, UpdateService>();
             services.AddScoped<IUpdateSettingsRepository, UpdateSettingsRepository>();
             services.AddScoped<UpdateManager>();
+          
             services.AddScoped<IDeltaAnalyzer, DeltaAnalyzer>();
             services.AddScoped<IDeltaDownloader, DeltaDownloader>();
             services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));

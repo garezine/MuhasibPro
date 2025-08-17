@@ -179,7 +179,7 @@ public class DeltaDownloader : IDeltaDownloader
             }
         }
 
-        return backupFiles;
+        return await Task.FromResult(backupFiles);
     }
 
     private async Task RollbackChanges(List<string> backupFiles)
@@ -200,6 +200,7 @@ public class DeltaDownloader : IDeltaDownloader
                         System.Diagnostics.Debug.WriteLine($"Rolled back: {originalPath}");
                     }
                 }
+                await Task.CompletedTask;
             }
             catch (Exception ex)
             {

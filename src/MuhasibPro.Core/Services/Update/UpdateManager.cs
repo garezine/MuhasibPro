@@ -7,8 +7,9 @@ using Muhasebe.Business.Services.Abstract.Common;
 using Muhasebe.Domain.Entities.Sistem;
 using MuhasibPro.Core.Infrastructure.Helpers;
 using System.Diagnostics;
+using Windows.Management.Deployment;
 
-namespace MuhasibPro.Core.Infrastructure.Update
+namespace MuhasibPro.Core.Services.Update
 {
     public class UpdateManager
     {
@@ -577,8 +578,31 @@ namespace MuhasibPro.Core.Infrastructure.Update
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Download failed: {ex.Message}");
                 progressDialog?.Hide();
                 throw;
+            }
+        }
+        private async Task InstallPackageWithPackageManager(string packagePath)
+        {
+            var packageManager = new PackageManager();
+            var deploymentOperation = packageManager.AddPackageAsync(
+                new Uri(packagePath),
+                null,
+                DeploymentOptions.ForceApplicationShutdown
+            );
+
+            // İlerlemeyi takip et
+            deploymentOperation.Progress = (operation, progress) =>
+            {
+                Debug.WriteLine($"Kurulum ilerleme: {progress.percentage}%");
+            };
+
+            var result = await deploymentOperation.AsTask();
+
+            if (result.ExtendedErrorCode != null)
+            {
+                throw new Exception($"Kurulum hatası: {result.ErrorText}");
             }
         }
 
@@ -599,15 +623,7 @@ namespace MuhasibPro.Core.Infrastructure.Update
             {
                 try
                 {
-                    var processInfo = new ProcessStartInfo
-                    {
-                        FileName = "powershell.exe",
-                        Arguments = $"-Command \"Add-AppxPackage -Path '{setupPath}'\"",
-                        UseShellExecute = true,
-                        Verb = "runas"
-                    };
-
-                    Process.Start(processInfo);
+                    await InstallPackageWithPackageManager(setupPath);
                     Application.Current.Exit();
                 }
                 catch (Exception ex)

@@ -4,9 +4,9 @@ using Microsoft.UI.Xaml;
 using Muhasebe.Business.Helpers;
 using Muhasebe.Business.Services.Abstract.Common;
 using Muhasebe.Domain.Entities.Sistem;
-using MuhasibPro.Core.Infrastructure.Update;
 using MuhasibPro.Core.Infrastructure.ViewModels;
 using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Update;
 using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.ViewModel.Settings
