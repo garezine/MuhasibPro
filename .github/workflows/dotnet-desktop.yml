@@ -228,7 +228,7 @@ jobs:
         Write-Host "✅ Successfully signed and verified: $($package.Name)"
         }
         
-      # FİX 5: MSIX build işlemini optimize edin
+        # FİX 5: MSIX build işlemini optimize edin
         - name: Verify project structure
         shell: pwsh
         run: |
