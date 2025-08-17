@@ -138,10 +138,8 @@ jobs:
         Write-Host "Building solution: $env:SOLUTION_NAME"
         
         msbuild $env:SOLUTION_NAME `
-          /p:Configuration=Release `
-          /p:AppxPackageSigningEnabled=true `
-          /p:PackageCertificateKeyFile=${{ env.CERT_PATH }}`         
-          /p:Platform="x64" `
+          /p:Configuration=Release `          
+          /p:Platform="x64" `          
           /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
           /p:PublishReadyToRun=false `
           /p:RestorePackagesConfig=false `
