@@ -19,7 +19,7 @@ namespace MuhasibPro
             StatusMessage.Message.Add("Uygulama başlatılıyor...");
             _host = CreateHostBuilder().Build();
 
-            StatusMessage.Message.Add("Servisler yükleniyor...");
+            StatusMessage.Message.Add("Servisler çalıştırılıyor...");
             Ioc.Default.ConfigureServices(_host.Services);
         }
         public static IHostBuilder CreateHostBuilder(string[] args = null)
