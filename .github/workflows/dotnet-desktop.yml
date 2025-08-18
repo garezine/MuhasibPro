@@ -1,0 +1,215 @@
+# .github/workflows/dotnet-desktop-cicd.yml
+name: .NET Desktop CI/CD with ClickOnce Deployment
+
+# PUBLISH_URL'i tüm işlerin görebilmesi için en üst seviyeye taşıdık.
+env:
+  PUBLISH_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+    env:
+      SOLUTION_NAME: MuhasibPro.sln
+      PROJECT_PATH: "src/MuhasibPro/MuhasibPro.csproj"
+      RUNTIME_IDENTIFIER: win-x64
+      APP_NAME: MuhasibPro
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build-number: ${{ steps.version.outputs.build-number }}
+      tag-name: ${{ steps.version.outputs.tag-name }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate version number
+      id: version
+      shell: pwsh
+      run: |
+        if ("${{ github.ref }}" -like "refs/tags/v*") {
+          $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
+          # Kullanıcının isteğine göre .0 eklemesini kaldırıyoruz. Sadece etiketi kullanıyoruz.
+          $version = $tagVersion
+          $tagName = "${{ github.ref }}".Replace("refs/tags/", "")
+          Write-Host "Using existing tag: $tagName -> Version: $version"
+        } else {
+          $buildNumber = ${{ github.run_number }}
+          $version = "1.0.0.$buildNumber"
+          $tagName = "v$version"
+          Write-Host "Generated version for branch: $version"
+        }
+        
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
+        echo "tag-name=$tagName" >> $env:GITHUB_OUTPUT
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages
+      run: dotnet restore ${{ env.SOLUTION_NAME }}
+
+    - name: Update AssemblyInfo and Project Version
+      shell: pwsh
+      run: |
+        # .csproj dosyasındaki versiyonları güncelle (Modern .NET için yeterli)
+        if (Test-Path $env:PROJECT_PATH) {
+          Write-Host "Updating version in project file: $env:PROJECT_PATH"
+          $projectContent = Get-Content $env:PROJECT_PATH -Raw
+          # Version, AssemblyVersion, FileVersion ve ApplicationVersion etiketlerini bulup günceller veya ekler
+          $propertiesToUpdate = @("Version", "AssemblyVersion", "FileVersion", "ApplicationVersion")
+          $updated = $false
+          foreach ($prop in $propertiesToUpdate) {
+              if ($projectContent -match "<$prop>.*?</$prop>") {
+                  $projectContent = $projectContent -replace "<$prop>.*?</$prop>", "<$prop>$env:VERSION</$prop>"
+              } elseif ($projectContent -match "<PropertyGroup.*?>") {
+                  # Eğer etiket yoksa ilk PropertyGroup'a ekle
+                  $projectContent = $projectContent -replace '(<PropertyGroup.*?>)', "`$1`n    <$prop>$env:VERSION</$prop>"
+                  $updated = $true
+              }
+          }
+          if ($updated) {
+              # Sadece bir kere ekleme yapmak için döngü sonrası kontrol
+              Write-Host "Added missing version properties."
+          }
+          Set-Content -Path $env:PROJECT_PATH -Value $projectContent
+          Write-Host "Project file updated with version: $env:VERSION"
+        }
+
+    - name: Build solution
+      run: >
+        dotnet build ${{ env.SOLUTION_NAME }} 
+        --configuration Release 
+        --runtime ${{ env.RUNTIME_IDENTIFIER }} 
+        -p:Version=${{ env.VERSION }}
+
+    - name: Create ClickOnce deployment
+      run: >
+        dotnet publish ${{ env.PROJECT_PATH }}
+        --configuration Release
+        --runtime ${{ env.RUNTIME_IDENTIFIER }}
+        --self-contained true
+        --output "publish"
+        /p:PublishUrl="${{ env.PUBLISH_URL }}"
+        /p:ApplicationVersion="${{ env.VERSION }}"
+
+    - name: Create distribution packages
+      shell: pwsh
+      run: |
+        # ClickOnce Paketi
+        Compress-Archive -Path "publish\*" -DestinationPath "MuhasibPro-ClickOnce-v${{ env.VERSION }}.zip"
+        # Setup ve Portable için dosyaları kopyala
+        New-Item -ItemType Directory -Path "dist" -Force | Out-Null
+        Copy-Item -Path "publish\*" -Destination "dist" -Recurse
+        # Geleneksel Setup Paketi
+        Compress-Archive -Path "dist\*" -DestinationPath "MuhasibPro-Setup-v${{ env.VERSION }}.zip"
+        # Portable Paketi
+        Compress-Archive -Path "dist\*" -DestinationPath "MuhasibPro-Portable-v${{ env.VERSION }}.zip"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: muhasibpro-packages-${{ steps.version.outputs.version }}
+        path: |
+          MuhasibPro-ClickOnce-*.zip
+          MuhasibPro-Setup-*.zip
+          MuhasibPro-Portable-*.zip
+        retention-days: 7
+
+  release:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    if: success() && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: muhasibpro-packages-${{ needs.build-and-deploy.outputs.version }}
+
+    - name: Create or Update Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.build-and-deploy.outputs.tag-name }}
+        name: MuhasibPro v${{ needs.build-and-deploy.outputs.version }}
+        body: |
+          ## 🚀 MuhasibPro v${{ needs.build-and-deploy.outputs.version }}
+          Otomatik build #${{ needs.build-and-deploy.outputs.build-number }} | Commit: `${{ github.sha }}`
+
+          ### 💾 İndirme Seçenekleri
+          
+          #### 🎯 ClickOnce ile Kurulum (Önerilen)
+          Uygulamayı otomatik güncellemelerle kurmak için **[bu sayfayı ziyaret edin](${{ env.PUBLISH_URL }})**.
+          
+          #### 🛠️ Geleneksel Kurulum & Portable Sürüm
+          Aşağıdaki asset'lerden `Setup` veya `Portable` paketini indirebilirsiniz.
+        files: |
+          MuhasibPro-Setup-v${{ needs.build-and-deploy.outputs.version }}.zip
+          MuhasibPro-Portable-v${{ needs.build-and-deploy.outputs.version }}.zip
+        draft: false
+        prerelease: false
+
+  deploy-clickonce:
+    needs: release 
+    runs-on: ubuntu-latest
+    if: success() && startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+    - name: Download ClickOnce package
+      uses: actions/download-artifact@v4
+      with:
+        name: muhasibpro-packages-${{ needs.build-and-deploy.outputs.version }}
+
+    - name: Prepare deployment files
+      run: |
+        # Dağıtım için temiz bir klasör oluştur
+        mkdir -p deploy_target
+        
+        # ClickOnce zip dosyasını bu klasöre aç
+        unzip MuhasibPro-ClickOnce-*.zip -d deploy_target
+        
+        # ClickOnce için bir index.html oluştur
+        cat > deploy_target/index.html << EOF
+        <!DOCTYPE html>
+        <html lang="tr">
+        <head>
+          <meta charset="UTF-8">
+          <meta http-equiv="refresh" content="0; url=setup.exe">
+          <title>MuhasibPro Kurulumu Başlatılıyor...</title>
+          <style>body { font-family: sans-serif; text-align: center; padding-top: 5em; } a { font-size: 1.2em; }</style>
+        </head>
+        <body>
+          <p>Kurulum başlamadıysa, lütfen <a href="setup.exe">buraya tıklayın</a>.</p>
+          <p><small>Sürüm: ${{ needs.build-and-deploy.outputs.version }}</small></p>
+        </body>
+        </html>
+        EOF
+        echo "✅ Deployment files are ready."
+        ls -l deploy_target
+
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        branch: gh-pages      # Dağıtım yapılacak dal
+        folder: deploy_target  # Hazırladığımız klasörü dağıt
+        clean: true            # Dağıtım öncesi dalı temizle
+
+    - name: Print Deployment URL
+      run: echo "🎉 ClickOnce Deployment successful. Visit: ${{env.PUBLISH_URL}}"
