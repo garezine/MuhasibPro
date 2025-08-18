@@ -403,10 +403,10 @@ jobs:
         
         Write-Host "Application manifest generated"
 
-    - name: Create distribution packages
-      shell: pwsh
-      run: |
-        Write-Host "Creating distribution packages..."
+        - name: Create distribution packages
+        shell: pwsh
+        run: |
+          Write-Host "Creating distribution packages..."
         
         # 1. ClickOnce deployment paketi
         if (Test-Path "publish") {
@@ -430,7 +430,7 @@ jobs:
         
         # Portable için README oluştur
         $portableReadme = @"
-# MuhasibPro Portable v$env:VERSION
+        # MuhasibPro Portable v$env:VERSION
         
         ## Kullanım
         1. Bu klasörü istediğiniz yere kopyalayın
