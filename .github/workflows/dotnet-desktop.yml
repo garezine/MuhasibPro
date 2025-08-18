@@ -211,5 +211,4 @@ jobs:
         folder: deploy_target  # Hazırladığımız klasörü dağıt
         clean: true            # Dağıtım öncesi dalı temizle
 
-    - name: Print Deployment URL
-      run: echo "🎉 ClickOnce Deployment successful. Visit: ${{env.PUBLISH_URL}}"
+    
