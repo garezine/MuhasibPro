@@ -233,7 +233,16 @@ jobs:
           Write-Error "Certificate handling failed: $_"
           exit 1
         }
-
+        
+  # Sertifikayı ARTIFACT olarak yükle (MSIX'ten ÖNCE)
+    - name: Upload Certificate Files
+      uses: actions/upload-artifact@v4
+      with:
+        name: certificates
+        path: |
+          MuhasibPro.Package/test_cert.pfx
+          MuhasibPro_Test_Certificate.cer
+            
     - name: Verify project structure
       shell: pwsh
       run: |
@@ -443,7 +452,7 @@ jobs:
       with:
         name: msix-packages-${{ needs.build-and-package.outputs.version }}
         path: ./artifacts
-
+  
     - name: Verify downloaded artifacts
       run: |
         echo "📋 Verifying downloaded artifacts..."
