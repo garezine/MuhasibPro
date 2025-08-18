@@ -300,7 +300,7 @@ jobs:
         echo.
         echo  ╔═══════════════════════════════════════╗
         echo  ║         MuhasibPro Kurulum            ║
-        echo  ║            v$env:VERSION                     ║
+        echo  ║            v$env:VERSION              ║
         echo  ╚═══════════════════════════════════════╝
         echo.
         REM Yönetici kontrolü
@@ -402,7 +402,6 @@ jobs:
         $manifestJson | Out-File -FilePath "app-manifest.json" -Encoding utf8
         
         Write-Host "Application manifest generated"
-        
     - name: Create distribution packages
       shell: pwsh
       run: |
