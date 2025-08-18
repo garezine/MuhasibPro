@@ -20,7 +20,6 @@ jobs:
       RUNTIME_IDENTIFIER: win-x64
       APP_NAME: MuhasibPro
       PUBLISH_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-      WAP_PROJECT_PATH: "src/MuhasibProWap/MuhasibProWap.wapproj"  # WAP projesi eklendi
 
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -151,7 +150,6 @@ jobs:
           Write-Host "✅ Solution found: $env:SOLUTION_NAME"
         } else {
           Write-Host "❌ Solution NOT found: $env:SOLUTION_NAME"
-          exit 1
         }
         
         Write-Host "Main project check:"
@@ -173,26 +171,16 @@ jobs:
           Get-ChildItem -Path "." -Filter "*.csproj" -Recurse | ForEach-Object {
             Write-Host "  $($_.FullName)"
           }
-          exit 1
-        }
-        
-        # WAP projesi kontrolü
-        Write-Host "WAP project check:"
-        if (Test-Path $env:WAP_PROJECT_PATH) {
-          Write-Host "✅ WAP project found: $env:WAP_PROJECT_PATH"
-        } else {
-          Write-Host "⚠️ WAP project NOT found: $env:WAP_PROJECT_PATH"
         }
 
-    # DÜZELTME: Çözüm seviyesinde RID kullanımı kaldırıldı
     - name: Build solution
       shell: pwsh
       run: |
         Write-Host "Building solution: $env:SOLUTION_NAME"
         
-        # Çözümü RID olmadan build et
         dotnet build $env:SOLUTION_NAME `
           --configuration Release `
+          --runtime $env:RUNTIME_IDENTIFIER `
           --verbosity normal
         
         if ($LASTEXITCODE -ne 0) {
@@ -202,28 +190,6 @@ jobs:
         
         Write-Host "Solution build completed successfully"
 
-    # YENİ EKLEME: WAP projesi için ayrı build adımı
-    - name: Build WAP project
-      shell: pwsh
-      run: |
-        Write-Host "Building WAP project: $env:WAP_PROJECT_PATH"
-        
-        if (Test-Path $env:WAP_PROJECT_PATH) {
-          msbuild $env:WAP_PROJECT_PATH `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:AppxBundle=Never
-          
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "WAP project build failed with exit code: $LASTEXITCODE"
-            exit $LASTEXITCODE
-          }
-          Write-Host "✅ WAP project build completed"
-        } else {
-          Write-Host "⚠️ WAP project not found, skipping build"
-        }
-
-    # DÜZELTME: Ana proje için publish kullanımı (RID burada belirtiliyor)
     - name: Create ClickOnce deployment
       shell: pwsh
       run: |
@@ -239,9 +205,8 @@ jobs:
           Write-Host "Project: $env:PROJECT_PATH"
           Write-Host "Version: $env:VERSION"
           Write-Host "Publish URL: $env:PUBLISH_URL"
-          Write-Host "Runtime: $env:RUNTIME_IDENTIFIER"
           
-          # ClickOnce publish komutu (RID burada kullanılıyor)
+          # ClickOnce publish komutu
           dotnet publish $env:PROJECT_PATH `
             --configuration Release `
             --runtime $env:RUNTIME_IDENTIFIER `
@@ -259,7 +224,7 @@ jobs:
             exit $LASTEXITCODE
           }
           
-          Write-Host "✅ ClickOnce deployment created successfully"
+          Write-Host "ClickOnce deployment created successfully"
           
           # Publish sonuçlarını kontrol et
           Write-Host "=== PUBLISH OUTPUT ANALYSIS ==="
@@ -293,85 +258,88 @@ jobs:
         
         # Setup script oluştur
         $setupScript = @"
-        @echo off
-        title MuhasibPro v$env:VERSION Kurulum
-        color 0A
+@echo off
+title MuhasibPro v$env:VERSION Kurulum
+color 0A
 
-        echo.
-        echo  ╔═══════════════════════════════════════╗
-        echo  ║         MuhasibPro Kurulum            ║
-        echo  ║            v$env:VERSION              ║
-        echo  ╚═══════════════════════════════════════╝
-        echo.
-        REM Yönetici kontrolü
-        net session >nul 2>&1
-        if %errorLevel% == 0 (
-        echo ✅ Administrator yetkisi onaylandı
-        ) else (
-        echo ⚠️  Bu kurulum Administrator yetkisi gerektirir
-        echo    Lütfen "Yönetici olarak çalıştır" ile açın
-        echo.
-        pause
-        exit /b 1
-        )
-        REM Program Files klasörü oluştur
-        set "INSTALL_DIR=%ProgramFiles%\MuhasibPro"
-        echo 📁 Kurulum dizini: %INSTALL_DIR%
-        if not exist "%INSTALL_DIR%" (
-        mkdir "%INSTALL_DIR%" 2>nul
-        if %errorLevel% neq 0 (
+echo.
+echo  ╔═══════════════════════════════════════╗
+echo  ║         MuhasibPro Kurulum            ║
+echo  ║            v$env:VERSION                     ║
+echo  ╚═══════════════════════════════════════╝
+echo.
+
+REM Yönetici kontrolü
+net session >nul 2>&1
+if %errorLevel% == 0 (
+    echo ✅ Administrator yetkisi onaylandı
+) else (
+    echo ⚠️  Bu kurulum Administrator yetkisi gerektirir
+    echo    Lütfen "Yönetici olarak çalıştır" ile açın
+    echo.
+    pause
+    exit /b 1
+)
+
+REM Program Files klasörü oluştur
+set "INSTALL_DIR=%ProgramFiles%\MuhasibPro"
+echo 📁 Kurulum dizini: %INSTALL_DIR%
+
+if not exist "%INSTALL_DIR%" (
+    mkdir "%INSTALL_DIR%" 2>nul
+    if %errorLevel% neq 0 (
         echo ❌ Kurulum dizini oluşturulamadı
         pause
         exit /b 1
-        )
-        )
+    )
+)
 
-        REM Dosyaları kopyala  
-        echo 📋 Uygulama dosyaları kopyalanıyor...
-        xcopy "%~dp0*.*" "%INSTALL_DIR%\" /E /H /Y /Q >nul 2>&1
-        if %errorLevel% neq 0 (
-            echo ❌ Dosya kopyalama başarısız
-            pause
-            exit /b 1
-        )
+REM Dosyaları kopyala  
+echo 📋 Uygulama dosyaları kopyalanıyor...
+xcopy "%~dp0*.*" "%INSTALL_DIR%\" /E /H /Y /Q >nul 2>&1
+if %errorLevel% neq 0 (
+    echo ❌ Dosya kopyalama başarısız
+    pause
+    exit /b 1
+)
 
-        REM Desktop kısayolu oluştur
-        echo 🔗 Masaüstü kısayolu oluşturuluyor...
-        set "SHORTCUT_PATH=%USERPROFILE%\Desktop\MuhasibPro.lnk"
-        powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').Save()`" 2>nul
-        
-        REM Start Menu kısayolu
-        echo 📌 Başlat menüsü kısayolu oluşturuluyor...
-        set "START_MENU=%ProgramData%\Microsoft\Windows\Start Menu\Programs"
-        if not exist "%START_MENU%\MuhasibPro" mkdir "%START_MENU%\MuhasibPro" 2>nul
-        set "START_SHORTCUT=%START_MENU%\MuhasibPro\MuhasibPro.lnk"
-        powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').Save()`" 2>nul
-        
-        REM Uninstaller oluştur
-        echo 🗑️  Kaldırıcı oluşturuluyor...
-        echo @echo off > "%INSTALL_DIR%\uninstall.bat"
-        echo title MuhasibPro Kaldır >> "%INSTALL_DIR%\uninstall.bat"
-        echo echo MuhasibPro kaldırılıyor... >> "%INSTALL_DIR%\uninstall.bat"
-        echo taskkill /f /im "$env:APP_NAME.exe" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo timeout /t 2 /nobreak ^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo rmdir /s /q "%INSTALL_DIR%" >> "%INSTALL_DIR%\uninstall.bat"
-        echo del "%USERPROFILE%\Desktop\MuhasibPro.lnk" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo rmdir /s /q "%START_MENU%\MuhasibPro" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo echo MuhasibPro başarıyla kaldırıldı >> "%INSTALL_DIR%\uninstall.bat"
-        echo pause >> "%INSTALL_DIR%\uninstall.bat"
-        
-        echo.
-        echo ✅ MuhasibPro v$env:VERSION başarıyla kuruldu!
-        echo.
-        echo 📍 Kurulum Dizini: %INSTALL_DIR%
-        echo 🖥️  Masaüstü kısayolu oluşturuldu
-        echo 📌 Başlat menüsünde bulabilirsiniz
-        echo.
-        echo MuhasibPro'yu başlatmak için herhangi bir tuşa basın...
-        pause >nul
+REM Desktop kısayolu oluştur
+echo 🔗 Masaüstü kısayolu oluşturuluyor...
+set "SHORTCUT_PATH=%USERPROFILE%\Desktop\MuhasibPro.lnk"
+powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').Save()`" 2>nul
 
-        start "" "%INSTALL_DIR%\$env:APP_NAME.exe"
-        "@
+REM Start Menu kısayolu
+echo 📌 Başlat menüsü kısayolu oluşturuluyor...
+set "START_MENU=%ProgramData%\Microsoft\Windows\Start Menu\Programs"
+if not exist "%START_MENU%\MuhasibPro" mkdir "%START_MENU%\MuhasibPro" 2>nul
+set "START_SHORTCUT=%START_MENU%\MuhasibPro\MuhasibPro.lnk"
+powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').Save()`" 2>nul
+
+REM Uninstaller oluştur
+echo 🗑️  Kaldırıcı oluşturuluyor...
+echo @echo off > "%INSTALL_DIR%\uninstall.bat"
+echo title MuhasibPro Kaldır >> "%INSTALL_DIR%\uninstall.bat"
+echo echo MuhasibPro kaldırılıyor... >> "%INSTALL_DIR%\uninstall.bat"
+echo taskkill /f /im "$env:APP_NAME.exe" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo timeout /t 2 /nobreak ^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo rmdir /s /q "%INSTALL_DIR%" >> "%INSTALL_DIR%\uninstall.bat"
+echo del "%USERPROFILE%\Desktop\MuhasibPro.lnk" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo rmdir /s /q "%START_MENU%\MuhasibPro" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo echo MuhasibPro başarıyla kaldırıldı >> "%INSTALL_DIR%\uninstall.bat"
+echo pause >> "%INSTALL_DIR%\uninstall.bat"
+
+echo.
+echo ✅ MuhasibPro v$env:VERSION başarıyla kuruldu!
+echo.
+echo 📍 Kurulum Dizini: %INSTALL_DIR%
+echo 🖥️  Masaüstü kısayolu oluşturuldu
+echo 📌 Başlat menüsünde bulabilirsiniz
+echo.
+echo MuhasibPro'yu başlatmak için herhangi bir tuşa basın...
+pause >nul
+
+start "" "%INSTALL_DIR%\$env:APP_NAME.exe"
+"@
         
         $setupScript | Out-File -FilePath "$installerDir\setup.bat" -Encoding ASCII
         
@@ -402,13 +370,14 @@ jobs:
         $manifestJson | Out-File -FilePath "app-manifest.json" -Encoding utf8
         
         Write-Host "Application manifest generated"
+
     - name: Create distribution packages
       shell: pwsh
       run: |
         Write-Host "Creating distribution packages..."
         
         # 1. ClickOnce deployment paketi
-          if (Test-Path "publish") {
+        if (Test-Path "publish") {
           Write-Host "📦 Creating ClickOnce package..."
           Compress-Archive -Path "publish\*" -DestinationPath "MuhasibPro-ClickOnce-v$env:VERSION.zip" -Force
           Write-Host "✅ ClickOnce package: MuhasibPro-ClickOnce-v$env:VERSION.zip"
@@ -429,31 +398,31 @@ jobs:
         
         # Portable için README oluştur
         $portableReadme = @"
-        # MuhasibPro Portable v$env:VERSION
-        
-        ## Kullanım
-        1. Bu klasörü istediğiniz yere kopyalayın
-        2. $env:APP_NAME.exe dosyasını çalıştırın
-        3. Kurulum gerektirmez!
-        
-        ## Özellikler
-        - ✅ Kurulum gerektirmez
-        - ✅ Registry değişikliği yapmaz  
-        - ✅ USB'de taşınabilir
-        - ✅ Tam özellikli uygulama
-        
-        ## Sistem Gereksinimleri
-        - Windows 10/11 (x64)
-        - .NET 8 Runtime (otomatik dahil)
-        
-        ## Güncelleme
-        Yeni sürüm için:
-        https://github.com/${{ github.repository }}/releases
-        
-        Tarih: $(Get-Date -Format 'dd.MM.yyyy HH:mm')
-        Sürüm: $env:VERSION
-        Build: ${{ steps.version.outputs.build-number }}
-        "@
+# MuhasibPro Portable v$env:VERSION
+
+## Kullanım
+1. Bu klasörü istediğiniz yere kopyalayın
+2. $env:APP_NAME.exe dosyasını çalıştırın
+3. Kurulum gerektirmez!
+
+## Özellikler
+- ✅ Kurulum gerektirmez
+- ✅ Registry değişikliği yapmaz  
+- ✅ USB'de taşınabilir
+- ✅ Tam özellikli uygulama
+
+## Sistem Gereksinimleri
+- Windows 10/11 (x64)
+- .NET 8 Runtime (otomatik dahil)
+
+## Güncelleme
+Yeni sürüm için:
+https://github.com/${{ github.repository }}/releases
+
+Tarih: $(Get-Date -Format 'dd.MM.yyyy HH:mm')
+Sürüm: $env:VERSION
+Build: ${{ steps.version.outputs.build-number }}
+"@
         
         $portableReadme | Out-File -FilePath "$portableDir\PORTABLE_README.txt" -Encoding UTF8
         
@@ -711,66 +680,91 @@ jobs:
           # Index.html oluştur
           cat > index.html << 'EOF'
         <!DOCTYPE html>
-        <html lang="tr">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>MuhasibPro ClickOnce Deployment</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-            header { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); padding: 40px 20px; border-radius: 10px; color: white; text-align: center; margin-bottom: 30px; }
-            h1 { margin: 0; font-size: 2.5rem; }
-            .version { font-size: 1.2rem; opacity: 0.9; }
-            .card { background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 25px; }
-            .btn { display: inline-block; background: #4caf50; color: white; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; transition: all 0.3s; }
-            .btn:hover { background: #388e3c; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-            footer { text-align: center; margin-top: 40px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <header>
-            <h1>MuhasibPro</h1>
-            <div class="version">v${{ needs.build-and-deploy.outputs.version }}</div>
-          </header>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuhasibPro - ClickOnce Deployment</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #2980b9;
+        }
+        .version {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MuhasibPro</h1>
+        <p class="version">Sürüm: ${{ needs.build-and-deploy.outputs.version }}</p>
+        
+        <h2>ClickOnce Kurulum</h2>
+        <p>
+            MuhasibPro'yu ClickOnce ile kurmak için aşağıdaki butona tıklayın:
+        </p>
+        <a href="setup.exe" class="button">MuhasibPro'yu Kur</a>
+        
+        <h2>Kurulum Adımları</h2>
+        <ol>
+            <li>"MuhasibPro'yu Kur" butonuna tıklayın</li>
+            <li>setup.exe'yi çalıştırın</li>
+            <li>Kurulum sihirbazını takip edin</li>
+            <li>Uygulama otomatik olarak başlayacaktır</li>
+        </ol>
+        
+        <h2>Sistem Gereksinimleri</h2>
+        <ul>
+            <li>Windows 10/11 (64-bit)</li>
+            <li>.NET 8 Runtime (otomatik yüklenir)</li>
+            <li>Minimum 100MB disk alanı</li>
+        </ul>
+        
+        <p>
+            <small>
+                Son güncelleme: $(date +'%d.%m.%Y %H:%M')<br>
+                Build: #${{ needs.build-and-deploy.outputs.build-number }}
+            </small>
+        </p>
+    </div>
+</body>
+</html>
+EOF
           
-          <div class="card">
-            <h2>📥 Uygulamayı Yükle</h2>
-            <p>MuhasibPro'yu bilgisayarınıza yüklemek için aşağıdaki butona tıklayın:</p>
-            <a href="setup.exe" class="btn">Yükleme Başlat</a>
-            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.8;">Not: Yükleme sırasında güvenlik uyarısı alırsanız "Çalıştır" seçeneğini seçin.</p>
-          </div>
-          
-          <div class="card">
-            <h2>ℹ️ Hakkında</h2>
-            <p>MuhasibPro ClickOnce teknolojisi ile dağıtılan bir muhasebe uygulamasıdır. Bu yöntem:</p>
-            <ul>
-              <li>Kurulumu basitleştirir</li>
-              <li>Otomatik güncelleme sağlar</li>
-              <li>Güvenli ve güncel kalmanızı garanti eder</li>
-            </ul>
-          </div>
-          
-          <div class="card">
-            <h2>🔧 Sistem Gereksinimleri</h2>
-            <ul>
-              <li>Windows 10/11 (64-bit)</li>
-              <li>.NET 8 Runtime</li>
-              <li>500MB boş disk alanı</li>
-              <li>4GB RAM</li>
-            </ul>
-          </div>
-          
-          <footer>
-            <p>© 2024 MuhasibPro - Tüm hakları saklıdır</p>
-            <p>Build: #${{ needs.build-and-deploy.outputs.build-number }} | ${{ steps.update-release.outputs.release-date }}</p>
-          </footer>
-        </body>
-        </html>
-        EOF
-          
+          # Git commit & push
           git add .
-          git commit -m "Update ClickOnce deployment for v${{ needs.build-and-deploy.outputs.version }}"
+          git commit -m "🚀 ClickOnce deployment update: v${{ needs.build-and-deploy.outputs.version }}"
           git push origin gh-pages
+          
+          echo "✅ ClickOnce files deployed to GitHub Pages"
+          echo "📋 Deployment URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          
         else
           echo "❌ ClickOnce package not found!"
           exit 1
