@@ -1,9 +1,6 @@
 # .github/workflows/dotnet-desktop-cicd.yml
-name: .NET Desktop CI/CD with ClickOnce Deployment
 
-# PUBLISH_URL'i tüm işlerin görebilmesi için en üst seviyeye taşıdık.
-env:
-  PUBLISH_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+name: .NET Desktop CI/CD with ClickOnce Deployment
 
 on:
   push:
@@ -16,15 +13,19 @@ on:
 jobs:
   build-and-deploy:
     runs-on: windows-latest
+
     env:
       SOLUTION_NAME: MuhasibPro.sln
-      PROJECT_PATH: "src/MuhasibPro/MuhasibPro.csproj"
+      PROJECT_PATH: "src/MuhasibPro/MuhasibPro.csproj"  # Ana WPF/WinForms projesi
       RUNTIME_IDENTIFIER: win-x64
       APP_NAME: MuhasibPro
+      PUBLISH_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+
     outputs:
       version: ${{ steps.version.outputs.version }}
       build-number: ${{ steps.version.outputs.build-number }}
       tag-name: ${{ steps.version.outputs.tag-name }}
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -37,10 +38,9 @@ jobs:
       run: |
         if ("${{ github.ref }}" -like "refs/tags/v*") {
           $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
-          # Kullanıcının isteğine göre .0 eklemesini kaldırıyoruz. Sadece etiketi kullanıyoruz.
-          $version = $tagVersion
+          $version = "$tagVersion.0"
           $tagName = "${{ github.ref }}".Replace("refs/tags/", "")
-          Write-Host "Using existing tag: $tagName -> Version: $version"
+          Write-Host "Using existing tag: $tagName"
         } else {
           $buildNumber = ${{ github.run_number }}
           $version = "1.0.0.$buildNumber"
@@ -52,6 +52,9 @@ jobs:
         echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
         echo "tag-name=$tagName" >> $env:GITHUB_OUTPUT
         echo "VERSION=$version" >> $env:GITHUB_ENV
+        
+        Write-Host "Final version: $version"
+        Write-Host "Tag name: $tagName"
 
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
@@ -62,153 +65,709 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     - name: Restore NuGet packages
-      run: dotnet restore ${{ env.SOLUTION_NAME }}
-
-    - name: Update AssemblyInfo and Project Version
       shell: pwsh
       run: |
-        # .csproj dosyasındaki versiyonları güncelle (Modern .NET için yeterli)
+        Write-Host "Restoring NuGet packages..."
+        dotnet restore $env:SOLUTION_NAME
+        Write-Host "NuGet restore completed"
+
+    - name: Download previous release (for update detection)
+      id: download-previous
+      uses: actions/github-script@v7
+      with:
+        script: |
+          try {
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 1
+            });
+            
+            if (releases.data.length > 0) {
+              const latestRelease = releases.data[0];
+              core.setOutput('has-previous', 'true');
+              core.setOutput('previous-version', latestRelease.tag_name);
+            } else {
+              core.setOutput('has-previous', 'false');
+            }
+          } catch (error) {
+            console.log('No previous release found');
+            core.setOutput('has-previous', 'false');
+          }
+
+    - name: Update AssemblyInfo version
+      shell: pwsh
+      run: |
+        # AssemblyInfo.cs dosyasını bul ve güncelle
+        $assemblyFiles = Get-ChildItem -Path "." -Filter "AssemblyInfo.cs" -Recurse
+        
+        foreach ($file in $assemblyFiles) {
+          Write-Host "Updating version in: $($file.FullName)"
+          
+          $content = Get-Content $file.FullName -Raw
+          $content = $content -replace 'AssemblyVersion\(".*?"\)', "AssemblyVersion(`"$env:VERSION`")"
+          $content = $content -replace 'AssemblyFileVersion\(".*?"\)', "AssemblyFileVersion(`"$env:VERSION`")"
+          
+          Set-Content -Path $file.FullName -Value $content -Encoding UTF8
+        }
+        
+        # Proje dosyasındaki version'ı da güncelle
         if (Test-Path $env:PROJECT_PATH) {
           Write-Host "Updating version in project file: $env:PROJECT_PATH"
-          $projectContent = Get-Content $env:PROJECT_PATH -Raw
-          # Version, AssemblyVersion, FileVersion ve ApplicationVersion etiketlerini bulup günceller veya ekler
-          $propertiesToUpdate = @("Version", "AssemblyVersion", "FileVersion", "ApplicationVersion")
-          $updated = $false
-          foreach ($prop in $propertiesToUpdate) {
-              if ($projectContent -match "<$prop>.*?</$prop>") {
-                  $projectContent = $projectContent -replace "<$prop>.*?</$prop>", "<$prop>$env:VERSION</$prop>"
-              } elseif ($projectContent -match "<PropertyGroup.*?>") {
-                  # Eğer etiket yoksa ilk PropertyGroup'a ekle
-                  $projectContent = $projectContent -replace '(<PropertyGroup.*?>)', "`$1`n    <$prop>$env:VERSION</$prop>"
-                  $updated = $true
-              }
+          [xml]$project = Get-Content $env:PROJECT_PATH
+          
+          # Version properties'ini bul/oluştur
+          $propertyGroup = $project.Project.PropertyGroup | Where-Object { $_.Version -or $_.AssemblyVersion } | Select-Object -First 1
+          if (-not $propertyGroup) {
+            $propertyGroup = $project.CreateElement("PropertyGroup")
+            $project.Project.AppendChild($propertyGroup) | Out-Null
           }
-          if ($updated) {
-              # Sadece bir kere ekleme yapmak için döngü sonrası kontrol
-              Write-Host "Added missing version properties."
+          
+          # Version elementlerini güncelle/oluştur
+          @("Version", "AssemblyVersion", "FileVersion", "ApplicationVersion") | ForEach-Object {
+            $element = $propertyGroup.$_
+            if ($element) {
+              $element = $env:VERSION
+            } else {
+              $newElement = $project.CreateElement($_)
+              $newElement.InnerText = $env:VERSION
+              $propertyGroup.AppendChild($newElement) | Out-Null
+            }
           }
-          Set-Content -Path $env:PROJECT_PATH -Value $projectContent
+          
+          $project.Save($env:PROJECT_PATH)
           Write-Host "Project file updated with version: $env:VERSION"
         }
 
+    - name: Verify project structure
+      shell: pwsh
+      run: |
+        Write-Host "=== PROJECT STRUCTURE VERIFICATION ==="
+        Write-Host "Current directory: $(Get-Location)"
+        
+        Write-Host "Solution file check:"
+        if (Test-Path $env:SOLUTION_NAME) {
+          Write-Host "✅ Solution found: $env:SOLUTION_NAME"
+        } else {
+          Write-Host "❌ Solution NOT found: $env:SOLUTION_NAME"
+        }
+        
+        Write-Host "Main project check:"
+        if (Test-Path $env:PROJECT_PATH) {
+          Write-Host "✅ Main project found: $env:PROJECT_PATH"
+          
+          # Proje türünü kontrol et
+          [xml]$project = Get-Content $env:PROJECT_PATH
+          $sdk = $project.Project.Sdk
+          $outputType = $project.Project.PropertyGroup.OutputType
+          $targetFramework = $project.Project.PropertyGroup.TargetFramework
+          
+          Write-Host "   SDK: $sdk"
+          Write-Host "   Output Type: $outputType" 
+          Write-Host "   Target Framework: $targetFramework"
+        } else {
+          Write-Host "❌ Main project NOT found: $env:PROJECT_PATH"
+          Write-Host "Available project files:"
+          Get-ChildItem -Path "." -Filter "*.csproj" -Recurse | ForEach-Object {
+            Write-Host "  $($_.FullName)"
+          }
+        }
+
     - name: Build solution
-      run: >
-        dotnet build ${{ env.SOLUTION_NAME }} 
-        --configuration Release 
-        --runtime ${{ env.RUNTIME_IDENTIFIER }} 
-        -p:Version=${{ env.VERSION }}
+      shell: pwsh
+      run: |
+        Write-Host "Building solution: $env:SOLUTION_NAME"
+        
+        dotnet build $env:SOLUTION_NAME `
+          --configuration Release `
+          --runtime $env:RUNTIME_IDENTIFIER `
+          --verbosity normal
+        
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Solution build failed with exit code: $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+        
+        Write-Host "Solution build completed successfully"
 
     - name: Create ClickOnce deployment
-      run: >
-        dotnet publish ${{ env.PROJECT_PATH }}
-        --configuration Release
-        --runtime ${{ env.RUNTIME_IDENTIFIER }}
-        --self-contained true
-        --output "publish"
-        /p:PublishUrl="${{ env.PUBLISH_URL }}"
-        /p:ApplicationVersion="${{ env.VERSION }}"
+      shell: pwsh
+      run: |
+        try {
+          # Publish klasörünü temizle
+          $publishDir = "publish"
+          if (Test-Path $publishDir) {
+            Remove-Item $publishDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $publishDir -Force | Out-Null
+          
+          Write-Host "Creating ClickOnce deployment..."
+          Write-Host "Project: $env:PROJECT_PATH"
+          Write-Host "Version: $env:VERSION"
+          Write-Host "Publish URL: $env:PUBLISH_URL"
+          
+          # ClickOnce publish komutu
+          dotnet publish $env:PROJECT_PATH `
+            --configuration Release `
+            --runtime $env:RUNTIME_IDENTIFIER `
+            --self-contained true `
+            --output "publish" `
+            /p:PublishUrl="$env:PUBLISH_URL" `
+            /p:ApplicationVersion="$env:VERSION" `
+            /p:PublishSingleFile=false `
+            /p:PublishReadyToRun=false `
+            /p:EnableCompressionInSingleFile=false `
+            --verbosity normal
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ClickOnce publish failed with exit code: $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          
+          Write-Host "ClickOnce deployment created successfully"
+          
+          # Publish sonuçlarını kontrol et
+          Write-Host "=== PUBLISH OUTPUT ANALYSIS ==="
+          if (Test-Path $publishDir) {
+            Write-Host "Publish directory contents:"
+            Get-ChildItem $publishDir -Recurse | ForEach-Object {
+              $type = if ($_.PSIsContainer) { "[DIR]" } else { "[FILE - $($_.Length) bytes]" }
+              Write-Host "  $type $($_.Name)"
+            }
+          }
+          
+        } catch {
+          Write-Error "ClickOnce deployment failed: $_"
+          exit 1
+        }
+
+    - name: Create traditional installer (as backup)
+      shell: pwsh
+      run: |
+        Write-Host "Creating traditional installer package..."
+        
+        # Installer için klasör oluştur
+        $installerDir = "installer"
+        if (Test-Path $installerDir) {
+          Remove-Item $installerDir -Recurse -Force
+        }
+        New-Item -ItemType Directory -Path $installerDir -Force | Out-Null
+        
+        # App files'ı kopyala
+        Copy-Item "publish/*" -Destination $installerDir -Recurse -Force
+        
+        # Setup script oluştur
+        $setupScript = @"
+@echo off
+title MuhasibPro v$env:VERSION Kurulum
+color 0A
+
+echo.
+echo  ╔═══════════════════════════════════════╗
+echo  ║         MuhasibPro Kurulum            ║
+echo  ║            v$env:VERSION                     ║
+echo  ╚═══════════════════════════════════════╝
+echo.
+
+REM Yönetici kontrolü
+net session >nul 2>&1
+if %errorLevel% == 0 (
+    echo ✅ Administrator yetkisi onaylandı
+) else (
+    echo ⚠️  Bu kurulum Administrator yetkisi gerektirir
+    echo    Lütfen "Yönetici olarak çalıştır" ile açın
+    echo.
+    pause
+    exit /b 1
+)
+
+REM Program Files klasörü oluştur
+set "INSTALL_DIR=%ProgramFiles%\MuhasibPro"
+echo 📁 Kurulum dizini: %INSTALL_DIR%
+
+if not exist "%INSTALL_DIR%" (
+    mkdir "%INSTALL_DIR%" 2>nul
+    if %errorLevel% neq 0 (
+        echo ❌ Kurulum dizini oluşturulamadı
+        pause
+        exit /b 1
+    )
+)
+
+REM Dosyaları kopyala  
+echo 📋 Uygulama dosyaları kopyalanıyor...
+xcopy "%~dp0*.*" "%INSTALL_DIR%\" /E /H /Y /Q >nul 2>&1
+if %errorLevel% neq 0 (
+    echo ❌ Dosya kopyalama başarısız
+    pause
+    exit /b 1
+)
+
+REM Desktop kısayolu oluştur
+echo 🔗 Masaüstü kısayolu oluşturuluyor...
+set "SHORTCUT_PATH=%USERPROFILE%\Desktop\MuhasibPro.lnk"
+powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').Save()`" 2>nul
+
+REM Start Menu kısayolu
+echo 📌 Başlat menüsü kısayolu oluşturuluyor...
+set "START_MENU=%ProgramData%\Microsoft\Windows\Start Menu\Programs"
+if not exist "%START_MENU%\MuhasibPro" mkdir "%START_MENU%\MuhasibPro" 2>nul
+set "START_SHORTCUT=%START_MENU%\MuhasibPro\MuhasibPro.lnk"
+powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').Save()`" 2>nul
+
+REM Uninstaller oluştur
+echo 🗑️  Kaldırıcı oluşturuluyor...
+echo @echo off > "%INSTALL_DIR%\uninstall.bat"
+echo title MuhasibPro Kaldır >> "%INSTALL_DIR%\uninstall.bat"
+echo echo MuhasibPro kaldırılıyor... >> "%INSTALL_DIR%\uninstall.bat"
+echo taskkill /f /im "$env:APP_NAME.exe" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo timeout /t 2 /nobreak ^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo rmdir /s /q "%INSTALL_DIR%" >> "%INSTALL_DIR%\uninstall.bat"
+echo del "%USERPROFILE%\Desktop\MuhasibPro.lnk" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo rmdir /s /q "%START_MENU%\MuhasibPro" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+echo echo MuhasibPro başarıyla kaldırıldı >> "%INSTALL_DIR%\uninstall.bat"
+echo pause >> "%INSTALL_DIR%\uninstall.bat"
+
+echo.
+echo ✅ MuhasibPro v$env:VERSION başarıyla kuruldu!
+echo.
+echo 📍 Kurulum Dizini: %INSTALL_DIR%
+echo 🖥️  Masaüstü kısayolu oluşturuldu
+echo 📌 Başlat menüsünde bulabilirsiniz
+echo.
+echo MuhasibPro'yu başlatmak için herhangi bir tuşa basın...
+pause >nul
+
+start "" "%INSTALL_DIR%\$env:APP_NAME.exe"
+"@
+        
+        $setupScript | Out-File -FilePath "$installerDir\setup.bat" -Encoding ASCII
+        
+        Write-Host "✅ Installer package created in: $installerDir"
+
+    - name: Create application manifest
+      shell: pwsh
+      run: |
+        # ClickOnce için application manifest oluştur
+        $manifest = @{
+          name = "$env:APP_NAME"
+          version = "$env:VERSION"
+          buildNumber = "${{ steps.version.outputs.build-number }}"
+          releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          publishUrl = "$env:PUBLISH_URL"
+          updateUrl = "$env:PUBLISH_URL"
+          deploymentType = "ClickOnce"
+          previousVersion = "${{ steps.download-previous.outputs.previous-version }}"
+          hasUpdate = "${{ steps.download-previous.outputs.has-previous }}"
+          downloadUrls = @{
+            clickonce = "$env:PUBLISH_URL"
+            installer = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag-name }}/MuhasibPro-Setup-v$env:VERSION.zip"
+            portable = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag-name }}/MuhasibPro-Portable-v$env:VERSION.zip"
+          }
+        }
+        
+        $manifestJson = $manifest | ConvertTo-Json -Depth 10
+        $manifestJson | Out-File -FilePath "app-manifest.json" -Encoding utf8
+        
+        Write-Host "Application manifest generated"
 
     - name: Create distribution packages
       shell: pwsh
       run: |
-        # ClickOnce Paketi
-        Compress-Archive -Path "publish\*" -DestinationPath "MuhasibPro-ClickOnce-v${{ env.VERSION }}.zip"
-        # Setup ve Portable için dosyaları kopyala
-        New-Item -ItemType Directory -Path "dist" -Force | Out-Null
-        Copy-Item -Path "publish\*" -Destination "dist" -Recurse
-        # Geleneksel Setup Paketi
-        Compress-Archive -Path "dist\*" -DestinationPath "MuhasibPro-Setup-v${{ env.VERSION }}.zip"
-        # Portable Paketi
-        Compress-Archive -Path "dist\*" -DestinationPath "MuhasibPro-Portable-v${{ env.VERSION }}.zip"
+        Write-Host "Creating distribution packages..."
+        
+        # 1. ClickOnce deployment paketi
+        if (Test-Path "publish") {
+          Write-Host "📦 Creating ClickOnce package..."
+          Compress-Archive -Path "publish\*" -DestinationPath "MuhasibPro-ClickOnce-v$env:VERSION.zip" -Force
+          Write-Host "✅ ClickOnce package: MuhasibPro-ClickOnce-v$env:VERSION.zip"
+        }
+        
+        # 2. Traditional installer paketi  
+        if (Test-Path "installer") {
+          Write-Host "📦 Creating Installer package..."
+          Compress-Archive -Path "installer\*" -DestinationPath "MuhasibPro-Setup-v$env:VERSION.zip" -Force
+          Write-Host "✅ Installer package: MuhasibPro-Setup-v$env:VERSION.zip"
+        }
+        
+        # 3. Portable paketi
+        Write-Host "📦 Creating Portable package..."
+        $portableDir = "portable"
+        New-Item -ItemType Directory -Path $portableDir -Force | Out-Null
+        Copy-Item "publish\*" -Destination $portableDir -Recurse -Force
+        
+        # Portable için README oluştur
+        $portableReadme = @"
+# MuhasibPro Portable v$env:VERSION
+
+## Kullanım
+1. Bu klasörü istediğiniz yere kopyalayın
+2. $env:APP_NAME.exe dosyasını çalıştırın
+3. Kurulum gerektirmez!
+
+## Özellikler
+- ✅ Kurulum gerektirmez
+- ✅ Registry değişikliği yapmaz  
+- ✅ USB'de taşınabilir
+- ✅ Tam özellikli uygulama
+
+## Sistem Gereksinimleri
+- Windows 10/11 (x64)
+- .NET 8 Runtime (otomatik dahil)
+
+## Güncelleme
+Yeni sürüm için:
+https://github.com/${{ github.repository }}/releases
+
+Tarih: $(Get-Date -Format 'dd.MM.yyyy HH:mm')
+Sürüm: $env:VERSION
+Build: ${{ steps.version.outputs.build-number }}
+"@
+        
+        $portableReadme | Out-File -FilePath "$portableDir\PORTABLE_README.txt" -Encoding UTF8
+        
+        Compress-Archive -Path "$portableDir\*" -DestinationPath "MuhasibPro-Portable-v$env:VERSION.zip" -Force
+        Write-Host "✅ Portable package: MuhasibPro-Portable-v$env:VERSION.zip"
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: muhasibpro-packages-${{ steps.version.outputs.version }}
         path: |
-          MuhasibPro-ClickOnce-*.zip
-          MuhasibPro-Setup-*.zip
-          MuhasibPro-Portable-*.zip
-        retention-days: 7
+          MuhasibPro-ClickOnce-v${{ steps.version.outputs.version }}.zip
+          MuhasibPro-Setup-v${{ steps.version.outputs.version }}.zip
+          MuhasibPro-Portable-v${{ steps.version.outputs.version }}.zip
+          app-manifest.json
+        retention-days: 90
+
+    - name: List build outputs (Debug)
+      if: always()
+      shell: pwsh
+      run: |
+        Write-Host "=== FINAL BUILD OUTPUT DEBUG ==="
+        Write-Host "Version: $env:VERSION"
+        Write-Host "Tag: ${{ steps.version.outputs.tag-name }}"
+        
+        Get-ChildItem -Path "." -Filter "*.zip" | ForEach-Object {
+          Write-Host "📦 Package: $($_.Name) - $([math]::Round($_.Length / 1MB, 2)) MB"
+        }
+        
+        if (Test-Path "publish") {
+          $publishSize = (Get-ChildItem "publish" -Recurse | Measure-Object -Property Length -Sum).Sum
+          Write-Host "📁 Publish folder: $([math]::Round($publishSize / 1MB, 2)) MB"
+        }
+        
+        if (Test-Path "installer") {
+          Write-Host "✅ Installer files ready"
+        }
+        
+        if (Test-Path "portable") {
+          Write-Host "✅ Portable files ready"
+        }
 
   release:
     needs: build-and-deploy
     runs-on: ubuntu-latest
     if: success() && startsWith(github.ref, 'refs/tags/v')
+    
     permissions:
       contents: write
+
     steps:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: muhasibpro-packages-${{ needs.build-and-deploy.outputs.version }}
+        path: ./artifacts
 
-    - name: Create or Update Release
-      uses: softprops/action-gh-release@v2
+    - name: Verify downloaded artifacts
+      run: |
+        echo "📋 Verifying downloaded artifacts..."
+        find artifacts/ -type f -exec ls -lh {} \;
+        
+        zip_count=$(find . -name "*.zip" | wc -l)
+        if [ "$zip_count" -eq 0 ]; then
+          echo "❌ No packages found!"
+          exit 1
+        fi
+        echo "✅ Found $zip_count package(s)"
+
+    - name: Copy artifacts to root directory
+      run: |
+        if [ -d "artifacts" ]; then
+          find artifacts/ -name "*.zip" -o -name "*.json" | while read file; do
+            filename=$(basename "$file")
+            cp "$file" "$filename"
+            echo "📦 Copied: $filename ($(du -h "$filename" | cut -f1))"
+          done
+        fi
+
+    - name: Update existing release or create new one
+      id: update-release
+      uses: actions/github-script@v7
       with:
-        tag_name: ${{ needs.build-and-deploy.outputs.tag-name }}
-        name: MuhasibPro v${{ needs.build-and-deploy.outputs.version }}
-        body: |
-          ## 🚀 MuhasibPro v${{ needs.build-and-deploy.outputs.version }}
-          Otomatik build #${{ needs.build-and-deploy.outputs.build-number }} | Commit: `${{ github.sha }}`
-
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const tagName = '${{ needs.build-and-deploy.outputs.tag-name }}';
+          const version = '${{ needs.build-and-deploy.outputs.version }}';
+          
+          const releaseBody = `## 🚀 MuhasibPro v${version}
+          
+          ### 📦 Bu Sürümde
+          - Otomatik build #${{ needs.build-and-deploy.outputs.build-number }}
+          - Commit: ${{ github.sha }}
+          - ClickOnce deployment desteği
+          - Geleneksel installer seçeneği
+          - Portable sürüm
+          
           ### 💾 İndirme Seçenekleri
           
-          #### 🎯 ClickOnce ile Kurulum (Önerilen)
-          Uygulamayı otomatik güncellemelerle kurmak için **[bu sayfayı ziyaret edin](${{ env.PUBLISH_URL }})**.
+          #### 🎯 ClickOnce Deployment (Önerilen)
+          - **MuhasibPro-ClickOnce-v${version}.zip** - Otomatik güncelleme destekli
+          - İndirin, açın, setup.exe'yi çalıştırın
+          - Otomatik güncellemeler alırsınız
           
-          #### 🛠️ Geleneksel Kurulum & Portable Sürüm
-          Aşağıdaki asset'lerden `Setup` veya `Portable` paketini indirebilirsiniz.
-        files: |
-          MuhasibPro-Setup-v${{ needs.build-and-deploy.outputs.version }}.zip
-          MuhasibPro-Portable-v${{ needs.build-and-deploy.outputs.version }}.zip
-        draft: false
-        prerelease: false
+          #### 🛠️ Geleneksel Kurulum
+          - **MuhasibPro-Setup-v${version}.zip** - Klasik installer
+          - İndirin, açın, setup.bat'ı Admin olarak çalıştırın
+          - Start menü ve masaüstü kısayolları oluşturur
+          
+          #### 📱 Portable Sürüm  
+          - **MuhasibPro-Portable-v${version}.zip** - Kurulum gerektirmez
+          - İndirin, açın, MuhasibPro.exe'yi çalıştırın
+          - USB'de taşıyabilir, kurulum yapmaz
+          
+          ### 🔧 Sistem Gereksinimleri
+          - Windows 10/11 (64-bit)
+          - .NET 8 Runtime (paketlerde dahil)
+          - Minimum 100MB disk alanı
+          
+          ### ✨ Yenilikler
+          - 🚀 Hızlı kurulum seçenekleri
+          - 🔄 Otomatik güncelleme (ClickOnce)
+          - 📦 Sertifika gerektirmeyen kurulum
+          - 🛡️ Windows Defender uyumlu
+          `;
+          
+          try {
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: tagName
+            });
+            
+            const { data: updatedRelease } = await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+              body: releaseBody,
+              draft: false,
+              prerelease: false
+            });
+            
+            core.setOutput('release-id', updatedRelease.id);
+            console.log(`Updated existing release: ${updatedRelease.id}`);
+            
+          } catch (error) {
+            if (error.status === 404) {
+              const { data: newRelease } = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tagName,
+                name: `MuhasibPro v${version}`,
+                body: releaseBody,
+                draft: false,
+                prerelease: false
+              });
+              
+              core.setOutput('release-id', newRelease.id);
+              console.log(`Created new release: ${newRelease.id}`);
+            } else {
+              throw error;
+            }
+          }
+
+    - name: Upload Release Assets
+      run: |
+        echo "🎁 Release assets yükleniyor..."
+        
+        uploaded_count=0
+        
+        # Tüm ZIP dosyalarını yükle
+        for file in *.zip; do
+          if [ -f "$file" ]; then
+            echo "📦 Uploading: $file ($(du -h "$file" | cut -f1))"
+            
+            curl_response=$(curl -w "%{http_code}" -s -L \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/zip" \
+              --data-binary "@$file" \
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.update-release.outputs.release-id }}/assets?name=$file")
+            
+            http_code="${curl_response: -3}"
+            if [ "$http_code" = "201" ]; then
+              echo "✅ Successfully uploaded: $file"
+              uploaded_count=$((uploaded_count + 1))
+            else
+              echo "❌ Failed to upload $file (HTTP: $http_code)"
+            fi
+          fi
+        done
+        
+        # App manifest'i yükle
+        if [ -f "app-manifest.json" ]; then
+          echo "📝 Uploading app-manifest.json"
+          curl -s -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-binary "@app-manifest.json" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.update-release.outputs.release-id }}/assets?name=app-manifest.json"
+          echo "✅ App manifest uploaded"
+        fi
+        
+        if [ "$uploaded_count" -eq 0 ]; then
+          echo "❌ No packages were uploaded!"
+          exit 1
+        fi
+        
+        echo "🎉 $uploaded_count paket başarıyla yüklendi!"
+        echo ""
+        echo "📋 Kullanıcılar için indirme seçenekleri:"
+        echo "   🎯 ClickOnce (Önerilen): MuhasibPro-ClickOnce-v${{ needs.build-and-deploy.outputs.version }}.zip"
+        echo "   🛠️  Geleneksel Kurulum: MuhasibPro-Setup-v${{ needs.build-and-deploy.outputs.version }}.zip"  
+        echo "   📱 Portable: MuhasibPro-Portable-v${{ needs.build-and-deploy.outputs.version }}.zip"
 
   deploy-clickonce:
-    needs: release 
+    needs: [build-and-deploy, release]
     runs-on: ubuntu-latest
     if: success() && startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
+    
     steps:
-    - name: Download ClickOnce package
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: gh-pages
+      continue-on-error: true
+
+    - name: Download ClickOnce artifacts
       uses: actions/download-artifact@v4
       with:
         name: muhasibpro-packages-${{ needs.build-and-deploy.outputs.version }}
+        path: ./artifacts
 
-    - name: Prepare deployment files
+    - name: Setup ClickOnce hosting
       run: |
-        # Dağıtım için temiz bir klasör oluştur
-        mkdir -p deploy_target
+        echo "🌐 Setting up ClickOnce hosting on GitHub Pages..."
         
-        # ClickOnce zip dosyasını bu klasöre aç
-        unzip MuhasibPro-ClickOnce-*.zip -d deploy_target
+        # gh-pages klasörü oluştur (eğer yoksa)
+        mkdir -p gh-pages
+        cd gh-pages
         
-        # ClickOnce için bir index.html oluştur
-        cat > deploy_target/index.html << EOF
+        # Git config
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        
+        # ClickOnce files'ı extract et
+        if [ -f "../artifacts/MuhasibPro-ClickOnce-v${{ needs.build-and-deploy.outputs.version }}.zip" ]; then
+          echo "📦 Extracting ClickOnce package..."
+          unzip -o "../artifacts/MuhasibPro-ClickOnce-v${{ needs.build-and-deploy.outputs.version }}.zip"
+          
+          # Index.html oluştur
+          cat > index.html << 'EOF'
         <!DOCTYPE html>
-        <html lang="tr">
-        <head>
-          <meta charset="UTF-8">
-          <meta http-equiv="refresh" content="0; url=setup.exe">
-          <title>MuhasibPro Kurulumu Başlatılıyor...</title>
-          <style>body { font-family: sans-serif; text-align: center; padding-top: 5em; } a { font-size: 1.2em; }</style>
-        </head>
-        <body>
-          <p>Kurulum başlamadıysa, lütfen <a href="setup.exe">buraya tıklayın</a>.</p>
-          <p><small>Sürüm: ${{ needs.build-and-deploy.outputs.version }}</small></p>
-        </body>
-        </html>
-        EOF
-        echo "✅ Deployment files are ready."
-        ls -l deploy_target
-
-    - name: Deploy to GitHub Pages
-      uses: JamesIves/github-pages-deploy-action@v4
-      with:
-        branch: gh-pages      # Dağıtım yapılacak dal
-        folder: deploy_target  # Hazırladığımız klasörü dağıt
-        clean: true            # Dağıtım öncesi dalı temizle
-
-    
+        <html lang="
+        <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuhasibPro - ClickOnce Deployment</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #2980b9;
+        }
+        .version {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MuhasibPro</h1>
+        <p class="version">Sürüm: ${{ needs.build-and-deploy.outputs.version }}</p>
+        
+        <h2>ClickOnce Kurulum</h2>
+        <p>
+            MuhasibPro'yu ClickOnce ile kurmak için aşağıdaki butona tıklayın:
+        </p>
+        <a href="setup.exe" class="button">MuhasibPro'yu Kur</a>
+        
+        <h2>Kurulum Adımları</h2>
+        <ol>
+            <li>"MuhasibPro'yu Kur" butonuna tıklayın</li>
+            <li>setup.exe'yi çalıştırın</li>
+            <li>Kurulum sihirbazını takip edin</li>
+            <li>Uygulama otomatik olarak başlayacaktır</li>
+        </ol>
+        
+        <h2>Sistem Gereksinimleri</h2>
+        <ul>
+            <li>Windows 10/11 (64-bit)</li>
+            <li>.NET 8 Runtime (otomatik yüklenir)</li>
+            <li>Minimum 100MB disk alanı</li>
+        </ul>
+        
+        <p>
+            <small>
+                Son güncelleme: $(date +'%d.%m.%Y %H:%M')<br>
+                Build: #${{ needs.build-and-deploy.outputs.build-number }}
+            </small>
+        </p>
+    </div>
+</body>
+</html>
+EOF
+          
+          # Git commit & push
+          git add .
+          git commit -m "🚀 ClickOnce deployment update: v${{ needs.build-and-deploy.outputs.version }}"
+          git push origin gh-pages
+          
+          echo "✅ ClickOnce files deployed to GitHub Pages"
+          echo "📋 Deployment URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          
+        else
+          echo "❌ ClickOnce package not found!"
+          exit 1
+        fi
