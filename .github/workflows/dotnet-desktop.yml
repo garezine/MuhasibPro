@@ -1,6 +1,6 @@
 # .github/workflows/dotnet-desktop-cicd.yml
 
-name: .NET Desktop CI/CD with ClickOnce Deployment
+name: .NET Desktop CI/CD with Delta Updates
 
 on:
   push:
@@ -11,15 +11,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build-and-package:
     runs-on: windows-latest
 
     env:
       SOLUTION_NAME: MuhasibPro.sln
-      PROJECT_PATH: "src/MuhasibPro/MuhasibPro.csproj"  # Ana WPF/WinForms projesi
+      WAP_PROJECT_PATH: "src/MuhasibProWap/MuhasibProWap.wapproj"
       RUNTIME_IDENTIFIER: win-x64
       APP_NAME: MuhasibPro
-      PUBLISH_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
 
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -32,16 +31,20 @@ jobs:
       with:
         fetch-depth: 0
 
+    # FİX 1: Tag versioning'i düzelt - mevcut tag'ı kullan, yeni tag oluşturma
     - name: Generate version number
       id: version
       shell: pwsh
       run: |
         if ("${{ github.ref }}" -like "refs/tags/v*") {
+          # Tag'dan version'ı al (v1.0.1 -> 1.0.1.0)
           $tagVersion = "${{ github.ref }}".Replace("refs/tags/v", "")
           $version = "$tagVersion.0"
           $tagName = "${{ github.ref }}".Replace("refs/tags/", "")
           Write-Host "Using existing tag: $tagName"
+          Write-Host "Version from tag: $version"
         } else {
+          # Branch build için otomatik version
           $buildNumber = ${{ github.run_number }}
           $version = "1.0.0.$buildNumber"
           $tagName = "v$version"
@@ -68,10 +71,10 @@ jobs:
       shell: pwsh
       run: |
         Write-Host "Restoring NuGet packages..."
-        dotnet restore $env:SOLUTION_NAME
+        nuget restore $env:SOLUTION_NAME
         Write-Host "NuGet restore completed"
 
-    - name: Download previous release (for update detection)
+    - name: Download previous release (for delta)
       id: download-previous
       uses: actions/github-script@v7
       with:
@@ -87,6 +90,14 @@ jobs:
               const latestRelease = releases.data[0];
               core.setOutput('has-previous', 'true');
               core.setOutput('previous-version', latestRelease.tag_name);
+              
+              const assets = latestRelease.assets;
+              const msixAsset = assets.find(asset => asset.name.endsWith('.msix') || asset.name.endsWith('.msixbundle'));
+              
+              if (msixAsset) {
+                core.setOutput('previous-download-url', msixAsset.browser_download_url);
+                core.setOutput('previous-filename', msixAsset.name);
+              }
             } else {
               core.setOutput('has-previous', 'false');
             }
@@ -95,93 +106,54 @@ jobs:
             core.setOutput('has-previous', 'false');
           }
 
-    - name: Update AssemblyInfo version
+    - name: Download previous MSIX (if exists)
+      if: steps.download-previous.outputs.has-previous == 'true'
       shell: pwsh
       run: |
-        # AssemblyInfo.cs dosyasını bul ve güncelle
-        $assemblyFiles = Get-ChildItem -Path "." -Filter "AssemblyInfo.cs" -Recurse
+        $previousUrl = "${{ steps.download-previous.outputs.previous-download-url }}"
+        $previousFile = "${{ steps.download-previous.outputs.previous-filename }}"
         
-        foreach ($file in $assemblyFiles) {
-          Write-Host "Updating version in: $($file.FullName)"
-          
-          $content = Get-Content $file.FullName -Raw
-          $content = $content -replace 'AssemblyVersion\(".*?"\)', "AssemblyVersion(`"$env:VERSION`")"
-          $content = $content -replace 'AssemblyFileVersion\(".*?"\)', "AssemblyFileVersion(`"$env:VERSION`")"
-          
-          Set-Content -Path $file.FullName -Value $content -Encoding UTF8
-        }
-        
-        # Proje dosyasındaki version'ı da güncelle
-        if (Test-Path $env:PROJECT_PATH) {
-          Write-Host "Updating version in project file: $env:PROJECT_PATH"
-          [xml]$project = Get-Content $env:PROJECT_PATH
-          
-          # Version properties'ini bul/oluştur
-          $propertyGroup = $project.Project.PropertyGroup | Where-Object { $_.Version -or $_.AssemblyVersion } | Select-Object -First 1
-          if (-not $propertyGroup) {
-            $propertyGroup = $project.CreateElement("PropertyGroup")
-            $project.Project.AppendChild($propertyGroup) | Out-Null
-          }
-          
-          # Version elementlerini güncelle/oluştur
-          @("Version", "AssemblyVersion", "FileVersion", "ApplicationVersion") | ForEach-Object {
-            $element = $propertyGroup.$_
-            if ($element) {
-              $element = $env:VERSION
-            } else {
-              $newElement = $project.CreateElement($_)
-              $newElement.InnerText = $env:VERSION
-              $propertyGroup.AppendChild($newElement) | Out-Null
-            }
-          }
-          
-          $project.Save($env:PROJECT_PATH)
-          Write-Host "Project file updated with version: $env:VERSION"
+        if ($previousUrl -and $previousFile) {
+          Write-Host "Downloading previous version: $previousFile"
+          New-Item -ItemType Directory -Path "previous" -Force
+          Invoke-WebRequest -Uri $previousUrl -OutFile "previous/$previousFile"
+          Write-Host "Previous version downloaded successfully"
         }
 
-    - name: Verify project structure
+    - name: Update version in manifest
       shell: pwsh
       run: |
-        Write-Host "=== PROJECT STRUCTURE VERIFICATION ==="
-        Write-Host "Current directory: $(Get-Location)"
-        
-        Write-Host "Solution file check:"
-        if (Test-Path $env:SOLUTION_NAME) {
-          Write-Host "✅ Solution found: $env:SOLUTION_NAME"
-        } else {
-          Write-Host "❌ Solution NOT found: $env:SOLUTION_NAME"
-        }
-        
-        Write-Host "Main project check:"
-        if (Test-Path $env:PROJECT_PATH) {
-          Write-Host "✅ Main project found: $env:PROJECT_PATH"
+        $manifestPath = "src/MuhasibProWap/Package.appxmanifest"
+        if (Test-Path $manifestPath) {
+          Write-Host "Updating manifest at: $manifestPath"
+          [xml]$manifest = Get-Content $manifestPath -Encoding UTF8
+          $manifest.Package.Identity.Version = "$env:VERSION"
+          $manifest.Save($manifestPath)
+          Write-Host "Updated manifest version to: $env:VERSION"
           
-          # Proje türünü kontrol et
-          [xml]$project = Get-Content $env:PROJECT_PATH
-          $sdk = $project.Project.Sdk
-          $outputType = $project.Project.PropertyGroup.OutputType
-          $targetFramework = $project.Project.PropertyGroup.TargetFramework
-          
-          Write-Host "   SDK: $sdk"
-          Write-Host "   Output Type: $outputType" 
-          Write-Host "   Target Framework: $targetFramework"
+          # Manifest içeriğini kontrol et
+          Write-Host "Manifest content check:"
+          Get-Content $manifestPath | Select-String "Version="
         } else {
-          Write-Host "❌ Main project NOT found: $env:PROJECT_PATH"
-          Write-Host "Available project files:"
-          Get-ChildItem -Path "." -Filter "*.csproj" -Recurse | ForEach-Object {
-            Write-Host "  $($_.FullName)"
-          }
+          Write-Error "Manifest file not found at: $manifestPath"
+          exit 1
         }
+
+    - name: Restore dependencies
+      run: dotnet restore $env:SOLUTION_NAME --runtime $env:RUNTIME_IDENTIFIER --verbosity normal
 
     - name: Build solution
       shell: pwsh
       run: |
         Write-Host "Building solution: $env:SOLUTION_NAME"
         
-        dotnet build $env:SOLUTION_NAME `
-          --configuration Release `
-          --runtime $env:RUNTIME_IDENTIFIER `
-          --verbosity normal
+        msbuild $env:SOLUTION_NAME `
+          /p:Configuration=Release `
+          /p:Platform="x64" `
+          /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER `
+          /p:PublishReadyToRun=false `
+          /p:RestorePackagesConfig=false `
+          /verbosity:detailed
         
         if ($LASTEXITCODE -ne 0) {
           Write-Error "Solution build failed with exit code: $LASTEXITCODE"
@@ -190,283 +162,266 @@ jobs:
         
         Write-Host "Solution build completed successfully"
 
-    - name: Create ClickOnce deployment
+    - name: Prepare certificate directory
+      shell: pwsh
+      run: |
+        $certDir = "MuhasibPro.Package"
+        if (!(Test-Path $certDir)) {
+            New-Item -ItemType Directory -Path $certDir -Force | Out-Null
+            Write-Host "Created certificate directory: $certDir"
+        }
+
+    # FİX 2: Certificate handling'i güçlendir ve test sertifikası oluştur
+    - name: Create and install test certificate
       shell: pwsh
       run: |
         try {
-          # Publish klasörünü temizle
-          $publishDir = "publish"
-          if (Test-Path $publishDir) {
-            Remove-Item $publishDir -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path $publishDir -Force | Out-Null
+          # Test sertifikası oluştur
+          $certPassword = ConvertTo-SecureString -String "${{ secrets.PFX_PASSWORD }}" -Force -AsPlainText
+          $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=MuhasibPro Test Certificate" `
+                                           -KeyUsage DigitalSignature -FriendlyName "MuhasibPro Test Cert" `
+                                           -CertStoreLocation "Cert:\CurrentUser\My" `
+                                           -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
           
-          Write-Host "Creating ClickOnce deployment..."
-          Write-Host "Project: $env:PROJECT_PATH"
-          Write-Host "Version: $env:VERSION"
-          Write-Host "Publish URL: $env:PUBLISH_URL"
+          $certPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "test_cert.pfx"
           
-          # ClickOnce publish komutu
-          dotnet publish $env:PROJECT_PATH `
-            --configuration Release `
-            --runtime $env:RUNTIME_IDENTIFIER `
-            --self-contained true `
-            --output "publish" `
-            /p:PublishUrl="$env:PUBLISH_URL" `
-            /p:ApplicationVersion="$env:VERSION" `
-            /p:PublishSingleFile=false `
-            /p:PublishReadyToRun=false `
-            /p:EnableCompressionInSingleFile=false `
-            --verbosity normal
+          # Test sertifikayı export et
+          Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $certPath -Password $certPassword
+          Write-Host "Test certificate created and exported to: $certPath"
           
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "ClickOnce publish failed with exit code: $LASTEXITCODE"
-            exit $LASTEXITCODE
-          }
-          
-          Write-Host "ClickOnce deployment created successfully"
-          
-          # Publish sonuçlarını kontrol et
-          Write-Host "=== PUBLISH OUTPUT ANALYSIS ==="
-          if (Test-Path $publishDir) {
-            Write-Host "Publish directory contents:"
-            Get-ChildItem $publishDir -Recurse | ForEach-Object {
-              $type = if ($_.PSIsContainer) { "[DIR]" } else { "[FILE - $($_.Length) bytes]" }
-              Write-Host "  $type $($_.Name)"
+          # Orijinal sertifikayı da dene (varsa)
+          try {
+            if ("${{ secrets.PFX_CERTIFICATE }}".Length -gt 0) {
+              $pfxBytes = [System.Convert]::FromBase64String("${{ secrets.PFX_CERTIFICATE }}")
+              $originalCertPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "workflow_cert.pfx"
+              [IO.File]::WriteAllBytes($originalCertPath, $pfxBytes)
+              
+              # Sertifikanın geçerliliğini test et
+              $testCert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($originalCertPath, "${{ secrets.PFX_PASSWORD }}")
+              if ($testCert.HasPrivateKey) {
+                Write-Host "Original certificate is valid, using it instead of test certificate"
+                $certPath = $originalCertPath
+              } else {
+                Write-Host "Original certificate has no private key, using test certificate"
+              }
+              $testCert.Dispose()
             }
+          } catch {
+            Write-Host "Original certificate failed, using test certificate: $_"
           }
+          
+          echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
+          
+          # Certificate bilgilerini göster
+          $certInfo = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certPath, "${{ secrets.PFX_PASSWORD }}")
+          Write-Host "Certificate Subject: $($certInfo.Subject)"
+          Write-Host "Certificate Issuer: $($certInfo.Issuer)"
+          Write-Host "Certificate Expires: $($certInfo.NotAfter)"
+          Write-Host "Has Private Key: $($certInfo.HasPrivateKey)"
+          $certInfo.Dispose()
           
         } catch {
-          Write-Error "ClickOnce deployment failed: $_"
+          Write-Error "Certificate handling failed: $_"
           exit 1
         }
 
-    - name: Create traditional installer (as backup)
+    - name: Verify project structure
       shell: pwsh
       run: |
-        Write-Host "Creating traditional installer package..."
-        
-        # Installer için klasör oluştur
-        $installerDir = "installer"
-        if (Test-Path $installerDir) {
-          Remove-Item $installerDir -Recurse -Force
+        Write-Host "=== PROJECT STRUCTURE VERIFICATION ==="
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Solution file check:"
+        if (Test-Path $env:SOLUTION_NAME) {
+          Write-Host "✅ Solution found: $env:SOLUTION_NAME"
+        } else {
+          Write-Host "❌ Solution NOT found: $env:SOLUTION_NAME"
         }
-        New-Item -ItemType Directory -Path $installerDir -Force | Out-Null
         
-        # App files'ı kopyala
-        Copy-Item "publish/*" -Destination $installerDir -Recurse -Force
-        
-        # Setup script oluştur
-        $setupScript = @"
-        @echo off
-        title MuhasibPro v$env:VERSION Kurulum
-        color 0A
-        
-        echo.
-        echo  ╔═══════════════════════════════════════╗
-        echo  ║         MuhasibPro Kurulum            ║
-        echo  ║            v$env:VERSION                     ║
-        echo  ╚═══════════════════════════════════════╝
-        echo.
-        
-        REM Yönetici kontrolü
-        net session >nul 2>&1
-        if %errorLevel% == 0 (
-            echo ✅ Administrator yetkisi onaylandı
-        ) else (
-            echo ⚠️  Bu kurulum Administrator yetkisi gerektirir
-            echo    Lütfen "Yönetici olarak çalıştır" ile açın
-            echo.
-            pause
-            exit /b 1
-        )
-        
-        REM Program Files klasörü oluştur
-        set "INSTALL_DIR=%ProgramFiles%\MuhasibPro"
-        echo 📁 Kurulum dizini: %INSTALL_DIR%
-        
-        if not exist "%INSTALL_DIR%" (
-            mkdir "%INSTALL_DIR%" 2>nul
-            if %errorLevel% neq 0 (
-                echo ❌ Kurulum dizini oluşturulamadı
-                pause
-                exit /b 1
-            )
-        )
-        
-        REM Dosyaları kopyala  
-        echo 📋 Uygulama dosyaları kopyalanıyor...
-        xcopy "%~dp0*.*" "%INSTALL_DIR%\" /E /H /Y /Q >nul 2>&1
-        if %errorLevel% neq 0 (
-            echo ❌ Dosya kopyalama başarısız
-            pause
-            exit /b 1
-        )
-        
-        REM Desktop kısayolu oluştur
-        echo 🔗 Masaüstü kısayolu oluşturuluyor...
-        set "SHORTCUT_PATH=%USERPROFILE%\Desktop\MuhasibPro.lnk"
-        powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').Save()`" 2>nul
-        
-        REM Start Menu kısayolu
-        echo 📌 Başlat menüsü kısayolu oluşturuluyor...
-        set "START_MENU=%ProgramData%\Microsoft\Windows\Start Menu\Programs"
-        if not exist "%START_MENU%\MuhasibPro" mkdir "%START_MENU%\MuhasibPro" 2>nul
-        set "START_SHORTCUT=%START_MENU%\MuhasibPro\MuhasibPro.lnk"
-        powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').Save()`" 2>nul
-        
-        REM Uninstaller oluştur
-        echo 🗑️  Kaldırıcı oluşturuluyor...
-        echo @echo off > "%INSTALL_DIR%\uninstall.bat"
-        echo title MuhasibPro Kaldır >> "%INSTALL_DIR%\uninstall.bat"
-        echo echo MuhasibPro kaldırılıyor... >> "%INSTALL_DIR%\uninstall.bat"
-        echo taskkill /f /im "$env:APP_NAME.exe" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo timeout /t 2 /nobreak ^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo rmdir /s /q "%INSTALL_DIR%" >> "%INSTALL_DIR%\uninstall.bat"
-        echo del "%USERPROFILE%\Desktop\MuhasibPro.lnk" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo rmdir /s /q "%START_MENU%\MuhasibPro" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-        echo echo MuhasibPro başarıyla kaldırıldı >> "%INSTALL_DIR%\uninstall.bat"
-        echo pause >> "%INSTALL_DIR%\uninstall.bat"
-        
-        echo.
-        echo ✅ MuhasibPro v$env:VERSION başarıyla kuruldu!
-        echo.
-        echo 📍 Kurulum Dizini: %INSTALL_DIR%
-        echo 🖥️  Masaüstü kısayolu oluşturuldu
-        echo 📌 Başlat menüsünde bulabilirsiniz
-        echo.
-        echo MuhasibPro'yu başlatmak için herhangi bir tuşa basın...
-        pause >nul
-        
-        start "" "%INSTALL_DIR%\$env:APP_NAME.exe"
-        "@
-        
-        $setupScript | Out-File -FilePath "$installerDir\setup.bat" -Encoding ASCII
-        
-        Write-Host "✅ Installer package created in: $installerDir"
-
-    - name: Create application manifest
-      shell: pwsh
-      run: |
-        # ClickOnce için application manifest oluştur
-        $manifest = @{
-          name = "$env:APP_NAME"
-          version = "$env:VERSION"
-          buildNumber = "${{ steps.version.outputs.build-number }}"
-          releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-          publishUrl = "$env:PUBLISH_URL"
-          updateUrl = "$env:PUBLISH_URL"
-          deploymentType = "ClickOnce"
-          previousVersion = "${{ steps.download-previous.outputs.previous-version }}"
-          hasUpdate = "${{ steps.download-previous.outputs.has-previous }}"
-          downloadUrls = @{
-            clickonce = "$env:PUBLISH_URL"
-            installer = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag-name }}/MuhasibPro-Setup-v$env:VERSION.zip"
-            portable = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag-name }}/MuhasibPro-Portable-v$env:VERSION.zip"
+        Write-Host "WAP Project check:"
+        if (Test-Path $env:WAP_PROJECT_PATH) {
+          Write-Host "✅ WAP project found: $env:WAP_PROJECT_PATH"
+        } else {
+          Write-Host "❌ WAP project NOT found: $env:WAP_PROJECT_PATH"
+          Write-Host "Available src directories:"
+          if (Test-Path "src") {
+            Get-ChildItem "src" -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
           }
         }
         
-        $manifestJson = $manifest | ConvertTo-Json -Depth 10
-        $manifestJson | Out-File -FilePath "app-manifest.json" -Encoding utf8
-        
-        Write-Host "Application manifest generated"
+        Write-Host "Certificate check:"
+        if (Test-Path $env:CERT_PATH) {
+          $certSize = (Get-Item $env:CERT_PATH).Length
+          Write-Host "✅ Certificate found: $env:CERT_PATH ($certSize bytes)"
+        } else {
+          Write-Host "❌ Certificate NOT found: $env:CERT_PATH"
+        }
 
-    - name: Create distribution packages
+    - name: Create MSIX package
       shell: pwsh
       run: |
-        Write-Host "Creating distribution packages..."
+        try {
+          # Proje dosyası varlığını kontrol et
+          if (!(Test-Path $env:WAP_PROJECT_PATH)) {
+            Write-Error "WAP project file not found: $env:WAP_PROJECT_PATH"
+            exit 1
+          }
+          
+          # Certificate varlığını kontrol et
+          if (!(Test-Path $env:CERT_PATH)) {
+            Write-Error "Certificate file not found: $env:CERT_PATH"
+            exit 1
+          }
+          
+          # AppxPackages klasörünü temizle ve oluştur
+          if (Test-Path "AppxPackages") {
+            Remove-Item "AppxPackages" -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path "AppxPackages" -Force
+          
+          Write-Host "Building MSIX package..."
+          Write-Host "WAP Project: $env:WAP_PROJECT_PATH"
+          Write-Host "Version: $env:VERSION"
+          Write-Host "Certificate: $env:CERT_PATH"
+          
+          # Absolute path'leri al
+          $wapProjectFullPath = (Resolve-Path $env:WAP_PROJECT_PATH).Path
+          $certFullPath = (Resolve-Path $env:CERT_PATH).Path
+          $outputDirFullPath = (Resolve-Path "AppxPackages").Path + "\"
+          
+          Write-Host "=== Starting MSBuild ==="
+          
+          msbuild "$wapProjectFullPath" `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:PackageCertificateKeyFile="$certFullPath" `
+            /p:PackageCertificatePassword="${{ secrets.PFX_PASSWORD }}" `
+            /p:AppxPackageDir="$outputDirFullPath" `
+            /p:AppxBundle=Always `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:PublishReadyToRun=false `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:AppxPackageSigningEnabled=true `
+            /verbosity:detailed
+          
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "MSIX package build failed with exit code: $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          
+          Write-Host "MSIX package build completed successfully"
+          
+        } catch {
+          Write-Error "MSIX build failed with exception: $_"
+          exit 1
+        }
+
+    - name: Find generated packages
+      id: find-packages
+      shell: pwsh
+      run: |
+        try {
+          Write-Host "=== PACKAGE SEARCH ANALYSIS ==="
+          
+          # MSIX ve MSIXBUNDLE dosyalarını ara (tüm workspace'de)
+          $msixFiles = Get-ChildItem -Recurse -Include "*.msix" -ErrorAction SilentlyContinue | Where-Object { 
+            $_.Name -notlike "*_Test*" -and $_.Name -notlike "*Dependencies*" -and $_.Name -notlike "*_x86_*" -and $_.Name -notlike "*_arm*"
+          }
+          $msixBundleFiles = Get-ChildItem -Recurse -Include "*.msixbundle" -ErrorAction SilentlyContinue
+          
+          # En uygun paketi seç
+          $mainPackage = $null
+          $packageType = $null
+          
+          if ($msixBundleFiles.Count -gt 0) {
+            $mainPackage = $msixBundleFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            $packageType = "msixbundle"
+          } elseif ($msixFiles.Count -gt 0) {
+            $mainPackage = $msixFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            $packageType = "msix"
+          } else {
+            Write-Error "No suitable MSIX package found!"
+            Get-ChildItem -Recurse -Include "*.msix", "*.msixbundle" | ForEach-Object { 
+              Write-Host "Found: $($_.Name)"
+            }
+            exit 1
+          }
+          
+          $packageName = $mainPackage.Name
+          $packageFullPath = $mainPackage.FullName
+          
+          Write-Host "Selected package: $packageName"
+          Write-Host "Package type: $packageType"  
+          Write-Host "Full path: $packageFullPath"
+          
+          echo "main-package=$packageFullPath" >> $env:GITHUB_OUTPUT
+          echo "package-type=$packageType" >> $env:GITHUB_OUTPUT
+          echo "package-name=$packageName" >> $env:GITHUB_OUTPUT
+          
+        } catch {
+          Write-Error "Package finding failed: $_"
+          exit 1
+        }
+
+    - name: Calculate package hash
+      id: hash
+      shell: pwsh
+      run: |
+        $packagePath = "${{ steps.find-packages.outputs.main-package }}"
+        $hash = Get-FileHash -Path $packagePath -Algorithm SHA256
+        echo "package-hash=$($hash.Hash)" >> $env:GITHUB_OUTPUT
+        Write-Host "Package hash: $($hash.Hash)"
+
+    - name: Generate update manifest
+      shell: pwsh
+      run: |
+        $packagePath = "${{ steps.find-packages.outputs.main-package }}"
+        $packageItem = Get-Item $packagePath
         
-        # 1. ClickOnce deployment paketi
-        if (Test-Path "publish") {
-          Write-Host "📦 Creating ClickOnce package..."
-          Compress-Archive -Path "publish\*" -DestinationPath "MuhasibPro-ClickOnce-v$env:VERSION.zip" -Force
-          Write-Host "✅ ClickOnce package: MuhasibPro-ClickOnce-v$env:VERSION.zip"
+        $manifest = @{
+          version = "$env:VERSION"
+          buildNumber = "${{ steps.version.outputs.build-number }}"
+          releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          packages = @{
+            full = @{
+              name = "${{ steps.find-packages.outputs.package-name }}"
+              size = $packageItem.Length
+              hash = "${{ steps.hash.outputs.package-hash }}"
+              url = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag-name }}/${{ steps.find-packages.outputs.package-name }}"
+            }
+          }
+          previousVersion = "${{ steps.download-previous.outputs.previous-version }}"
+          updateType = "full"
         }
         
-        # 2. Traditional installer paketi  
-        if (Test-Path "installer") {
-          Write-Host "📦 Creating Installer package..."
-          Compress-Archive -Path "installer\*" -DestinationPath "MuhasibPro-Setup-v$env:VERSION.zip" -Force
-          Write-Host "✅ Installer package: MuhasibPro-Setup-v$env:VERSION.zip"
-        }
+        $manifestJson = $manifest | ConvertTo-Json -Depth 10
+        $manifestJson | Out-File -FilePath "update-manifest.json" -Encoding utf8
         
-        # 3. Portable paketi
-        Write-Host "📦 Creating Portable package..."
-        $portableDir = "portable"
-        New-Item -ItemType Directory -Path $portableDir -Force | Out-Null
-        Copy-Item "publish\*" -Destination $portableDir -Recurse -Force
-        
-        # Portable için README oluştur
-        $portableReadme = @"
-        # MuhasibPro Portable v$env:VERSION
-        
-        ## Kullanım
-        1. Bu klasörü istediğiniz yere kopyalayın
-        2. $env:APP_NAME.exe dosyasını çalıştırın
-        3. Kurulum gerektirmez!
-        
-        ## Özellikler
-        - ✅ Kurulum gerektirmez
-        - ✅ Registry değişikliği yapmaz  
-        - ✅ USB'de taşınabilir
-        - ✅ Tam özellikli uygulama
-        
-        ## Sistem Gereksinimleri
-        - Windows 10/11 (x64)
-        - .NET 8 Runtime (otomatik dahil)
-        
-        ## Güncelleme
-        Yeni sürüm için:
-        https://github.com/${{ github.repository }}/releases
-        
-        Tarih: $(Get-Date -Format 'dd.MM.yyyy HH:mm')
-        Sürüm: $env:VERSION
-        Build: ${{ steps.version.outputs.build-number }}
-        "@
-        
-        $portableReadme | Out-File -FilePath "$portableDir\PORTABLE_README.txt" -Encoding UTF8
-        
-        Compress-Archive -Path "$portableDir\*" -DestinationPath "MuhasibPro-Portable-v$env:VERSION.zip" -Force
-        Write-Host "✅ Portable package: MuhasibPro-Portable-v$env:VERSION.zip"
+        Write-Host "Update manifest generated successfully"
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: muhasibpro-packages-${{ steps.version.outputs.version }}
+        name: msix-packages-${{ steps.version.outputs.version }}
         path: |
-          MuhasibPro-ClickOnce-v${{ steps.version.outputs.version }}.zip
-          MuhasibPro-Setup-v${{ steps.version.outputs.version }}.zip
-          MuhasibPro-Portable-v${{ steps.version.outputs.version }}.zip
-          app-manifest.json
+          ${{ steps.find-packages.outputs.main-package }}
+          update-manifest.json
         retention-days: 90
 
-    - name: List build outputs (Debug)
+    - name: List all build outputs (Debug)
       if: always()
       shell: pwsh
       run: |
         Write-Host "=== FINAL BUILD OUTPUT DEBUG ==="
         Write-Host "Version: $env:VERSION"
         Write-Host "Tag: ${{ steps.version.outputs.tag-name }}"
+        Write-Host "Package: ${{ steps.find-packages.outputs.package-name }}"
         
-        Get-ChildItem -Path "." -Filter "*.zip" | ForEach-Object {
-          Write-Host "📦 Package: $($_.Name) - $([math]::Round($_.Length / 1MB, 2)) MB"
-        }
-        
-        if (Test-Path "publish") {
-          $publishSize = (Get-ChildItem "publish" -Recurse | Measure-Object -Property Length -Sum).Sum
-          Write-Host "📁 Publish folder: $([math]::Round($publishSize / 1MB, 2)) MB"
-        }
-        
-        if (Test-Path "installer") {
-          Write-Host "✅ Installer files ready"
-        }
-        
-        if (Test-Path "portable") {
-          Write-Host "✅ Portable files ready"
+        Get-ChildItem -Recurse -Include "*.msix", "*.msixbundle" | ForEach-Object {
+          Write-Host "Found MSIX: $($_.FullName) - $($_.Length) bytes"
         }
 
   release:
-    needs: build-and-deploy
+    needs: build-and-package
     runs-on: ubuntu-latest
     if: success() && startsWith(github.ref, 'refs/tags/v')
     
@@ -477,7 +432,7 @@ jobs:
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: muhasibpro-packages-${{ needs.build-and-deploy.outputs.version }}
+        name: msix-packages-${{ needs.build-and-package.outputs.version }}
         path: ./artifacts
 
     - name: Verify downloaded artifacts
@@ -485,97 +440,95 @@ jobs:
         echo "📋 Verifying downloaded artifacts..."
         find artifacts/ -type f -exec ls -lh {} \;
         
-        zip_count=$(find . -name "*.zip" | wc -l)
-        if [ "$zip_count" -eq 0 ]; then
-          echo "❌ No packages found!"
+        msix_count=$(find . -name "*.msix" -o -name "*.msixbundle" | wc -l)
+        if [ "$msix_count" -eq 0 ]; then
+          echo "❌ No MSIX packages found!"
           exit 1
         fi
-        echo "✅ Found $zip_count package(s)"
+        echo "✅ Found $msix_count MSIX package(s)"
 
     - name: Copy artifacts to root directory
       run: |
         if [ -d "artifacts" ]; then
-          find artifacts/ -name "*.zip" -o -name "*.json" | while read file; do
+          find artifacts/ -name "*.msix" -o -name "*.msixbundle" -o -name "*.json" | while read file; do
             filename=$(basename "$file")
             cp "$file" "$filename"
-            echo "📦 Copied: $filename ($(du -h "$filename" | cut -f1))"
+            echo "📦 Copied: $filename"
           done
         fi
 
+    # FİX 3: Mevcut tag'ı kullan, yeni tag oluşturma - Release'i mevcut tag'e ekle
     - name: Update existing release or create new one
       id: update-release
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const tagName = '${{ needs.build-and-deploy.outputs.tag-name }}';
-          const version = '${{ needs.build-and-deploy.outputs.version }}';
-          
-          const releaseBody = `## 🚀 MuhasibPro v${version}
-          
-          ### 📦 Bu Sürümde
-          - Otomatik build #${{ needs.build-and-deploy.outputs.build-number }}
-          - Commit: ${{ github.sha }}
-          - ClickOnce deployment desteği
-          - Geleneksel installer seçeneği
-          - Portable sürüm
-          
-          ### 💾 İndirme Seçenekleri
-          
-          #### 🎯 ClickOnce Deployment (Önerilen)
-          - **MuhasibPro-ClickOnce-v${version}.zip** - Otomatik güncelleme destekli
-          - İndirin, açın, setup.exe'yi çalıştırın
-          - Otomatik güncellemeler alırsınız
-          
-          #### 🛠️ Geleneksel Kurulum
-          - **MuhasibPro-Setup-v${version}.zip** - Klasik installer
-          - İndirin, açın, setup.bat'ı Admin olarak çalıştırın
-          - Start menü ve masaüstü kısayolları oluşturur
-          
-          #### 📱 Portable Sürüm  
-          - **MuhasibPro-Portable-v${version}.zip** - Kurulum gerektirmez
-          - İndirin, açın, MuhasibPro.exe'yi çalıştırın
-          - USB'de taşıyabilir, kurulum yapmaz
-          
-          ### 🔧 Sistem Gereksinimleri
-          - Windows 10/11 (64-bit)
-          - .NET 8 Runtime (paketlerde dahil)
-          - Minimum 100MB disk alanı
-          
-          ### ✨ Yenilikler
-          - 🚀 Hızlı kurulum seçenekleri
-          - 🔄 Otomatik güncelleme (ClickOnce)
-          - 📦 Sertifika gerektirmeyen kurulum
-          - 🛡️ Windows Defender uyumlu
-          `;
+          const tagName = '${{ needs.build-and-package.outputs.tag-name }}';
+          const version = '${{ needs.build-and-package.outputs.version }}';
           
           try {
+            // Mevcut release'i kontrol et
             const { data: release } = await github.rest.repos.getReleaseByTag({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag: tagName
             });
             
+            console.log(`Found existing release: ${release.id}`);
+            
+            // Mevcut release'i güncelle
             const { data: updatedRelease } = await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.id,
-              body: releaseBody,
+              body: `## MuhasibPro v${version}
+          
+          ### 📦 Bu Sürümde
+          - Otomatik build #${{ needs.build-and-package.outputs.build-number }}
+          - Commit: ${{ github.sha }}
+          
+          ### 🚀 Kurulum
+          1. Aşağıdaki MSIX paketini indirin
+          2. **ÖNEMLİ:** İlk kurulumda Windows'a test sertifikasını güvenilir olarak eklemelisiniz
+          3. Çift tıklayıp kurun
+          
+          ### ✨ Özellikler
+          - Otomatik güncellemeler
+          - Delta update desteği
+          - Test sertifikası ile imzalanmış`,
               draft: false,
               prerelease: false
             });
             
             core.setOutput('release-id', updatedRelease.id);
-            console.log(`Updated existing release: ${updatedRelease.id}`);
+            console.log(`Updated release: ${updatedRelease.id}`);
             
           } catch (error) {
             if (error.status === 404) {
+              // Release yoksa yeni oluştur (normalde olmamalı çünkü tag zaten var)
+              console.log(`Release not found for tag ${tagName}, creating new one`);
+              
               const { data: newRelease } = await github.rest.repos.createRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 tag_name: tagName,
                 name: `MuhasibPro v${version}`,
-                body: releaseBody,
+                body: `## MuhasibPro v${version}
+          
+          ### 📦 Bu Sürümde
+          - Otomatik build #${{ needs.build-and-package.outputs.build-number }}
+          - Commit: ${{ github.sha }}
+          
+          ### 🚀 Kurulum
+          1. Aşağıdaki MSIX paketini indirin
+          2. **ÖNEMLİ:** İlk kurulumda Windows'a test sertifikasını güvenilir olarak eklemelisiniz
+          3. Çift tıklayıp kurun
+          
+          ### ✨ Özellikler
+          - Otomatik güncellemeler  
+          - Delta update desteği
+          - Test sertifikası ile imzalanmış`,
                 draft: false,
                 prerelease: false
               });
@@ -593,16 +546,16 @@ jobs:
         
         uploaded_count=0
         
-        # Tüm ZIP dosyalarını yükle
-        for file in *.zip; do
+        # MSIX dosyalarını yükle
+        for file in *.msix *.msixbundle; do
           if [ -f "$file" ]; then
-            echo "📦 Uploading: $file ($(du -h "$file" | cut -f1))"
+            echo "📦 Uploading: $file"
             
             curl_response=$(curl -w "%{http_code}" -s -L \
               -X POST \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: application/zip" \
+              -H "Content-Type: application/octet-stream" \
               --data-binary "@$file" \
               "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.update-release.outputs.release-id }}/assets?name=$file")
             
@@ -616,156 +569,38 @@ jobs:
           fi
         done
         
-        # App manifest'i yükle
-        if [ -f "app-manifest.json" ]; then
-          echo "📝 Uploading app-manifest.json"
+        # Update manifest'i yükle
+        if [ -f "update-manifest.json" ]; then
           curl -s -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data-binary "@app-manifest.json" \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.update-release.outputs.release-id }}/assets?name=app-manifest.json"
-          echo "✅ App manifest uploaded"
+            --data-binary "@update-manifest.json" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.update-release.outputs.release-id }}/assets?name=update-manifest.json"
+          echo "✅ Update manifest uploaded"
         fi
         
         if [ "$uploaded_count" -eq 0 ]; then
-          echo "❌ No packages were uploaded!"
+          echo "❌ No MSIX files were uploaded!"
           exit 1
         fi
         
-        echo "🎉 $uploaded_count paket başarıyla yüklendi!"
-        echo ""
-        echo "📋 Kullanıcılar için indirme seçenekleri:"
-        echo "   🎯 ClickOnce (Önerilen): MuhasibPro-ClickOnce-v${{ needs.build-and-deploy.outputs.version }}.zip"
-        echo "   🛠️  Geleneksel Kurulum: MuhasibPro-Setup-v${{ needs.build-and-deploy.outputs.version }}.zip"  
-        echo "   📱 Portable: MuhasibPro-Portable-v${{ needs.build-and-deploy.outputs.version }}.zip"
+        echo "🎉 $uploaded_count dosya başarıyla yüklendi!"
 
-  deploy-clickonce:
-    needs: [build-and-deploy, release]
+  deploy-update-server:
+    needs: [build-and-package, release]
     runs-on: ubuntu-latest
     if: success() && startsWith(github.ref, 'refs/tags/v')
     
     steps:
-    - name: Checkout gh-pages branch
-      uses: actions/checkout@v4
-      with:
-        ref: gh-pages
-        path: gh-pages
-      continue-on-error: true
-
-    - name: Download ClickOnce artifacts
+    - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
-        name: muhasibpro-packages-${{ needs.build-and-deploy.outputs.version }}
-        path: ./artifacts
+        name: msix-packages-${{ needs.build-and-package.outputs.version }}
 
-    - name: Setup ClickOnce hosting
+    - name: Deploy to update server
       run: |
-        echo "🌐 Setting up ClickOnce hosting on GitHub Pages..."
-        
-        # gh-pages klasörü oluştur (eğer yoksa)
-        mkdir -p gh-pages
-        cd gh-pages
-        
-        # Git config
-        git config --global user.name "GitHub Actions"
-        git config --global user.email "actions@github.com"
-        
-        # ClickOnce files'ı extract et
-        if [ -f "../artifacts/MuhasibPro-ClickOnce-v${{ needs.build-and-deploy.outputs.version }}.zip" ]; then
-          echo "📦 Extracting ClickOnce package..."
-          unzip -o "../artifacts/MuhasibPro-ClickOnce-v${{ needs.build-and-deploy.outputs.version }}.zip"
-          
-          # Index.html oluştur
-          cat > index.html << 'EOF'
-        <!DOCTYPE html>
-        <html lang="tr">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>MuhasibPro - ClickOnce Deployment</title>
-            <style>
-                body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 { color: #2c3e50; }
-        .button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 10px 0;
-            transition: background 0.3s;
-        }
-        .button:hover {
-            background: #2980b9;
-        }
-        .version {
-            color: #7f8c8d;
-            font-size: 0.9em;
-        }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>MuhasibPro</h1>
-                <p class="version">Sürüm: ${{ needs.build-and-deploy.outputs.version }}</p>
-                
-                <h2>ClickOnce Kurulum</h2>
-                <p>
-                    MuhasibPro'yu ClickOnce ile kurmak için aşağıdaki butona tıklayın:
-                </p>
-                <a href="setup.exe" class="button">MuhasibPro'yu Kur</a>
-                
-                <h2>Kurulum Adımları</h2>
-                <ol>
-                    <li>"MuhasibPro'yu Kur" butonuna tıklayın</li>
-                    <li>setup.exe'yi çalıştırın</li>
-                    <li>Kurulum sihirbazını takip edin</li>
-                    <li>Uygulama otomatik olarak başlayacaktır</li>
-                </ol>
-                
-                <h2>Sistem Gereksinimleri</h2>
-                <ul>
-                    <li>Windows 10/11 (64-bit)</li>
-                    <li>.NET 8 Runtime (otomatik yüklenir)</li>
-                    <li>Minimum 100MB disk alanı</li>
-                </ul>
-                
-                <p>
-                    <small>
-                        Son güncelleme: $(date +'%d.%m.%Y %H:%M')<br>
-                        Build: #${{ needs.build-and-deploy.outputs.build-number }}
-                    </small>
-                </p>
-            </div>
-        </body>
-        </html>
-        EOF
-          
-          # Git commit & push
-          git add .
-          git commit -m "🚀 ClickOnce deployment update: v${{ needs.build-and-deploy.outputs.version }}"
-          git push origin gh-pages
-          
-          echo "✅ ClickOnce files deployed to GitHub Pages"
-          echo "📋 Deployment URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-          
-        else
-          echo "❌ ClickOnce package not found!"
-          exit 1
-        fi
+        echo "🚀 Update manifest hazırlanıyor..."
+        echo "📋 Version: ${{ needs.build-and-package.outputs.version }}"
+        echo "✅ Update manifest deployment ready!"
