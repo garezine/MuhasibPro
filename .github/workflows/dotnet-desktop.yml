@@ -258,88 +258,88 @@ jobs:
         
         # Setup script oluştur
         $setupScript = @"
-@echo off
-title MuhasibPro v$env:VERSION Kurulum
-color 0A
-
-echo.
-echo  ╔═══════════════════════════════════════╗
-echo  ║         MuhasibPro Kurulum            ║
-echo  ║            v$env:VERSION                     ║
-echo  ╚═══════════════════════════════════════╝
-echo.
-
-REM Yönetici kontrolü
-net session >nul 2>&1
-if %errorLevel% == 0 (
-    echo ✅ Administrator yetkisi onaylandı
-) else (
-    echo ⚠️  Bu kurulum Administrator yetkisi gerektirir
-    echo    Lütfen "Yönetici olarak çalıştır" ile açın
-    echo.
-    pause
-    exit /b 1
-)
-
-REM Program Files klasörü oluştur
-set "INSTALL_DIR=%ProgramFiles%\MuhasibPro"
-echo 📁 Kurulum dizini: %INSTALL_DIR%
-
-if not exist "%INSTALL_DIR%" (
-    mkdir "%INSTALL_DIR%" 2>nul
-    if %errorLevel% neq 0 (
-        echo ❌ Kurulum dizini oluşturulamadı
-        pause
-        exit /b 1
-    )
-)
-
-REM Dosyaları kopyala  
-echo 📋 Uygulama dosyaları kopyalanıyor...
-xcopy "%~dp0*.*" "%INSTALL_DIR%\" /E /H /Y /Q >nul 2>&1
-if %errorLevel% neq 0 (
-    echo ❌ Dosya kopyalama başarısız
-    pause
-    exit /b 1
-)
-
-REM Desktop kısayolu oluştur
-echo 🔗 Masaüstü kısayolu oluşturuluyor...
-set "SHORTCUT_PATH=%USERPROFILE%\Desktop\MuhasibPro.lnk"
-powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').Save()`" 2>nul
-
-REM Start Menu kısayolu
-echo 📌 Başlat menüsü kısayolu oluşturuluyor...
-set "START_MENU=%ProgramData%\Microsoft\Windows\Start Menu\Programs"
-if not exist "%START_MENU%\MuhasibPro" mkdir "%START_MENU%\MuhasibPro" 2>nul
-set "START_SHORTCUT=%START_MENU%\MuhasibPro\MuhasibPro.lnk"
-powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').Save()`" 2>nul
-
-REM Uninstaller oluştur
-echo 🗑️  Kaldırıcı oluşturuluyor...
-echo @echo off > "%INSTALL_DIR%\uninstall.bat"
-echo title MuhasibPro Kaldır >> "%INSTALL_DIR%\uninstall.bat"
-echo echo MuhasibPro kaldırılıyor... >> "%INSTALL_DIR%\uninstall.bat"
-echo taskkill /f /im "$env:APP_NAME.exe" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-echo timeout /t 2 /nobreak ^>nul >> "%INSTALL_DIR%\uninstall.bat"
-echo rmdir /s /q "%INSTALL_DIR%" >> "%INSTALL_DIR%\uninstall.bat"
-echo del "%USERPROFILE%\Desktop\MuhasibPro.lnk" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-echo rmdir /s /q "%START_MENU%\MuhasibPro" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
-echo echo MuhasibPro başarıyla kaldırıldı >> "%INSTALL_DIR%\uninstall.bat"
-echo pause >> "%INSTALL_DIR%\uninstall.bat"
-
-echo.
-echo ✅ MuhasibPro v$env:VERSION başarıyla kuruldu!
-echo.
-echo 📍 Kurulum Dizini: %INSTALL_DIR%
-echo 🖥️  Masaüstü kısayolu oluşturuldu
-echo 📌 Başlat menüsünde bulabilirsiniz
-echo.
-echo MuhasibPro'yu başlatmak için herhangi bir tuşa basın...
-pause >nul
-
-start "" "%INSTALL_DIR%\$env:APP_NAME.exe"
-"@
+        @echo off
+        title MuhasibPro v$env:VERSION Kurulum
+        color 0A
+        
+        echo.
+        echo  ╔═══════════════════════════════════════╗
+        echo  ║         MuhasibPro Kurulum            ║
+        echo  ║            v$env:VERSION                     ║
+        echo  ╚═══════════════════════════════════════╝
+        echo.
+        
+        REM Yönetici kontrolü
+        net session >nul 2>&1
+        if %errorLevel% == 0 (
+            echo ✅ Administrator yetkisi onaylandı
+        ) else (
+            echo ⚠️  Bu kurulum Administrator yetkisi gerektirir
+            echo    Lütfen "Yönetici olarak çalıştır" ile açın
+            echo.
+            pause
+            exit /b 1
+        )
+        
+        REM Program Files klasörü oluştur
+        set "INSTALL_DIR=%ProgramFiles%\MuhasibPro"
+        echo 📁 Kurulum dizini: %INSTALL_DIR%
+        
+        if not exist "%INSTALL_DIR%" (
+            mkdir "%INSTALL_DIR%" 2>nul
+            if %errorLevel% neq 0 (
+                echo ❌ Kurulum dizini oluşturulamadı
+                pause
+                exit /b 1
+            )
+        )
+        
+        REM Dosyaları kopyala  
+        echo 📋 Uygulama dosyaları kopyalanıyor...
+        xcopy "%~dp0*.*" "%INSTALL_DIR%\" /E /H /Y /Q >nul 2>&1
+        if %errorLevel% neq 0 (
+            echo ❌ Dosya kopyalama başarısız
+            pause
+            exit /b 1
+        )
+        
+        REM Desktop kısayolu oluştur
+        echo 🔗 Masaüstü kısayolu oluşturuluyor...
+        set "SHORTCUT_PATH=%USERPROFILE%\Desktop\MuhasibPro.lnk"
+        powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%SHORTCUT_PATH%').Save()`" 2>nul
+        
+        REM Start Menu kısayolu
+        echo 📌 Başlat menüsü kısayolu oluşturuluyor...
+        set "START_MENU=%ProgramData%\Microsoft\Windows\Start Menu\Programs"
+        if not exist "%START_MENU%\MuhasibPro" mkdir "%START_MENU%\MuhasibPro" 2>nul
+        set "START_SHORTCUT=%START_MENU%\MuhasibPro\MuhasibPro.lnk"
+        powershell -Command `"(New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').TargetPath='%INSTALL_DIR%\$env:APP_NAME.exe'; (New-Object -ComObject WScript.Shell).CreateShortcut('%START_SHORTCUT%').Save()`" 2>nul
+        
+        REM Uninstaller oluştur
+        echo 🗑️  Kaldırıcı oluşturuluyor...
+        echo @echo off > "%INSTALL_DIR%\uninstall.bat"
+        echo title MuhasibPro Kaldır >> "%INSTALL_DIR%\uninstall.bat"
+        echo echo MuhasibPro kaldırılıyor... >> "%INSTALL_DIR%\uninstall.bat"
+        echo taskkill /f /im "$env:APP_NAME.exe" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+        echo timeout /t 2 /nobreak ^>nul >> "%INSTALL_DIR%\uninstall.bat"
+        echo rmdir /s /q "%INSTALL_DIR%" >> "%INSTALL_DIR%\uninstall.bat"
+        echo del "%USERPROFILE%\Desktop\MuhasibPro.lnk" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+        echo rmdir /s /q "%START_MENU%\MuhasibPro" 2^>nul >> "%INSTALL_DIR%\uninstall.bat"
+        echo echo MuhasibPro başarıyla kaldırıldı >> "%INSTALL_DIR%\uninstall.bat"
+        echo pause >> "%INSTALL_DIR%\uninstall.bat"
+        
+        echo.
+        echo ✅ MuhasibPro v$env:VERSION başarıyla kuruldu!
+        echo.
+        echo 📍 Kurulum Dizini: %INSTALL_DIR%
+        echo 🖥️  Masaüstü kısayolu oluşturuldu
+        echo 📌 Başlat menüsünde bulabilirsiniz
+        echo.
+        echo MuhasibPro'yu başlatmak için herhangi bir tuşa basın...
+        pause >nul
+        
+        start "" "%INSTALL_DIR%\$env:APP_NAME.exe"
+        "@
         
         $setupScript | Out-File -FilePath "$installerDir\setup.bat" -Encoding ASCII
         
@@ -398,31 +398,31 @@ start "" "%INSTALL_DIR%\$env:APP_NAME.exe"
         
         # Portable için README oluştur
         $portableReadme = @"
-# MuhasibPro Portable v$env:VERSION
-
-## Kullanım
-1. Bu klasörü istediğiniz yere kopyalayın
-2. $env:APP_NAME.exe dosyasını çalıştırın
-3. Kurulum gerektirmez!
-
-## Özellikler
-- ✅ Kurulum gerektirmez
-- ✅ Registry değişikliği yapmaz  
-- ✅ USB'de taşınabilir
-- ✅ Tam özellikli uygulama
-
-## Sistem Gereksinimleri
-- Windows 10/11 (x64)
-- .NET 8 Runtime (otomatik dahil)
-
-## Güncelleme
-Yeni sürüm için:
-https://github.com/${{ github.repository }}/releases
-
-Tarih: $(Get-Date -Format 'dd.MM.yyyy HH:mm')
-Sürüm: $env:VERSION
-Build: ${{ steps.version.outputs.build-number }}
-"@
+        # MuhasibPro Portable v$env:VERSION
+        
+        ## Kullanım
+        1. Bu klasörü istediğiniz yere kopyalayın
+        2. $env:APP_NAME.exe dosyasını çalıştırın
+        3. Kurulum gerektirmez!
+        
+        ## Özellikler
+        - ✅ Kurulum gerektirmez
+        - ✅ Registry değişikliği yapmaz  
+        - ✅ USB'de taşınabilir
+        - ✅ Tam özellikli uygulama
+        
+        ## Sistem Gereksinimleri
+        - Windows 10/11 (x64)
+        - .NET 8 Runtime (otomatik dahil)
+        
+        ## Güncelleme
+        Yeni sürüm için:
+        https://github.com/${{ github.repository }}/releases
+        
+        Tarih: $(Get-Date -Format 'dd.MM.yyyy HH:mm')
+        Sürüm: $env:VERSION
+        Build: ${{ steps.version.outputs.build-number }}
+        "@
         
         $portableReadme | Out-File -FilePath "$portableDir\PORTABLE_README.txt" -Encoding UTF8
         
