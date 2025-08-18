@@ -402,14 +402,14 @@ jobs:
         $manifestJson | Out-File -FilePath "app-manifest.json" -Encoding utf8
         
         Write-Host "Application manifest generated"
-
-        - name: Create distribution packages
-        shell: pwsh
-        run: |
-          Write-Host "Creating distribution packages..."
+        
+    - name: Create distribution packages
+      shell: pwsh
+      run: |
+        Write-Host "Creating distribution packages..."
         
         # 1. ClickOnce deployment paketi
-        if (Test-Path "publish") {
+          if (Test-Path "publish") {
           Write-Host "📦 Creating ClickOnce package..."
           Compress-Archive -Path "publish\*" -DestinationPath "MuhasibPro-ClickOnce-v$env:VERSION.zip" -Force
           Write-Host "✅ ClickOnce package: MuhasibPro-ClickOnce-v$env:VERSION.zip"
