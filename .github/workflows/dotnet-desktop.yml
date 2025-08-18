@@ -680,13 +680,13 @@ jobs:
           # Index.html oluştur
           cat > index.html << 'EOF'
         <!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MuhasibPro - ClickOnce Deployment</title>
-    <style>
-        body {
+        <html lang="tr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>MuhasibPro - ClickOnce Deployment</title>
+            <style>
+                body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
             max-width: 800px;
@@ -718,44 +718,44 @@ jobs:
             color: #7f8c8d;
             font-size: 0.9em;
         }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>MuhasibPro</h1>
-        <p class="version">Sürüm: ${{ needs.build-and-deploy.outputs.version }}</p>
-        
-        <h2>ClickOnce Kurulum</h2>
-        <p>
-            MuhasibPro'yu ClickOnce ile kurmak için aşağıdaki butona tıklayın:
-        </p>
-        <a href="setup.exe" class="button">MuhasibPro'yu Kur</a>
-        
-        <h2>Kurulum Adımları</h2>
-        <ol>
-            <li>"MuhasibPro'yu Kur" butonuna tıklayın</li>
-            <li>setup.exe'yi çalıştırın</li>
-            <li>Kurulum sihirbazını takip edin</li>
-            <li>Uygulama otomatik olarak başlayacaktır</li>
-        </ol>
-        
-        <h2>Sistem Gereksinimleri</h2>
-        <ul>
-            <li>Windows 10/11 (64-bit)</li>
-            <li>.NET 8 Runtime (otomatik yüklenir)</li>
-            <li>Minimum 100MB disk alanı</li>
-        </ul>
-        
-        <p>
-            <small>
-                Son güncelleme: $(date +'%d.%m.%Y %H:%M')<br>
-                Build: #${{ needs.build-and-deploy.outputs.build-number }}
-            </small>
-        </p>
-    </div>
-</body>
-</html>
-EOF
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>MuhasibPro</h1>
+                <p class="version">Sürüm: ${{ needs.build-and-deploy.outputs.version }}</p>
+                
+                <h2>ClickOnce Kurulum</h2>
+                <p>
+                    MuhasibPro'yu ClickOnce ile kurmak için aşağıdaki butona tıklayın:
+                </p>
+                <a href="setup.exe" class="button">MuhasibPro'yu Kur</a>
+                
+                <h2>Kurulum Adımları</h2>
+                <ol>
+                    <li>"MuhasibPro'yu Kur" butonuna tıklayın</li>
+                    <li>setup.exe'yi çalıştırın</li>
+                    <li>Kurulum sihirbazını takip edin</li>
+                    <li>Uygulama otomatik olarak başlayacaktır</li>
+                </ol>
+                
+                <h2>Sistem Gereksinimleri</h2>
+                <ul>
+                    <li>Windows 10/11 (64-bit)</li>
+                    <li>.NET 8 Runtime (otomatik yüklenir)</li>
+                    <li>Minimum 100MB disk alanı</li>
+                </ul>
+                
+                <p>
+                    <small>
+                        Son güncelleme: $(date +'%d.%m.%Y %H:%M')<br>
+                        Build: #${{ needs.build-and-deploy.outputs.build-number }}
+                    </small>
+                </p>
+            </div>
+        </body>
+        </html>
+        EOF
           
           # Git commit & push
           git add .
