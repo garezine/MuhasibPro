@@ -2,7 +2,7 @@
 using Muhasebe.Business.Services.Abstract.App;
 using Muhasebe.Business.Services.Abstract.Common;
 using Muhasebe.Domain.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using MuhasibPro.Core.Infrastructure.Common.VirtualCollection;
 
 namespace MuhasibPro.Core.Collections.App

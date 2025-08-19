@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 using Muhasebe.Business.Services.Abstract.App;
 using Muhasebe.Domain.Helpers;
 using MuhasibPro.Core.Infrastructure.Common;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Services.Common;
 using MuhasibPro.ViewModels.ViewModel.Dashboard;
 using MuhasibPro.ViewModels.ViewModel.Firmalar;

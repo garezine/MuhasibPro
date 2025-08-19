@@ -2,7 +2,7 @@
 using Muhasebe.Business.Common;
 using Muhasebe.Business.Models.DbModel.AppModel;
 using Muhasebe.Domain.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Entities.Uygulama;
 
 namespace Muhasebe.Business.Mapping;
@@ -48,23 +48,23 @@ public class GenelMap : Profile
 
         CreateMap<Firma, FirmaModel>()
             .IncludeBase<BaseEntity, BaseModel>()
-            .ForMember(dest => dest.CalismaDonemler, opt => opt.MapFrom(src => src.CalismaDonemler))
+            .ForMember(dest => dest.MaliDonemler, opt => opt.MapFrom(src => src.MaliDonemler))
             
             .PreserveReferences()
             .ReverseMap()
             .IncludeBase<BaseModel, BaseEntity>();
 
-        CreateMap<CalismaDonem, CalismaDonemModel>()
+        CreateMap<MaliDonem, MaliDonemModel>()
             .IncludeBase<BaseEntity, BaseModel>()
             .ForMember(dest => dest.Firma, opt => opt.MapFrom(src => src.Firma))
-            .ForMember(dest => dest.CalismaDonemDb, opt => opt.MapFrom(src => src.CalismaDonemDb))
+            .ForMember(dest => dest.DonemDbSec, opt => opt.MapFrom(src => src.DonemDBSec))
             .PreserveReferences()
             .ReverseMap()
             .IncludeBase<BaseModel, BaseEntity>();
 
-        CreateMap<CalismaDonemSec, CalismaDonemDbModel>()
+        CreateMap<DonemDBSec, DonemDbSecModel>()
             .IncludeBase<BaseEntity, BaseModel>()
-            .ForMember(dest => dest.CalismaDonem, opt => opt.MapFrom(src => src.CalismaDonem))
+            .ForMember(dest => dest.MaliDonem, opt => opt.MapFrom(src => src.MaliDonem))
             .PreserveReferences()
             .ReverseMap()
             .IncludeBase<BaseModel, BaseEntity>();

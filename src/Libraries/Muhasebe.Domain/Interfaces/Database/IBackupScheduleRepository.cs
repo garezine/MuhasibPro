@@ -1,10 +1,10 @@
-﻿using Muhasebe.Domain.Entities.Sistem;
+﻿using Muhasebe.Domain.Entities.SistemDb;
 
 namespace Muhasebe.Domain.Interfaces.Database
 {
     public interface IBackupScheduleRepository
     {
-        Task<List<DbYedekZaman>> GetActiveSchedulesAsync();
+        Task<List<DbYedekAl>> GetActiveSchedulesAsync();
         Task UpdateNextBackupDateAsync(long scheduleId, DateTime nextDate);
     }
 }

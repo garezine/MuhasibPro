@@ -3,7 +3,7 @@ using Muhasebe.Business.Services.Abstract.Common;
 using Muhasebe.Domain.Exceptions;
 using MuhasibPro.Core.Infrastructure.Common;
 using MuhasibPro.Core.Infrastructure.ViewModels;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.ViewModels.ViewModel.Shell;
 using System.Windows.Input;
 

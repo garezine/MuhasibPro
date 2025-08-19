@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Muhasebe.Domain.Entities.Cari;
+using Muhasebe.Domain.Entities.AppDb.Cari;
 
 namespace Muhasebe.Data.Database.SeedData;
 

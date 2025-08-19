@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using MuhasibPro.ViewModels.ViewModel.Settings;
-using System.Threading.Tasks;
 
 namespace MuhasibPro.Views.Settings
 {
@@ -14,19 +13,54 @@ namespace MuhasibPro.Views.Settings
         public UpdateView()
         {
             this.InitializeComponent();
-
-            // Dialog event'lerini baðla
-            ViewModel.ErrorDialogRequested += ShowErrorDialog;
-            ViewModel.InfoDialogRequested += ShowInfoDialog;
+            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         }
 
-        private void Page_Loaded(object sender, RoutedEventArgs e)
-        {            
-            SetCheckIntervalSelection();
+        private void UnsubscribeFromEvents()
+        {
+            ViewModel.PropertyChanged -= ViewModel_PropertyChanged;
         }
+
+        private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            // Handle animation triggers
+            switch (e.PropertyName)
+            {
+                case nameof(ViewModel.UpdateDetailsVisibility):
+                    HandleUpdateDetailsVisibilityChanged();
+                    break;
+            }
+        }
+
+        private async void HandleUpdateDetailsVisibilityChanged()
+        {
+            if (ViewModel.UpdateDetailsVisibility == Visibility.Visible)
+            {
+                // Ensure the element is visible before animating
+                UpdateDetailsGrid.Visibility = Visibility.Visible;
+                await Task.Delay(50); // Small delay to ensure layout is updated
+                ExpandStoryboard.Begin();
+            }
+            else
+            {
+                CollapseStoryboard.Completed += (s, e) =>
+                {
+                    UpdateDetailsGrid.Visibility = Visibility.Collapsed;
+                };
+                CollapseStoryboard.Begin();
+            }
+        }
+
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
+            base.OnNavigatedTo(e);
             await ViewModel.InitializeAsync();
+            SetCheckIntervalSelection();
+        }
+
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            UnsubscribeFromEvents();
         }
 
         private void SetCheckIntervalSelection()
@@ -35,7 +69,7 @@ namespace MuhasibPro.Views.Settings
             {
                 foreach (ComboBoxItem item in CheckIntervalComboBox.Items)
                 {
-                    if (int.TryParse(item.Tag.ToString(), out int tagValue) &&
+                    if (int.TryParse(item.Tag?.ToString(), out int tagValue) &&
                         tagValue == ViewModel.Settings.CheckIntervalHours)
                     {
                         CheckIntervalComboBox.SelectedItem = item;
@@ -49,37 +83,11 @@ namespace MuhasibPro.Views.Settings
         {
             if (CheckIntervalComboBox.SelectedItem is ComboBoxItem selected)
             {
-                if (int.TryParse(selected.Tag.ToString(), out int hours))
+                if (int.TryParse(selected.Tag?.ToString(), out int hours))
                 {
                     await ViewModel.UpdateCheckInterval(hours);
                 }
             }
-        }
-
-        private async Task ShowErrorDialog(string message)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Hata",
-                Content = message,
-                CloseButtonText = "Tamam",
-                XamlRoot = this.XamlRoot
-            };
-
-            await dialog.ShowAsync();
-        }
-
-        private async Task ShowInfoDialog(string message)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Bilgi",
-                Content = message,
-                CloseButtonText = "Tamam",
-                XamlRoot = this.XamlRoot
-            };
-
-            await dialog.ShowAsync();
         }
     }
 }

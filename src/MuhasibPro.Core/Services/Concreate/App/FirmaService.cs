@@ -3,7 +3,7 @@ using Muhasebe.Business.Services.Abstract.App;
 using Muhasebe.Business.Services.Abstract.Common;
 using Muhasebe.Data.DataContext;
 using Muhasebe.Domain.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.App.IFirma;
 using Muhasebe.Domain.Interfaces.Database;
 using Muhasebe.Domain.Utilities.Responses;

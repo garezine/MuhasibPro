@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Muhasebe.Domain.Entities.Stok;
+using Muhasebe.Domain.Entities.AppDb.Stok;
 
 namespace Muhasebe.Data.Database.SeedData;
 

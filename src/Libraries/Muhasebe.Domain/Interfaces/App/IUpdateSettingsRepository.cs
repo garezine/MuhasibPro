@@ -1,4 +1,4 @@
-﻿using Muhasebe.Domain.Entities.Sistem;
+﻿using Muhasebe.Domain.Entities.SistemDb;
 
 namespace Muhasebe.Domain.Interfaces.App
 {

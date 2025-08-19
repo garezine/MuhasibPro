@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Muhasebe.Data.DataContext;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.Database;
 
 namespace Muhasebe.Data.Database.Concreate
@@ -15,9 +15,9 @@ namespace Muhasebe.Data.Database.Concreate
         }
 
         // Aktif yedekleme planlarını getir
-        public async Task<List<DbYedekZaman>> GetActiveSchedulesAsync()
+        public async Task<List<DbYedekAl>> GetActiveSchedulesAsync()
         {
-            return await _context.DbYedekZamanlama
+            return await _context.DbYedekAl
                 .Where(s => s.AktifMi)
                 .ToListAsync().ConfigureAwait(false);
         }
@@ -25,7 +25,7 @@ namespace Muhasebe.Data.Database.Concreate
         // Sonraki yedek tarihini güncelle
         public async Task UpdateNextBackupDateAsync(long scheduleId, DateTime nextDate)
         {
-            var schedule = await _context.DbYedekZamanlama
+            var schedule = await _context.DbYedekAl
                 .FirstOrDefaultAsync(s => s.Id == scheduleId).ConfigureAwait(false);
 
             if (schedule != null)
@@ -36,16 +36,16 @@ namespace Muhasebe.Data.Database.Concreate
         }
 
         // İsteğe bağlı: Yeni yedek planı ekleme
-        public async Task AddScheduleAsync(DbYedekZaman schedule)
+        public async Task AddScheduleAsync(DbYedekAl schedule)
         {
-            await _context.DbYedekZamanlama.AddAsync(schedule).ConfigureAwait(false);
+            await _context.DbYedekAl.AddAsync(schedule).ConfigureAwait(false);
             await _context.SaveChangesAsync().ConfigureAwait(false);
         }
 
         // İsteğe bağlı: Yedek planını pasif hale getirme
         public async Task DeactivateScheduleAsync(int scheduleId)
         {
-            var schedule = await _context.DbYedekZamanlama.FindAsync(scheduleId).ConfigureAwait(false);
+            var schedule = await _context.DbYedekAl.FindAsync(scheduleId).ConfigureAwait(false);
             if (schedule != null)
             {
                 schedule.AktifMi = false;

@@ -32,7 +32,7 @@ namespace Muhasebe.Data.Database.Concreate.Services
             try
             {
                 // 1. Adım: İlgili CalismaDonemDb kaydının varlığını ve geçerliliğini kontrol et.
-                var donemDbRecord = await _dbContext.CalismaDonemDbler.FirstOrDefaultAsync(a => a.FirmaId == firmaId && a.CalismaDonemId == donemId);
+                var donemDbRecord = await _dbContext.DonemDBSecim.FirstOrDefaultAsync(a => a.FirmaId == firmaId && a.MaliDonemId == donemId);
 
                 if (donemDbRecord == null)
                 {

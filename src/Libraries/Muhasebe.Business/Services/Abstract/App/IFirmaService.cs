@@ -1,6 +1,6 @@
 ﻿using Muhasebe.Business.Models.DbModel.AppModel;
 using Muhasebe.Domain.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Utilities.Responses;
 
 namespace Muhasebe.Business.Services.Abstract.App

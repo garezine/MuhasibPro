@@ -1,5 +1,5 @@
 ﻿using Muhasebe.Business.Models.DbModel.AppModel;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Infrastructure.ViewModels.Common;
 
 namespace MuhasibPro.ViewModels.ViewModel.CalismaDonem
@@ -11,7 +11,7 @@ namespace MuhasibPro.ViewModels.ViewModel.CalismaDonem
         public bool IsNew => CalismaDonemID <= 0;
 
     }
-    public class CalismaDonemDetailsViewModel : GenericDetailsViewModel<CalismaDonemModel>
+    public class CalismaDonemDetailsViewModel : GenericDetailsViewModel<MaliDonemModel>
     {
         public CalismaDonemDetailsViewModel(ICommonServices commonServices) : base(commonServices)
         {
@@ -24,12 +24,12 @@ namespace MuhasibPro.ViewModels.ViewModel.CalismaDonem
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> DeleteItemAsync(CalismaDonemModel model)
+        protected override Task<bool> DeleteItemAsync(MaliDonemModel model)
         {
             throw new NotImplementedException();
         }
 
-        protected override Task<bool> SaveItemAsync(CalismaDonemModel model)
+        protected override Task<bool> SaveItemAsync(MaliDonemModel model)
         {
             throw new NotImplementedException();
         }

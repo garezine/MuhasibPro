@@ -2,10 +2,10 @@
 using Muhasebe.Business.Models.DbModel.AppModel;
 using Muhasebe.Business.Services.Abstract.App;
 using Muhasebe.Domain.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using MuhasibPro.Core.Infrastructure.Common;
 using MuhasibPro.Core.Infrastructure.ViewModels;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Infrastructure.ViewModels.Common;
 using System.Linq.Expressions;
 using System.Windows.Input;

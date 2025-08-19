@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Entities.Uygulama;
 
 namespace Muhasebe.Data.DataContext;
@@ -53,11 +53,12 @@ public class AppSistemDbContext : DbContext
 
     public DbSet<Firma> Firmalar { get; set; }
 
-    public DbSet<CalismaDonem> CalismaDonemler { get; set; }
+    public DbSet<MaliDonem> MaliDonemler { get; set; }
 
-    public DbSet<CalismaDonemSec> CalismaDonemDbler { get; set; }
+    public DbSet<DonemDBSec> DonemDBSecim { get; set; }
 
-    public DbSet<DbYedekZaman> DbYedekZamanlama { get; set; }
+    public DbSet<DbYedekAl> DbYedekAl { get; set; }
+    public DbSet<AppVersiyon> AppVersiyonlar  { get; set; }
 
     public DbSet<ModulSec> ModulSecim { get; set; }
 }

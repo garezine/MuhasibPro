@@ -3,7 +3,7 @@ using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using MuhasibPro.Core.Models;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using System.Collections.Concurrent;
 using WinRT.Interop;
 

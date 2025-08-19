@@ -2,7 +2,7 @@
 using MuhasibPro.Core.Infrastructure.Helpers;
 using MuhasibPro.Core.Models;
 using MuhasibPro.Core.Services;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Helpers;
 using Windows.Storage;
 

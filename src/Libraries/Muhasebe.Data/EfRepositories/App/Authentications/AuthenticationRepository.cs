@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Enum;
 using Muhasebe.Domain.Exceptions;
 using Muhasebe.Domain.Interfaces.App.IAuthentication;

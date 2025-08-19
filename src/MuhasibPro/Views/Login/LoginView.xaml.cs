@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using MuhasibPro.Core.Infrastructure.Extensions;
 using MuhasibPro.Core.Infrastructure.Helpers;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.ViewModels.ViewModel.Login;
 using MuhasibPro.ViewModels.ViewModel.Shell;
 

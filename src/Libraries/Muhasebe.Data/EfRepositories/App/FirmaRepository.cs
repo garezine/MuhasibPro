@@ -2,7 +2,7 @@
 using Muhasebe.Data.DataContext;
 using Muhasebe.Data.EfRepositories.Common;
 using Muhasebe.Domain.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.App.IFirma;
 using Muhasebe.Domain.Utilities.IDGenerator;
 

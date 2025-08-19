@@ -5,7 +5,7 @@ using Muhasebe.Data.Database.Interfaces.Configurations;
 using Muhasebe.Data.Database.Interfaces.Operations;
 using Muhasebe.Data.Database.Interfaces.Services;
 using Muhasebe.Data.DataContext;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Enum;
 
 namespace Muhasebe.Data.Database.Concreate.Services
@@ -47,16 +47,16 @@ namespace Muhasebe.Data.Database.Concreate.Services
         {
             _logger.LogInformation("Starting backup for FirmaId: {FirmaId}, DonemId: {DonemId} to directory: {BackupDir}", firmaId, donemId, backupBaseDirectory);
 
-            CalismaDonemSec donemDb = null;
+            DonemDBSec donemDb = null;
             IDatabaseBackupOperations backupOps = null;
             DatabaseType dbType;
 
             try
             {
                 // 1. Sistem DB'sinden ilgili CalismaDonemDb kaydını bul ve tipini öğren
-                donemDb = await _sistemContext.CalismaDonemDbler
+                donemDb = await _sistemContext.DonemDBSecim
                     .AsNoTracking() // Sadece okuma
-                    .FirstOrDefaultAsync(db => db.FirmaId == firmaId && db.CalismaDonemId == donemId)
+                    .FirstOrDefaultAsync(db => db.FirmaId == firmaId && db.MaliDonemId == donemId)
                     .ConfigureAwait(false) ??
                     throw new InvalidOperationException($"Yedeklenecek veritabanı kaydı bulunamadı: FirmaId={firmaId}, DonemId={donemId}");
 

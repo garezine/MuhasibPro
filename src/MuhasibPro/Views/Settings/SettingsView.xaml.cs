@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Muhasebe.Business.Helpers;
 using MuhasibPro.Core.Services;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.ViewModels.ViewModel.Settings;
 
 namespace MuhasibPro.Views.Settings

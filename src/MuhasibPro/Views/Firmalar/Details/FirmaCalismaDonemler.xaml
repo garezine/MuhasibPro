@@ -11,7 +11,7 @@
      mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="400">
 
     <UserControl.Resources>
-        <DataTemplate x:Key="HeaderTemplate" x:DataType="models:CalismaDonemModel">
+        <DataTemplate x:Key="HeaderTemplate" x:DataType="models:MaliDonemModel">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="10*"/>
@@ -23,7 +23,7 @@
                 <TextBlock Grid.Column="2" Text="Çalışma Yılı" Style="{StaticResource ColumnHeaderStyle}"/>
             </Grid>
         </DataTemplate>
-        <DataTemplate x:Key="ItemTemplate" x:DataType="models:CalismaDonemModel">
+        <DataTemplate x:Key="ItemTemplate" x:DataType="models:MaliDonemModel">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="10*"/>
@@ -32,7 +32,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="{x:Bind Id}" Style="{StaticResource ColumnValueStyle}" />
                 <TextBlock Grid.Column="1" Text="{x:Bind KayitTarihi, Mode=OneWay, Converter={StaticResource DateTimeFormatConverter}}" Style="{StaticResource ColumnValueStyle}" />
-                <TextBlock Grid.Column="2" Text="{x:Bind CalismaYilDonem, Mode=OneWay, Converter={StaticResource DateTimeFormatConverter}}" Style="{StaticResource ColumnValueStyle}" />
+                <TextBlock Grid.Column="2" Text="{x:Bind MaliDonem, Mode=OneWay, Converter={StaticResource DateTimeFormatConverter}}" Style="{StaticResource ColumnValueStyle}" />
             </Grid>
         </DataTemplate>
     </UserControl.Resources>

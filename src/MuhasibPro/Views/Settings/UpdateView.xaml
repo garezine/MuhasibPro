@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     mc:Ignorable="d"
-    Loaded="Page_Loaded">
+    Unloaded="Page_Unloaded">
 
     <Page.Resources>
         <x:Double x:Key="SettingsCardSpacing">4</x:Double>
@@ -20,6 +20,56 @@
                 <Setter Property="Margin" Value="1,30,0,6" />
             </Style.Setters>
         </Style>
+
+        <!-- Update Card Styles -->
+        <Style x:Key="UpdateCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Transitions">
+                <Setter.Value>
+                    <TransitionCollection>
+                        <RepositionThemeTransition />
+                    </TransitionCollection>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Storyboards for animations -->
+        <Storyboard x:Name="ExpandStoryboard">
+            <DoubleAnimation
+                Duration="0:0:0.3"
+                Storyboard.TargetName="UpdateDetailsGrid"
+                Storyboard.TargetProperty="(UIElement.RenderTransform).(CompositeTransform.ScaleY)"
+                To="1">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation
+                Duration="0:0:0.2"
+                Storyboard.TargetName="UpdateDetailsGrid"
+                Storyboard.TargetProperty="Opacity"
+                To="1" />
+        </Storyboard>
+
+        <Storyboard x:Name="CollapseStoryboard">
+            <DoubleAnimation
+                Duration="0:0:0.2"
+                Storyboard.TargetName="UpdateDetailsGrid"
+                Storyboard.TargetProperty="(UIElement.RenderTransform).(CompositeTransform.ScaleY)"
+                To="0">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseIn" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation
+                Duration="0:0:0.15"
+                Storyboard.TargetName="UpdateDetailsGrid"
+                Storyboard.TargetProperty="Opacity"
+                To="0" />
+        </Storyboard>
     </Page.Resources>
 
     <Grid>
@@ -43,100 +93,152 @@
             Grid.Row="1"
             MaxWidth="1064"
             Margin="36,20,36,20">
-            <Border
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="8">
-                <Grid Padding="24,20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
 
-                    <!-- Update Icon with Badge -->
-                    <Grid Grid.Column="0">
-                        <Border
-                            Width="56"
-                            Height="56"
-                            Background="{ThemeResource SystemFillColorSuccessBrush}"
-                            CornerRadius="12">
-                            <FontIcon
-                                FontSize="28"
-                                Foreground="White"
-                                Glyph="&#xE895;" />
-                        </Border>
+            <Border Style="{StaticResource UpdateCardStyle}">
+                <StackPanel>
+                    <!-- Main Update Info -->
+                    <Grid Padding="24,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                        <!-- Notification Badge -->
-                        <Border
-                            x:Name="UpdateBadge"
-                            Width="20"
-                            Height="20"
-                            Margin="0,-4,-4,0"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Top"
-                            Background="{ThemeResource SystemFillColorCriticalBrush}"
-                            CornerRadius="10"
-                            Visibility="{x:Bind ViewModel.UpdateBadgeVisibility, Mode=OneWay}">
+                        <!-- Update Icon with Badge -->
+                        <Grid Grid.Column="0">
+                            <Border
+                                Width="56"
+                                Height="56"
+                                Background="{ThemeResource SystemColorControlAccentBrush}"
+                                CornerRadius="12">
+                                <FontIcon
+                                    FontSize="28"
+                                    Foreground="White"
+                                    Glyph="&#xE895;" />
+                            </Border>
+
+                            <!-- Notification Badge -->
+                            <Border
+                                x:Name="UpdateBadge"
+                                Width="20"
+                                Height="20"
+                                Margin="0,-4,-4,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Background="{ThemeResource SystemFillColorCriticalBrush}"
+                                CornerRadius="10"
+                                Visibility="{x:Bind ViewModel.UpdateBadgeVisibility, Mode=OneWay}">
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontSize="11"
+                                    FontWeight="Bold"
+                                    Foreground="White"
+                                    Text="1" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Update Info -->
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Margin="16,0,0,0"
+                            VerticalAlignment="Center">
                             <TextBlock
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                FontSize="11"
-                                FontWeight="Bold"
-                                Foreground="White"
-                                Text="1" />
+                                FontSize="20"
+                                FontWeight="SemiBold"
+                                Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
+                            <TextBlock
+                                FontSize="13"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Text="{x:Bind ViewModel.LastCheckText, Mode=OneWay}" />
+                            <TextBlock
+                                FontSize="14"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Text="{x:Bind ViewModel.VersionText, Mode=OneWay}" />
+                        </StackPanel>
+
+
+                        <!-- Update Button -->
+                        <Button
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            Command="{x:Bind ViewModel.UpdateActionCommand}"
+                            Content="{x:Bind ViewModel.UpdateButtonText, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.IsUpdateButtonEnabled, Mode=OneWay}"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                    </Grid>
+
+                    <!-- Expandable Update Details -->
+
+                    <Grid
+                        x:Name="UpdateDetailsGrid"
+                        Opacity="0"
+                        RenderTransformOrigin="0.5,0"
+                        Visibility="{x:Bind ViewModel.UpdateDetailsVisibility, Mode=OneWay}">
+                        <Grid.RenderTransform>
+                            <CompositeTransform ScaleY="0" />
+                        </Grid.RenderTransform>
+
+                        <Border
+                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                            BorderThickness="0,1,0,0">
+
+                            <StackPanel Padding="24,16" Spacing="12">
+
+                                <!-- Update Information -->
+                                <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.UpdateInfoVisibility, Mode=OneWay}">
+                                    <TextBlock FontWeight="SemiBold" Text="Güncelleme Detayları" />
+
+                                    <!--<TextBlock
+                                        FontSize="13"
+                                        Text="{x:Bind ViewModel.UpdateDescription, Mode=OneWay}"
+                                        TextWrapping="Wrap" />-->
+
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                        <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                            <Run Text="Boyut:" />
+                                            <Run Text="{x:Bind ViewModel.UpdateSize, Mode=OneWay}" />
+                                        </TextBlock>
+
+                                        <TextBlock FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                            <Run Text="Yayın Tarihi:" />
+                                            <Run Text="{x:Bind ViewModel.ReleaseDate, Mode=OneWay}" />
+                                        </TextBlock>
+
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Action Buttons -->
+                                <StackPanel
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    Visibility="{x:Bind ViewModel.ActionButtonsVisibility, Mode=OneWay}">
+
+                                    <Button
+                                        HorizontalAlignment="Right"
+                                        Command="{x:Bind ViewModel.DownloadCommand}"
+                                        Content="İndir"
+                                        IsEnabled="{x:Bind ViewModel.IsDownloadButtonEnabled, Mode=OneWay}"
+                                        Style="{ThemeResource AccentButtonStyle}" />
+
+                                    <Button
+                                        Command="{x:Bind ViewModel.InstallCommand}"
+                                        Content="Şimdi Yükle"
+                                        IsEnabled="{x:Bind ViewModel.IsInstallButtonEnabled, Mode=OneWay}" />
+
+                                    <Button
+                                        Command="{x:Bind ViewModel.ScheduleCommand}"
+                                        Content="Sonra Yükle"
+                                        IsEnabled="{x:Bind ViewModel.IsScheduleButtonEnabled, Mode=OneWay}" />
+                                </StackPanel>
+                            </StackPanel>
+
                         </Border>
                     </Grid>
 
-                    <!-- Update Info -->
-                    <StackPanel
-                        Grid.Column="1"
-                        Margin="16,0,0,0"
-                        VerticalAlignment="Center">
-                        <TextBlock
-                            FontSize="20"
-                            FontWeight="SemiBold"
-                            Text="{x:Bind ViewModel.StatusText, Mode=OneWay}" />
-                        <TextBlock
-                            FontSize="14"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="{x:Bind ViewModel.VersionText, Mode=OneWay}" />
-                        <TextBlock
-                            FontSize="13"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="{x:Bind ViewModel.LastCheckText, Mode=OneWay}" />
-
-                        <!-- İndirme durumu göstergesi -->
-                        <ProgressBar
-                            Margin="0,8,0,0"
-                            Value="{x:Bind ViewModel.DownloadProgress, Mode=OneWay}"
-                            Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay}" />
-                    </StackPanel>
-
-                    <!-- Update Button -->
-                    <Button
-                        Grid.Column="2"
-                        VerticalAlignment="Center"
-                        Command="{x:Bind ViewModel.UpdateActionCommand}"
-                        Content="{x:Bind ViewModel.UpdateButtonText, Mode=OneWay}"
-                        IsEnabled="{x:Bind ViewModel.IsUpdateButtonEnabled, Mode=OneWay}">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="AccentStates">
-                                <VisualState x:Name="Normal">
-                                    <VisualState.Setters>
-                                        <Setter Value="{ThemeResource ButtonBackground}" Target="ButtonBackground.Background" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="Accent">
-                                    <VisualState.Setters>
-                                        <Setter Value="{ThemeResource AccentButtonBackground}" Target="ButtonBackground.Background" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                    </Button>
-                </Grid>
+                </StackPanel>
             </Border>
         </Grid>
 

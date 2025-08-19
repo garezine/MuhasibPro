@@ -1,15 +1,16 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Muhasebe.Business.Services.Abstract.App;
-using Muhasebe.Business.Services.Abstract.Common;
+using Muhasebe.Business.Services.Abstract.Update;
 using Muhasebe.Business.Services.Concreate.Common;
+using Muhasebe.Business.Services.Concreate.Update;
 using Muhasebe.Data.EfRepositories.App;
 using Muhasebe.Domain.Interfaces.App;
 using MuhasibPro.Core.Models;
 using MuhasibPro.Core.Services;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Core.Services.Concreate.App;
-using MuhasibPro.Core.Services.Update;
+using MuhasibPro.Core.Services.Concreate.Update;
 using MuhasibPro.Services;
 using MuhasibPro.Services.Common;
 

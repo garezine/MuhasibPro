@@ -1,6 +1,6 @@
 ﻿using Microsoft.UI.Xaml;
 using MuhasibPro.Core.Infrastructure.ViewModels;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 
 namespace MuhasibPro.ViewModels.ViewModel.Settings
 {

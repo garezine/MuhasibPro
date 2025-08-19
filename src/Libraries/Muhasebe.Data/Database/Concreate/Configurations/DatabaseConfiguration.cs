@@ -39,8 +39,8 @@ namespace Muhasebe.Data.Database.Concreate.Configurations
             _logger.LogDebug("Initializing database configuration for FirmaId: {FirmaId}, DonemId: {DonemId}", fId, dId);
             try
             {
-                var donemDb = await _sysContext.Context.CalismaDonemDbler.FirstOrDefaultAsync(
-                    x => x.FirmaId == fId && x.CalismaDonemId == dId)
+                var donemDb = await _sysContext.Context.DonemDBSecim.FirstOrDefaultAsync(
+                    x => x.FirmaId == fId && x.MaliDonemId == dId)
                     .ConfigureAwait(false);
 
                 if (donemDb == null)

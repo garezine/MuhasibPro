@@ -1,7 +1,7 @@
 ﻿using Muhasebe.Business.Models.DbModel.AppModel;
 using Muhasebe.Business.Services.Abstract.App;
 using MuhasibPro.Core.Infrastructure.ViewModels;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.ViewModels.ViewModel.CalismaDonem;
 
 namespace MuhasibPro.ViewModels.ViewModel.Firmalar;

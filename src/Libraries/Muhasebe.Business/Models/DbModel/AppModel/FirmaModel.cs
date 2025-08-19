@@ -30,7 +30,7 @@ public class FirmaModel : ObservableObject
     public string PBu2 { get; set; } 
  
 
-    public ICollection<CalismaDonemModel> CalismaDonemler { get; set; }
+    public ICollection<MaliDonemModel> MaliDonemler { get; set; }
 
     //Model değişiklikleri
     public bool IsNew => Id <= 0;

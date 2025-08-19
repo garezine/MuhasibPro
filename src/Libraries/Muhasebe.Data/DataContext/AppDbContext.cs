@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Muhasebe.Data.Database.SeedData;
-using Muhasebe.Domain.Entities.Banka;
-using Muhasebe.Domain.Entities.Cari;
-using Muhasebe.Domain.Entities.Fatura_Irsaliye;
-using Muhasebe.Domain.Entities.Kasa;
-using Muhasebe.Domain.Entities.Stok;
+using Muhasebe.Domain.Entities.AppDb.Banka;
+using Muhasebe.Domain.Entities.AppDb.Cari;
+using Muhasebe.Domain.Entities.AppDb.Fatura_Irsaliye;
+using Muhasebe.Domain.Entities.AppDb.Kasa;
+using Muhasebe.Domain.Entities.AppDb.Stok;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Entities.Uygulama;
 
 namespace Muhasebe.Data.DataContext;
@@ -112,9 +113,7 @@ public class AppDbContext : DbContext
     public DbSet<AppLog> Logs { get; set; }
     public DbSet<Ajanda> Ajandalar { get; set; }
 
-    public DbSet<Ayarlar> Ayarlar { get; set; }
-
-    public DbSet<DBVersiyon> DBVersiyon { get; set; }
+    public DbSet<Ayarlar> Ayarlar { get; set; } 
 
     public DbSet<BelgeNumara> BelgeNumaralar { get; set; }
 

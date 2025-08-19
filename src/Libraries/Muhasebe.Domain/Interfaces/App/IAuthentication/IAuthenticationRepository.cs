@@ -1,4 +1,4 @@
-﻿using Muhasebe.Domain.Entities.Sistem;
+﻿using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Enum;
 
 namespace Muhasebe.Domain.Interfaces.App.IAuthentication

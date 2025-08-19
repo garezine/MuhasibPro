@@ -4,7 +4,7 @@ using Muhasebe.Data.Database.Interfaces.Configurations;
 using Muhasebe.Data.Database.Interfaces.Operations;
 using Muhasebe.Data.Database.Interfaces.Services;
 using Muhasebe.Data.DataContext;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Enum;
 
 namespace Muhasebe.Data.Database.Concreate.Services
@@ -64,16 +64,16 @@ namespace Muhasebe.Data.Database.Concreate.Services
             Func<IDatabaseMaintenanceOperations, string, string, string, Task> maintenanceAction)
         {
             _logger.LogInformation("Starting {OperationName} for FirmaId: {FirmaId}, DonemId: {DonemId}", operationName, firmaId, donemId);
-            CalismaDonemSec donemDb = null;
+            DonemDBSec donemDb = null;
             DatabaseType dbType;
             IDatabaseMaintenanceOperations maintenanceOps = null;
 
             try
             {
                 // 1. İlgili veritabanı kaydını bul ve tipini öğren
-                donemDb = await _sistemContext.CalismaDonemDbler
+                donemDb = await _sistemContext.DonemDBSecim
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(db => db.FirmaId == firmaId && db.CalismaDonemId == donemId)
+                    .FirstOrDefaultAsync(db => db.FirmaId == firmaId && db.MaliDonemId == donemId)
                     .ConfigureAwait(false) ??
                     throw new InvalidOperationException($"Maintenance için veritabanı kaydı bulunamadı: FirmaId={firmaId}, DonemId={donemId}");
 

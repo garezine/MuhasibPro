@@ -8,7 +8,7 @@ using Muhasebe.Data.Database.Interfaces.Services;
 using Muhasebe.Data.Database.Utilities;
 using Muhasebe.Data.DataContext;
 using Muhasebe.Data.DataContext.DataContextFactory;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Enum;
 using Muhasebe.Domain.Utilities.IDGenerator;
 
@@ -62,7 +62,7 @@ namespace Muhasebe.Data.Database.Concreate.Services
             _logger.LogInformation("Starting restore process for FirmaId: {FirmaId}, DonemId: {DonemId}, Type: {DbType} from file: {BackupFilePath}", firmaId, donemId, targetDbType, backupFilePath);
 
             Firma firma = null;
-            CalismaDonem donem = null;
+            MaliDonem donem = null;
             string targetDatabaseName = null;
             string targetDbDirectory = null;
             string targetDbPath = null; // SQLite için tam dosya yolu
@@ -81,13 +81,13 @@ namespace Muhasebe.Data.Database.Concreate.Services
                 firma = await _sistemContext.Firmalar.FindAsync(firmaId).ConfigureAwait(false) ??
                         throw new InvalidOperationException($"Restore için Firma bulunamadı: ID={firmaId}");
 
-                donem = await _sistemContext.CalismaDonemler
+                donem = await _sistemContext.MaliDonemler
                     .FirstOrDefaultAsync(d => d.Id == donemId && d.FirmaId == firmaId)
                     .ConfigureAwait(false) ??
                         throw new InvalidOperationException($"Restore için Dönem bulunamadı: FirmaId={firmaId}, DonemId={donemId}");
 
                 // 2. Hedef veritabanı adını, dizinini ve yolunu oluştur
-                targetDatabaseName = DatabaseNameGenarator.GenerateDatabaseName(donem.Firma.KisaUnvani, donem.CalismaYilDonem);
+                targetDatabaseName = DatabaseNameGenarator.GenerateDatabaseName(donem.Firma.KisaUnvani, donem.MaliDonemler);
                 targetDbDirectory = AppPaths.GetDatabaseDirectory(firma.KisaUnvani, firmaId);
                 _directoryManager.EnsureDirectoryExists(targetDbDirectory); // Dizin yoksa oluştur
 
@@ -133,8 +133,8 @@ namespace Muhasebe.Data.Database.Concreate.Services
                 using var transaction = await _sistemContext.Database.BeginTransactionAsync().ConfigureAwait(false);
                 try
                 {
-                    var existingDonemDb = await _sistemContext.CalismaDonemDbler
-                        .FirstOrDefaultAsync(db => db.FirmaId == firmaId && db.CalismaDonemId == donemId)
+                    var existingDonemDb = await _sistemContext.DonemDBSecim
+                        .FirstOrDefaultAsync(db => db.FirmaId == firmaId && db.MaliDonemId == donemId)
                         .ConfigureAwait(false);
 
                     if (existingDonemDb != null)
@@ -147,19 +147,19 @@ namespace Muhasebe.Data.Database.Concreate.Services
                         existingDonemDb.AktifMi = true;
                         existingDonemDb.GuncellemeTarihi = DateTime.UtcNow;
                         // existingDonemDb.SonRestoreTarihi = DateTime.UtcNow; // Opsiyonel alan
-                        _sistemContext.CalismaDonemDbler.Update(existingDonemDb);
+                        _sistemContext.DonemDBSecim.Update(existingDonemDb);
                     }
                     else
                     {
                         _logger.LogInformation("Creating new CalismaDonemDb record.");
 
-                        var donemDb = new CalismaDonemSec
+                        var donemDb = new DonemDBSec
                         {
 
                             Id = UIDModuleGenerator.GenerateModuleId(UIDModuleType.Veritabani), // UIDGenerator gerekli
                             KaydedenId = firma.KaydedenId,
                             FirmaId = firmaId,
-                            CalismaDonemId = donemId,
+                            MaliDonemId = donemId,
                             DBName = targetDatabaseName,
                             Directory = targetDbDirectory,
                             DBPath = targetDbPath, // DB Path eklendi
@@ -168,7 +168,7 @@ namespace Muhasebe.Data.Database.Concreate.Services
                             AktifMi = true,
                             // SonRestoreTarihi = DateTime.UtcNow // Opsiyonel alan
                         };
-                        await _sistemContext.CalismaDonemDbler.AddAsync(donemDb).ConfigureAwait(false);
+                        await _sistemContext.DonemDBSecim.AddAsync(donemDb).ConfigureAwait(false);
                     }
 
                     await _sistemContext.SaveChangesAsync().ConfigureAwait(false);

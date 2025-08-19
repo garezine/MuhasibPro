@@ -1,12 +1,13 @@
-﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Muhasebe.Business.Helpers;
-using Muhasebe.Business.Services.Abstract.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Business.Models;
+using Muhasebe.Business.Services.Abstract.Update;
+using Muhasebe.Domain.Entities.SistemDb;
 using MuhasibPro.Core.Infrastructure.ViewModels;
-using MuhasibPro.Core.Services.Common;
-using MuhasibPro.Core.Services.Update;
+using MuhasibPro.Core.Services.Abstract.Common;
+using MuhasibPro.Core.Services.Concreate.Update;
 using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.ViewModel.Settings
@@ -15,9 +16,8 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
     {
         private readonly IUpdateService _updateService;
         private readonly UpdateManager _updateManager;
-        private UpdateInfo _pendingUpdate;
 
-
+        #region Settings & Basic Properties
         private UpdateSettings _settings;
         public UpdateSettings Settings
         {
@@ -26,24 +26,28 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
             {
                 if (Set(ref _settings, value))
                 {
-                    // Settings değiştiğinde ilgili property'leri bildir
-                    NotifyPropertyChanged(nameof(IsAutoDownloadEnabled));
-                    NotifyPropertyChanged(nameof(IsNotificationEnabled));
+                    OnSettingsChanged();
                 }
             }
         }
 
-        // Enable/Disable property'leri ekle
+        private void OnSettingsChanged()
+        {          
+            NotifyPropertyChanged(nameof(IsAutoDownloadEnabled));
+            NotifyPropertyChanged(nameof(IsNotificationEnabled));
+        }
+
         public bool IsAutoDownloadEnabled => Settings?.AutoCheckOnStartup == true;
         public bool IsNotificationEnabled => Settings?.AutoCheckOnStartup == true;
+        #endregion
 
+        #region UI State Properties
         private string _statusText = "MuhasibPro güncel";
         public string StatusText
         {
             get => _statusText;
             set => Set(ref _statusText, value);
         }
-
 
         private string _versionText = "";
         public string VersionText
@@ -59,28 +63,11 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
             set => Set(ref _lastCheckText, value);
         }
 
-
         private string _updateButtonText = "Kontrol Et";
         public string UpdateButtonText
         {
             get => _updateButtonText;
             set => Set(ref _updateButtonText, value);
-        }
-
-
-        private bool _updateButtonIsAccent = false;
-        public bool UpdateButtonIsAccent
-        {
-            get => _updateButtonIsAccent;
-            set => Set(ref _updateButtonIsAccent, value);
-        }
-
-
-        private bool _hasUpdate = false;
-        public bool HasUpdate
-        {
-            get => _hasUpdate;
-            set => Set(ref _hasUpdate, value);
         }
 
         private bool _isUpdateButtonEnabled = true;
@@ -90,13 +77,26 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
             set => Set(ref _isUpdateButtonEnabled, value);
         }
 
-
         private bool _isCheckButtonEnabled = true;
         public bool IsCheckButtonEnabled
         {
             get => _isCheckButtonEnabled;
             set => Set(ref _isCheckButtonEnabled, value);
         }
+
+        private bool _hasUpdate = false;
+        public bool HasUpdate
+        {
+            get => _hasUpdate;
+            set
+            {
+                if (Set(ref _hasUpdate, value))
+                {
+                    UpdateUIVisibility();
+                }
+            }
+        }
+
         private Visibility _updateBadgeVisibility = Visibility.Collapsed;
         public Visibility UpdateBadgeVisibility
         {
@@ -104,32 +104,88 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
             set => Set(ref _updateBadgeVisibility, value);
         }
 
-        // İndirme durumu için yeni property'ler
-        private bool _isDownloading = false;
-        public bool IsDownloading
+        private Visibility _updateDetailsVisibility = Visibility.Collapsed;
+        public Visibility UpdateDetailsVisibility
         {
-            get => _isDownloading;
-            set => Set(ref _isDownloading, value);
+            get => _updateDetailsVisibility;
+            set => Set(ref _updateDetailsVisibility, value);
         }
 
-        private int _downloadProgress = 0;
-        public int DownloadProgress
+        private Visibility _updateInfoVisibility = Visibility.Collapsed;
+        public Visibility UpdateInfoVisibility
         {
-            get => _downloadProgress;
-            set => Set(ref _downloadProgress, value);
+            get => _updateInfoVisibility;
+            set => Set(ref _updateInfoVisibility, value);
         }
 
+        private Visibility _actionButtonsVisibility = Visibility.Collapsed;
+        public Visibility ActionButtonsVisibility
+        {
+            get => _actionButtonsVisibility;
+            set => Set(ref _actionButtonsVisibility, value);
+        }
+        #endregion
+
+        #region Update Info Display Properties
+        private string _updateDescription = "";
+        public string UpdateDescription
+        {
+            get => _updateDescription;
+            set => Set(ref _updateDescription, value);
+        }
+
+        private string _updateSize = "";
+        public string UpdateSize
+        {
+            get => _updateSize;
+            set => Set(ref _updateSize, value);
+        }
+
+        private string _releaseDate = "";
+        public string ReleaseDate
+        {
+            get => _releaseDate;
+            set => Set(ref _releaseDate, value);
+        }
+
+        private bool _isDownloadButtonEnabled = false;
+        public bool IsDownloadButtonEnabled
+        {
+            get => _isDownloadButtonEnabled;
+            set => Set(ref _isDownloadButtonEnabled, value);
+        }
+
+        private bool _isInstallButtonEnabled = false;
+        public bool IsInstallButtonEnabled
+        {
+            get => _isInstallButtonEnabled;
+            set => Set(ref _isInstallButtonEnabled, value);
+        }
+
+        private bool _isScheduleButtonEnabled = false;
+        public bool IsScheduleButtonEnabled
+        {
+            get => _isScheduleButtonEnabled;
+            set => Set(ref _isScheduleButtonEnabled, value);
+        }
+        #endregion
+
+        #region Constructor
         public UpdateViewModel(IUpdateService updateService, UpdateManager updateManager, ICommonServices commonServices) : base(commonServices)
         {
             _updateService = updateService;
             _updateManager = updateManager;
+
+            // UpdateManager event'lerini dinle
             _updateManager.PendingUpdateChanged += OnPendingUpdateChanged;
         }
+        #endregion
 
+        #region Initialization
         public async Task InitializeAsync()
         {
             await LoadUpdateSettings();
-            await CheckAndUpdateUIOnLoad();
+            await CheckInitialUpdateState();
         }
 
         private async Task LoadUpdateSettings()
@@ -144,228 +200,222 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
                 System.Diagnostics.Debug.WriteLine($"Settings load error: {ex.Message}");
             }
         }
-
-        private async Task CheckAndUpdateUIOnLoad()
+     
+        private async Task CheckInitialUpdateState()
         {
             try
             {
                 // UpdateManager'ın startup check'ini kullan
                 await _updateManager.CheckForUpdatesOnStartup();
 
-                // UI state'ini güncelle
+                // Eğer pending update varsa UI'ı güncelle
                 if (_updateManager.HasPendingUpdate)
                 {
-                    await UpdateUIState(_updateManager.PendingUpdateInfo);
+                    UpdateUIState(_updateManager.PendingUpdateInfo);
                 }
 
                 UpdateLastCheckText();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Silent update check failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Initial update check failed: {ex.Message}");
             }
         }
+        #endregion
 
+        #region Commands
         public ICommand UpdateActionCommand => new RelayCommand(async () => await UpdateActionAsync());
+        public ICommand CheckNowCommand => new RelayCommand(async () => await CheckNowAsync());
+        public ICommand DownloadCommand => new RelayCommand(async () => await DownloadAsync());
+        public ICommand InstallCommand => new RelayCommand(async () => await InstallAsync());
+        public ICommand ScheduleCommand => new RelayCommand(async () => await ScheduleAsync());
+
+        // Settings commands
+        public ICommand ToggleAutoCheckCommand => new RelayCommand(async () => await ToggleAutoCheckAsync());
+        public ICommand ToggleAutoDownloadCommand => new RelayCommand(async () => await ToggleAutoDownloadAsync());
+        public ICommand ToggleShowNotificationsCommand => new RelayCommand(async () => await ToggleShowNotificationsAsync());
+        public ICommand ToggleIncludeBetaCommand => new RelayCommand(async () => await ToggleIncludeBetaAsync());
+        #endregion
+
+        #region Command Implementations
         private async Task UpdateActionAsync()
         {
-            if (HasUpdate && _pendingUpdate != null)
+            if (HasUpdate && _updateManager.PendingUpdateInfo != null)
             {
-                await DownloadAndInstallUpdateDirect(_pendingUpdate.DownloadUrl);
+                // UpdateManager'ın kendi dialog'unu kullan
+                await _updateManager.DownloadAndInstallUpdate(_updateManager.PendingUpdateInfo.DownloadUrl);
                 return;
             }
 
-            await PerformUpdateCheck(isManualCheck: false);
+            await CheckNowAsync();
         }
-        public ICommand CheckNowCommand => new RelayCommand(async () => await CheckNowAsync());
 
         private async Task CheckNowAsync()
         {
-            await PerformUpdateCheck(isManualCheck: true);
+            SetCheckingState();
+
+            try
+            {
+                // UpdateManager'ın manuel check metodunu kullan
+                var updateInfo = await _updateService.CheckForUpdatesAsync();
+                await _updateService.UpdateLastCheckDateAsync();
+
+                if (updateInfo.HasError)
+                {
+                    StatusText = "Kontrol edilemedi";
+                    VersionText = updateInfo.ErrorMessage;
+                }
+                else if (updateInfo.HasUpdate)
+                {
+                    // UpdateManager'ın dialog'unu göster
+                    await _updateManager.ShowUpdateDialog(updateInfo);
+                }
+                else
+                {
+                    // Manual check'te "güncel" mesajı göster
+                    StatusText = "MuhasibPro güncel";
+                }
+
+                UpdateUIState(updateInfo);
+                UpdateLastCheckText();
+            }
+            catch (Exception ex)
+            {
+                StatusText = "Kontrol edilemedi";
+                VersionText = ex.Message;
+            }
+            finally
+            {
+                ResetCheckingState();
+            }
         }
 
-        private async Task PerformUpdateCheck(bool isManualCheck)
+        private async Task DownloadAsync()
+        {
+            if (_updateManager.PendingUpdateInfo != null)
+            {
+                await _updateManager.DownloadAndInstallUpdate(_updateManager.PendingUpdateInfo.DownloadUrl);
+            }
+        }    
+        private async Task InstallAsync()
+        {
+            // Bu durumda UpdateManager'da bir install metodu olması gerekiyor
+            // Veya pending update'teki local path'i kullanabiliriz
+            if (_updateManager.HasPendingUpdate)
+            {
+                await _updateManager.InstallPendingUpdate(); // Bunu eklemek gerekiyor
+            }
+        }
+
+        private async Task ScheduleAsync()
+        {
+            // Sonraki başlangıçta yükle - pending update'i korumak yeterli
+            _updateManager.ClearPendingUpdate();
+            HasUpdate = false;
+            await Task.CompletedTask;
+        }
+        #endregion
+
+        #region UI State Management
+        private void SetCheckingState()
         {
             IsUpdateButtonEnabled = false;
             IsCheckButtonEnabled = false;
             UpdateButtonText = "Kontrol Ediliyor...";
-
-            try
-            {
-                // Önce delta güncelleme kontrolü
-                var deltaUpdateInfo = await _updateService.CheckForDeltaUpdateAsync();
-                if (deltaUpdateInfo.IsDeltaAvailable)
-                {
-                    await _updateManager.ProcessDeltaUpdate(deltaUpdateInfo, Settings);
-                    return;
-                }
-                var updateInfo = await _updateService.CheckForUpdatesAsync();
-                await _updateService.UpdateLastCheckDateAsync();
-
-                if (isManualCheck)
-                {
-                    if (updateInfo.HasError)
-                    {
-                        await ShowErrorDialog($"Güncelleme kontrolü başarısız: {updateInfo.ErrorMessage}");
-                    }
-                    else if (updateInfo.HasUpdate)
-                    {
-                        await _updateManager.ShowUpdateDialog(updateInfo);
-                    }
-                    else
-                    {
-                        await ShowInfoDialog("En güncel sürümü kullanıyorsunuz!");
-                    }
-                }
-
-                await UpdateUIState(updateInfo);
-                UpdateLastCheckText();
-            }
-            catch (Exception ex)
-            {
-                await ShowErrorDialog($"Güncelleme kontrolü sırasında hata: {ex.Message}");
-            }
-            finally
-            {
-                IsUpdateButtonEnabled = true;
-                IsCheckButtonEnabled = true;
-                UpdateButtonText = HasUpdate ? "Güncelle" : "Kontrol Et";
-            }
         }
 
-        private async Task DownloadAndInstallUpdateDirect(string downloadUrl)
+        private void ResetCheckingState()
         {
-            var progressDialog = await _updateManager.ShowProgressDialog();
-
-            try
-            {
-                var setupPath = await _updateManager.DownloadUpdateFile(downloadUrl, progressDialog);
-
-                if (setupPath != null)
-                {
-                    progressDialog.Hide();
-                    await InstallUpdate(setupPath);
-                }
-            }
-            catch (Exception ex)
-            {
-                progressDialog.Hide();
-                await ShowErrorDialog($"Güncelleme hatası: {ex.Message}");
-            }
+            IsUpdateButtonEnabled = true;
+            IsCheckButtonEnabled = true;
+            UpdateButtonText = HasUpdate ? "Güncelle" : "Kontrol Et";
         }
 
-        private async Task InstallUpdate(string setupPath)
+        private void UpdateUIVisibility()
         {
-            try
-            {
-                var processInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = setupPath,
-                    UseShellExecute = true,
-                    Verb = "runas"
-                };
-
-                System.Diagnostics.Process.Start(processInfo);
-                Application.Current.Exit();
-            }
-            catch (Exception ex)
-            {
-                await ShowErrorDialog($"Kurulum başlatılamadı: {ex.Message}");
-            }
+            UpdateDetailsVisibility = HasUpdate ? Visibility.Visible : Visibility.Collapsed;
+            UpdateBadgeVisibility = HasUpdate ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void OnPendingUpdateChanged(UpdateInfo updateInfo)
+        private void UpdateUIState(UpdateInfo updateInfo)
         {
-            Ioc.Default.GetService<Microsoft.UI.Dispatching.DispatcherQueue>()?.TryEnqueue(async () =>
+            if (updateInfo == null)
             {
-                await UpdateUIState(updateInfo);
-            });
-        }
+                HasUpdate = false;
+                return;
+            }
 
-        private async Task UpdateUIState(UpdateInfo updateInfo)
-        {            
             VersionText = ProcessInfoHelper.Version;
+
             if (updateInfo.HasError)
             {
                 StatusText = "Kontrol edilemedi";
                 VersionText = updateInfo.ErrorMessage;
                 UpdateButtonText = "Tekrar Dene";
-                UpdateButtonIsAccent = false;
-                UpdateBadgeVisibility = Visibility.Collapsed;
                 HasUpdate = false;
             }
             else if (updateInfo.HasUpdate)
             {
                 StatusText = "Güncelleme mevcut";
                 VersionText = $"v{updateInfo.LatestVersion} hazır";
-                UpdateButtonText = "İndir ve Güncelle";
-                UpdateButtonIsAccent = true;
-                UpdateBadgeVisibility = Visibility.Visible;
+                UpdateButtonText = "Güncelle";
                 HasUpdate = true;
-                _pendingUpdate = updateInfo;
+
+                // Update details'i set et
+                UpdateDescription = updateInfo.ReleaseNotes ?? "Yeni özellikler ve hata düzeltmeleri";
+                UpdateSize = updateInfo.FormattedFileSize;
+                ReleaseDate = updateInfo.FormattedReleaseDate;
+
+                // Action buttons'ı göster
+                UpdateInfoVisibility = Visibility.Visible;
+                ActionButtonsVisibility = Visibility.Visible;
+
+                // Button states - başlangıçta download enable
+                IsDownloadButtonEnabled = true;
+                IsInstallButtonEnabled = false;
+                IsScheduleButtonEnabled = false;
             }
             else
             {
                 StatusText = "MuhasibPro güncel";
                 VersionText = $"En son sürüm: {updateInfo.CurrentVersion}";
                 UpdateButtonText = "Kontrol Et";
-                UpdateButtonIsAccent = false;
-                UpdateBadgeVisibility = Visibility.Collapsed;
                 HasUpdate = false;
             }
-            await Task.CompletedTask;
         }
 
-        private void UpdateLastCheckText()
+        private void OnPendingUpdateChanged(UpdateInfo updateInfo)
         {
-            if (Settings?.LastCheckDate != null)
+            // UI thread'de çalıştır
+            ContextService?.RunAsync(() =>
             {
-                var timeAgo = DateTime.Now - Settings.LastCheckDate.Value;
-                string timeText;
-
-                if (timeAgo.TotalMinutes < 1)
-                    timeText = "Az önce";
-                else if (timeAgo.TotalMinutes < 60)
-                    timeText = $"{(int)timeAgo.TotalMinutes} dakika önce";
-                else if (timeAgo.TotalHours < 24)
-                    timeText = $"{(int)timeAgo.TotalHours} saat önce";
-                else if (timeAgo.TotalDays < 7)
-                    timeText = $"{(int)timeAgo.TotalDays} gün önce";
-                else
-                    timeText = Settings.LastCheckDate.Value.ToString("dd.MM.yyyy");
-
-                LastCheckText = $"Son denetleme: {timeText}";
-            }
-            else
-            {
-                LastCheckText = "Son denetleme: Hiçbir zaman";
-            }
+                UpdateUIState(updateInfo);
+            });
         }
+        #endregion
 
-        public ICommand ToggleAutoCheckCommand => new RelayCommand(async () => await ToggleAutoCheckAsync());
-        public ICommand ToggleAutoDownloadCommand => new RelayCommand(async () => await ToggleAutoDownloadAsync());
-        public ICommand ToggleShowNotificationsCommand => new RelayCommand(async () => await ToggleShowNotificationsAsync());
-        public ICommand ToggleIncludeBetaCommand => new RelayCommand(async () => await ToggleIncludeBetaAsync());
-
-        // Settings değişiklik metodları - Düzeltilmiş
+        #region Settings Management
         private async Task ToggleAutoCheckAsync()
         {
-            if (Settings != null)
+           DispatcherQueue.GetForCurrentThread().TryEnqueue(async () =>
             {
-                await SaveSettings();
-
-                // Enable/Disable property'lerini güncelle
-                NotifyPropertyChanged(nameof(IsAutoDownloadEnabled));
-                NotifyPropertyChanged(nameof(IsNotificationEnabled));
-
-                // Eğer otomatik kontrol kapatıldıysa, bağımlı ayarları da kapat
-                if (!Settings.AutoCheckOnStartup)
+                if (Settings != null)
                 {
-                    Settings.AutoDownload = true;
-                    Settings.ShowNotifications = true;
                     await SaveSettings();
+                    OnSettingsChanged();
+
+                    // Otomatik kontrol kapatıldığında bağımlı ayarları da kapat
+                    if (!Settings.AutoCheckOnStartup)
+                    {
+                        Settings.AutoDownload = false;
+                        Settings.ShowNotifications = false;
+                        await SaveSettings();
+                        OnSettingsChanged();
+                    }
                 }
-            }
+            });
+            await Task.CompletedTask;
+
         }
 
         private async Task ToggleAutoDownloadAsync()
@@ -406,29 +456,40 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
             try
             {
                 await _updateService.SaveSettingsAsync(Settings);
-                NotifyPropertyChanged(nameof(IsAutoDownloadEnabled));
-                NotifyPropertyChanged(nameof(IsNotificationEnabled));
             }
             catch (Exception ex)
             {
-                await ShowErrorDialog($"Ayarlar kaydedilirken hata oluştu: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Settings save error: {ex.Message}");
             }
         }
+        #endregion
 
-        // Dialog metodları - bunlar View'de implement edilecek
-        public event Func<string, Task> ErrorDialogRequested;
-        public event Func<string, Task> InfoDialogRequested;
-
-        private async Task ShowErrorDialog(string message)
+        #region Helper Methods
+        private void UpdateLastCheckText()
         {
-            if (ErrorDialogRequested != null)
-                await ErrorDialogRequested(message);
-        }
+            if (Settings?.LastCheckDate != null)
+            {
+                var timeAgo = DateTime.Now - Settings.LastCheckDate.Value;
+                string timeText;
 
-        private async Task ShowInfoDialog(string message)
-        {
-            if (InfoDialogRequested != null)
-                await InfoDialogRequested(message);
+                if (timeAgo.TotalMinutes < 1)
+                    timeText = "Az önce";
+                else if (timeAgo.TotalMinutes < 60)
+                    timeText = $"{(int)timeAgo.TotalMinutes} dakika önce";
+                else if (timeAgo.TotalHours < 24)
+                    timeText = $"{(int)timeAgo.TotalHours} saat önce";
+                else if (timeAgo.TotalDays < 7)
+                    timeText = $"{(int)timeAgo.TotalDays} gün önce";
+                else
+                    timeText = Settings.LastCheckDate.Value.ToString("dd.MM.yyyy");
+
+                LastCheckText = $"Son denetleme: {timeText}";
+            }
+            else
+            {
+                LastCheckText = "Son denetleme: Hiçbir zaman";
+            }
         }
+        #endregion
     }
 }

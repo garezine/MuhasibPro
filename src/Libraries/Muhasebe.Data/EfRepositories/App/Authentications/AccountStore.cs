@@ -1,4 +1,4 @@
-﻿using Muhasebe.Domain.Entities.Sistem;
+﻿using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.App.IStore;
 
 namespace Muhasebe.Data.EfRepositories.App.Authentications

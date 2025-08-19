@@ -21,7 +21,7 @@ namespace MuhasibPro.Views.Firmalar.Details
             set { SetValue(ViewModelProperty, value); }
         }
 
-        public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register("ViewModel", typeof(CalismaDonemListViewModel), typeof(CalismaDonemModel), new PropertyMetadata(null));
+        public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register("ViewModel", typeof(CalismaDonemListViewModel), typeof(MaliDonemModel), new PropertyMetadata(null));
         #endregion
     }
 }

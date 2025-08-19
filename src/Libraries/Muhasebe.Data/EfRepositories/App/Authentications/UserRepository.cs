@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Muhasebe.Data.DataContext;
 using Muhasebe.Data.EfRepositories.Common;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.App.IAuthentication;
 
 namespace Muhasebe.Data.EfRepositories.App.Authentications

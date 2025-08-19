@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Muhasebe.Domain.Entities.Kasa;
+using Muhasebe.Domain.Entities.AppDb.Kasa;
 
 namespace Muhasebe.Data.Database.SeedData;
 

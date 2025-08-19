@@ -2,7 +2,7 @@
 using Muhasebe.Business.Common;
 using Muhasebe.Business.Services.Abstract.Common;
 using MuhasibPro.Core.Infrastructure.Common;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using System.Diagnostics;
 
 namespace MuhasibPro.Core.Infrastructure.ViewModels

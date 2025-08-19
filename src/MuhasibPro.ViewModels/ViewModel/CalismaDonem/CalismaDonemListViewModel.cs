@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Muhasebe.Business.Models.DbModel.AppModel;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Infrastructure.ViewModels.Common;
 using System.Linq.Expressions;
 using System.Windows.Input;
@@ -13,15 +13,15 @@ namespace MuhasibPro.ViewModels.ViewModel.CalismaDonem
 
         public CalismaDonemListArgs()
         {
-            OrderByDesc = r => r.CalismaYilDonem;
+            OrderByDesc = r => r.MaliDonem;
         }
         public bool IsEmpty { get; set; }
         public long FirmaID { get; set; }
         public string Query { get; set; }
-        public Expression<Func<CalismaDonemModel, object>> OrderBy { get; set; }
-        public Expression<Func<CalismaDonemModel, object>> OrderByDesc { get; set; }
+        public Expression<Func<MaliDonemModel, object>> OrderBy { get; set; }
+        public Expression<Func<MaliDonemModel, object>> OrderByDesc { get; set; }
     }
-    public class CalismaDonemListViewModel : GenericListViewModel<CalismaDonemModel>
+    public class CalismaDonemListViewModel : GenericListViewModel<MaliDonemModel>
     {
         public CalismaDonemListViewModel(ICommonServices commonServices) : base(commonServices)
         {

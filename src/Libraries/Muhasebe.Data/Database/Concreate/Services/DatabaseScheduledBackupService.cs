@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Muhasebe.Data.Database.Interfaces.Services;
-using Muhasebe.Domain.Entities.Sistem;
+using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.Database;
 
 namespace Muhasebe.Data.Database.Concreate.Services
@@ -40,7 +40,7 @@ namespace Muhasebe.Data.Database.Concreate.Services
             }
         }
 
-        private async Task TriggerBackup(DbYedekZaman schedule)
+        private async Task TriggerBackup(DbYedekAl schedule)
         {
             try
             {
@@ -57,13 +57,13 @@ namespace Muhasebe.Data.Database.Concreate.Services
             }
         }
 
-        private async Task UpdateNextSchedule(DbYedekZaman schedule)
+        private async Task UpdateNextSchedule(DbYedekAl schedule)
         {
             schedule.SonrakiYedekTarih = CalculateNextBackupDate(schedule);
             await _scheduleRepo.UpdateNextBackupDateAsync(schedule.Id, schedule.SonrakiYedekTarih).ConfigureAwait(false);
         }
 
-        private DateTime CalculateNextBackupDate(DbYedekZaman schedule)
+        private DateTime CalculateNextBackupDate(DbYedekAl schedule)
         {
             var nextDate = schedule.YedeklemeAraligi switch
             {

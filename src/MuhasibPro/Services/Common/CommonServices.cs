@@ -1,5 +1,5 @@
 ﻿using Muhasebe.Business.Services.Abstract.Common;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 
 namespace MuhasibPro.Services.Common;
 

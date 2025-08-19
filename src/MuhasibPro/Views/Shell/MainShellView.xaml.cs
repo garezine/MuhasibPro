@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Muhasebe.Business.Services.Abstract.Common;
 using MuhasibPro.Configuration;
 using MuhasibPro.Core.Models;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Helpers;
 using MuhasibPro.Services.Common;
 using MuhasibPro.ViewModels.ViewModel.Settings;

@@ -1,7 +1,8 @@
 ﻿using Muhasebe.Business.Services.Abstract.Common;
+using Muhasebe.Domain.Common;
 using Muhasebe.Domain.Entities.Uygulama;
 using MuhasibPro.Core.Models;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.ViewModels.ViewModel.Dashboard;
 using MuhasibPro.ViewModels.ViewModel.Firmalar;
 using MuhasibPro.ViewModels.ViewModel.Settings;
@@ -90,30 +91,39 @@ namespace MuhasibPro.ViewModels.ViewModel.Shell
         }
         public async void NavigateTo(Type viewModel)
         {
-            switch (viewModel.Name)
+            if (viewModel != null)
             {
-                case "DashboardViewModel":
-                    NavigationService.Navigate(viewModel);
-                    break;
-                case "CustomersViewModel":
-                    //NavigationService.Navigate(viewModel, new CustomerListArgs());
-                    break;
-                case "OrdersViewModel":
-                    //NavigationService.Navigate(viewModel, new OrderListArgs());
-                    break;
-                case "FirmalarViewModel":
-                    NavigationService.Navigate(viewModel, new FirmaListArgs());
-                    break;
-                case "AppLogsViewModel":
-                    //NavigationService.Navigate(viewModel, new AppLogListArgs());
-                    await LogService.MarkAllAsReadAsync();
-                    //await UpdateAppLogBadge();
-                    break;
-                case "SettingsViewModel":
-                    NavigationService.Navigate(viewModel);
-                    break;
-                default:
-                    throw new NotImplementedException();
+                switch (viewModel.Name)
+                {
+                    case "DashboardViewModel":
+                        NavigationService.Navigate(viewModel);
+                        break;
+                    case "CustomersViewModel":
+                        //NavigationService.Navigate(viewModel, new CustomerListArgs());
+                        break;
+                    case "OrdersViewModel":
+                        //NavigationService.Navigate(viewModel, new OrderListArgs());
+                        break;
+                    case "FirmalarViewModel":
+                        NavigationService.Navigate(viewModel, new FirmaListArgs());
+                        break;
+                    case "AppLogsViewModel":
+                        //NavigationService.Navigate(viewModel, new AppLogListArgs());
+                        await LogService.MarkAllAsReadAsync();
+                        //await UpdateAppLogBadge();
+                        break;
+                    case "SettingsViewModel":
+                        NavigationService.Navigate(viewModel);
+                        break;
+                    default:
+                        NavigationService.Navigate<DashboardViewModel>();
+                        break;
+                }
+            }
+            else
+            {
+                // Hata durumunda ana sayfaya yönlendir
+                await DialogService.ShowMessageAsync("Bilgi", "Henüz bu sayfalar hazırlanmadı");
             }
         }
         
@@ -123,16 +133,16 @@ namespace MuhasibPro.ViewModels.ViewModel.Shell
             {
                 await ContextService.RunAsync(async () =>
                 {
-                    //await UpdateAppLogBadge();
+                    await UpdateAppLogBadge();
                 });
             }
         }
 
-        //private async Task UpdateAppLogBadge()
-        //{
-        //    int count = await LogService.GetLogsCountAsync(new DataRequest<AppLog> { Where = r => !r.IsRead });
-        //    AppLogsItem.Badge = count > 0 ? count.ToString() : null;
-        //}
+        private async Task UpdateAppLogBadge()
+        {
+            int count = await LogService.GetLogsCountAsync(new DataRequest<AppLog> { Where = r => !r.IsRead });
+            //AppLogsItem.Badge = count > 0 ? count.ToString() : null;
+        }
     }
 
 

@@ -3,7 +3,7 @@ using FluentValidation;
 using Muhasebe.Business.Common;
 using MuhasibPro.Core.Infrastructure.Common;
 using MuhasibPro.Core.Infrastructure.ViewModels;
-using MuhasibPro.Core.Services.Common;
+using MuhasibPro.Core.Services.Abstract.Common;
 using System.Windows.Input;
 
 namespace MuhasibPro.Infrastructure.ViewModels.Common;
