@@ -26,6 +26,7 @@
   </Dependencies>
 
   <Resources>
+	<Resource Language="tr-TR" />
     <Resource Language="x-generate"/>
   </Resources>
 

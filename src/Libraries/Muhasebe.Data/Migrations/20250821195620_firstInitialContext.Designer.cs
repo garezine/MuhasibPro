@@ -11,105 +11,26 @@ using Muhasebe.Data.DataContext;
 namespace Muhasebe.Data.Migrations
 {
     [DbContext(typeof(AppSistemDbContext))]
-    [Migration("20250729213553_intialMigration")]
-    partial class intialMigration
+    [Migration("20250821195620_firstInitialContext")]
+    partial class firstInitialContext
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.6");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.8");
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.CalismaDonem", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.AppVersiyon", b =>
                 {
-                    b.Property<long>("Id")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("AktifMi")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CalismaYilDonem")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("FirmaId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset?>("GuncellemeTarihi")
+                    b.Property<string>("Versiyon")
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("GuncelleyenId")
-                        .HasColumnType("INTEGER");
+                    b.HasKey("Versiyon");
 
-                    b.Property<long>("KaydedenId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset>("KayitTarihi")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SearchTerms")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FirmaId");
-
-                    b.ToTable("CalismaDonemler");
+                    b.ToTable("AppVersiyon");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.CalismaDonemSec", b =>
-                {
-                    b.Property<long>("Id")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("AktifMi")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("CalismaDonemId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DBName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DBPath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DatabaseType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Directory")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("FirmaId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset?>("GuncellemeTarihi")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long?>("GuncelleyenId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("KaydedenId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset>("KayitTarihi")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SearchTerms")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CalismaDonemId")
-                        .IsUnique();
-
-                    b.ToTable("CalismaDonemSec");
-                });
-
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.DbYedekZaman", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.DbYedekAl", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -135,10 +56,10 @@ namespace Muhasebe.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DbYedekZamanlama");
+                    b.ToTable("DbYedekAl");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.Degerler", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.Degerler", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -175,7 +96,7 @@ namespace Muhasebe.Data.Migrations
                     b.ToTable("Degerler");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.DevirLog", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.DevirLog", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -238,7 +159,7 @@ namespace Muhasebe.Data.Migrations
                     b.ToTable("DevirLog");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.DevirLogII", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.DevirLogII", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -294,7 +215,60 @@ namespace Muhasebe.Data.Migrations
                     b.ToTable("DevirLogII");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.Firma", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.DonemDBSec", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AktifMi")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DBName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DBPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DatabaseType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Directory")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("FirmaId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("GuncellemeTarihi")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("GuncelleyenId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("KaydedenId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("KayitTarihi")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("MaliDonemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SearchTerms")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaliDonemId")
+                        .IsUnique();
+
+                    b.ToTable("DonemDBSec");
+                });
+
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.Firma", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -395,7 +369,7 @@ namespace Muhasebe.Data.Migrations
                     b.ToTable("Firmalar");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.Hesap", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.Hesap", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -437,7 +411,7 @@ namespace Muhasebe.Data.Migrations
                     b.ToTable("Hesaplar");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.Kullanici", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.Kullanici", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("INTEGER");
@@ -517,7 +491,43 @@ namespace Muhasebe.Data.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.ModulSec", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.MaliDonem", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AktifMi")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("FirmaId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("GuncellemeTarihi")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("GuncelleyenId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("KaydedenId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("KayitTarihi")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MaliDonemler")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SearchTerms")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirmaId");
+
+                    b.ToTable("CalismaDonemler");
+                });
+
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.ModulSec", b =>
                 {
                     b.Property<long>("KullaniciId")
                         .HasColumnType("INTEGER");
@@ -695,6 +705,60 @@ namespace Muhasebe.Data.Migrations
                     b.ToTable("ModulSecim");
                 });
 
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.UpdateSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoCheckOnStartup")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoDownload")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("AutoInstall")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CheckIntervalHours")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IncludeBetaVersions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastCheckDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PendingUpdateDownloadUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PendingUpdateDownloadedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PendingUpdateFileHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("PendingUpdateFileSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PendingUpdateLocalPath")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PendingUpdateVersion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ShowNotifications")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UpdateChannel")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UpdateSettings");
+                });
+
             modelBuilder.Entity("Muhasebe.Domain.Entities.Uygulama.AppLog", b =>
                 {
                     b.Property<long>("Id")
@@ -753,31 +817,20 @@ namespace Muhasebe.Data.Migrations
                     b.ToTable("AppLogs");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.CalismaDonem", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.DonemDBSec", b =>
                 {
-                    b.HasOne("Muhasebe.Domain.Entities.Sistem.Firma", "Firma")
-                        .WithMany("CalismaDonemler")
-                        .HasForeignKey("FirmaId")
+                    b.HasOne("Muhasebe.Domain.Entities.SistemDb.MaliDonem", "MaliDonem")
+                        .WithOne("DonemDBSec")
+                        .HasForeignKey("Muhasebe.Domain.Entities.SistemDb.DonemDBSec", "MaliDonemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Firma");
+                    b.Navigation("MaliDonem");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.CalismaDonemSec", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.Hesap", b =>
                 {
-                    b.HasOne("Muhasebe.Domain.Entities.Sistem.CalismaDonem", "CalismaDonem")
-                        .WithOne("CalismaDonemDb")
-                        .HasForeignKey("Muhasebe.Domain.Entities.Sistem.CalismaDonemSec", "CalismaDonemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CalismaDonem");
-                });
-
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.Hesap", b =>
-                {
-                    b.HasOne("Muhasebe.Domain.Entities.Sistem.Kullanici", "Kullanici")
+                    b.HasOne("Muhasebe.Domain.Entities.SistemDb.Kullanici", "Kullanici")
                         .WithMany("Hesaplar")
                         .HasForeignKey("KullaniciId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -786,20 +839,31 @@ namespace Muhasebe.Data.Migrations
                     b.Navigation("Kullanici");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.CalismaDonem", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.MaliDonem", b =>
                 {
-                    b.Navigation("CalismaDonemDb")
+                    b.HasOne("Muhasebe.Domain.Entities.SistemDb.Firma", "Firma")
+                        .WithMany("MaliDonemler")
+                        .HasForeignKey("FirmaId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Firma");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.Firma", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.Firma", b =>
                 {
-                    b.Navigation("CalismaDonemler");
+                    b.Navigation("MaliDonemler");
                 });
 
-            modelBuilder.Entity("Muhasebe.Domain.Entities.Sistem.Kullanici", b =>
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.Kullanici", b =>
                 {
                     b.Navigation("Hesaplar");
+                });
+
+            modelBuilder.Entity("Muhasebe.Domain.Entities.SistemDb.MaliDonem", b =>
+                {
+                    b.Navigation("DonemDBSec")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

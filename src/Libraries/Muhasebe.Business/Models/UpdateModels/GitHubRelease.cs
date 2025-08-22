@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
-namespace Muhasebe.Business.Models
+namespace Muhasebe.Business.Models.UpdateModels
 {
     public class GitHubRelease
     {
@@ -15,5 +16,8 @@ namespace Muhasebe.Business.Models
 
         [JsonProperty("published_at")]
         public DateTime PublishedAt { get; set; }
+
+        [JsonProperty("html_url")]
+        public string HtmlUrl { get; set; }
     }
 }

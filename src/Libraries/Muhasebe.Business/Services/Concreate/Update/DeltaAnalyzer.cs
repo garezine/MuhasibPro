@@ -1,4 +1,4 @@
-﻿using Muhasebe.Business.Models;
+﻿using Muhasebe.Business.Models.UpdateModels;
 using Muhasebe.Business.Services.Abstract.Update;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;

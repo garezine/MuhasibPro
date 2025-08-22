@@ -1,4 +1,4 @@
-﻿using Muhasebe.Business.Models;
+﻿using Muhasebe.Business.Models.UpdateModels;
 
 namespace Muhasebe.Business.Services.Abstract.Update
 {

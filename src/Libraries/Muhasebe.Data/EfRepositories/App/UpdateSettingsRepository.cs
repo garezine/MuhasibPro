@@ -1,46 +1,38 @@
-﻿using Muhasebe.Data.DataContext;
+﻿using Microsoft.EntityFrameworkCore;
+using Muhasebe.Data.DataContext;
 using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.App;
-using Muhasebe.Domain.Interfaces.Database;
-using Muhasebe.Domain.Utilities.IDGenerator;
 
 namespace Muhasebe.Data.EfRepositories.App
 {
     public class UpdateSettingsRepository : IUpdateSettingsRepository
     {
-        private readonly IUnitOfWork<AppSistemDbContext> _unitOfWork;
+        private readonly AppSistemDbContext _dbContext;
 
-        public UpdateSettingsRepository(IUnitOfWork<AppSistemDbContext> unitOfWork) { _unitOfWork = unitOfWork; }
+        public UpdateSettingsRepository(AppSistemDbContext dbContext) { _dbContext = dbContext; }
 
-        private IGenericRepository<UpdateSettings> GenericRepository => _unitOfWork.GetRepository<IGenericRepository<UpdateSettings>>(
-            );
+        
+            
 
         public async Task<UpdateSettings> GetSettingsAsync()
         {
-            var settings = await GenericRepository.FirstOrDefaultAsync(predicate: s => true);
+            var settings = await _dbContext.UpdateSettings.FirstOrDefaultAsync();
 
             if (settings == null)
             {
                 // İlk kez çalışıyorsa default ayarları oluştur
-                settings = new UpdateSettings
-                {
-                    Id = UIDModuleGenerator.GenerateModuleId(UIDModuleType.Sistem),
-                    KayitTarihi = DateTime.Now,
-                    AktifMi = true,
-                    KaydedenId = 1 // İlk kayıt için 0 veya uygun bir ID kullanabilirsiniz
-                };
-                await GenericRepository.AddAsync(settings);
-                await _unitOfWork.CommitAsync();
+                settings = new UpdateSettings();                  
+                await _dbContext.AddAsync(settings);
+                await _dbContext.SaveChangesAsync();
             }
 
             return settings;
         }
 
         public async Task SaveSettingsAsync(UpdateSettings settings)
-        {
-            settings.GuncellemeTarihi = DateTime.Now;
-            await GenericRepository.UpdateAsync(settings);
-            await _unitOfWork.CommitAsync();
+        {          
+            _dbContext.Update(settings);
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<bool> ShouldCheckForUpdatesAsync()

@@ -13,79 +13,117 @@ namespace MuhasibPro.Views.Settings
         public UpdateView()
         {
             this.InitializeComponent();
-            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+            // PropertyChanged event'ini burada baðlama - ViewModel hazýr olduðunda
+            this.Loaded += UpdateView_Loaded;
         }
 
-        private void UnsubscribeFromEvents()
+        private void UpdateView_Loaded(object sender, RoutedEventArgs e)
         {
-            ViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+            // ViewModel tamamen yüklendiðinde event'i baðla
+            if (ViewModel != null)
+            {
+                ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+            }
         }
 
         private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            // Handle animation triggers
-            switch (e.PropertyName)
+            // UI thread'de olduðumuzdan emin ol
+            DispatcherQueue.TryEnqueue(() =>
             {
-                case nameof(ViewModel.UpdateDetailsVisibility):
-                    HandleUpdateDetailsVisibilityChanged();
-                    break;
-            }
-        }
-
-        private async void HandleUpdateDetailsVisibilityChanged()
-        {
-            if (ViewModel.UpdateDetailsVisibility == Visibility.Visible)
-            {
-                // Ensure the element is visible before animating
-                UpdateDetailsGrid.Visibility = Visibility.Visible;
-                await Task.Delay(50); // Small delay to ensure layout is updated
-                ExpandStoryboard.Begin();
-            }
-            else
-            {
-                CollapseStoryboard.Completed += (s, e) =>
+                switch (e.PropertyName)
                 {
-                    UpdateDetailsGrid.Visibility = Visibility.Collapsed;
-                };
-                CollapseStoryboard.Begin();
-            }
+                    case nameof(ViewModel.CurrentState):
+                        // Handle any specific state changes if needed
+                        break;
+                    case nameof(ViewModel.Settings):
+                        // Settings deðiþtiðinde ComboBox'ý güncelle
+                        SetCheckIntervalSelection();
+                        break;
+                }
+            });
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            await ViewModel.InitializeAsync();
-            SetCheckIntervalSelection();
+
+            try
+            {
+                await ViewModel.InitializeAsync();
+                // Initialize tamamlandýktan sonra ComboBox'ý ayarla
+                SetCheckIntervalSelection();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateView Initialize Error: {ex.Message}");
+            }
         }
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
-            UnsubscribeFromEvents();
+            // Event handler'larý güvenli þekilde kaldýr
+            if (ViewModel != null)
+            {
+                ViewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                ViewModel.Unsubscribe();
+            }
         }
 
         private void SetCheckIntervalSelection()
         {
-            if (ViewModel.Settings != null)
+            // UI thread'de olduðumuzdan emin ol ve null check'leri ekle
+            DispatcherQueue.TryEnqueue(() =>
             {
-                foreach (ComboBoxItem item in CheckIntervalComboBox.Items)
+                if (ViewModel?.Settings != null && CheckIntervalComboBox != null)
                 {
-                    if (int.TryParse(item.Tag?.ToString(), out int tagValue) &&
-                        tagValue == ViewModel.Settings.CheckIntervalHours)
+                    try
                     {
-                        CheckIntervalComboBox.SelectedItem = item;
-                        break;
+                        foreach (ComboBoxItem item in CheckIntervalComboBox.Items)
+                        {
+                            if (int.TryParse(item.Tag?.ToString(), out int tagValue) &&
+                                tagValue == ViewModel.Settings.CheckIntervalHours)
+                            {
+                                CheckIntervalComboBox.SelectedItem = item;
+                                return;
+                            }
+                        }
+
+                        // Eðer eþleþen deðer bulunamazsa default olarak 24 saat'i seç
+                        foreach (ComboBoxItem item in CheckIntervalComboBox.Items)
+                        {
+                            if (int.TryParse(item.Tag?.ToString(), out int tagValue) && tagValue == 24)
+                            {
+                                CheckIntervalComboBox.SelectedItem = item;
+                                break;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"SetCheckIntervalSelection Error: {ex.Message}");
                     }
                 }
-            }
+            });
         }
 
         private async void CheckIntervalComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // ViewModel null check ve initialization tamamlanma kontrolü
+            if (ViewModel?.Settings == null) return;
+
             if (CheckIntervalComboBox.SelectedItem is ComboBoxItem selected)
             {
                 if (int.TryParse(selected.Tag?.ToString(), out int hours))
                 {
-                    await ViewModel.UpdateCheckInterval(hours);
+                    try
+                    {
+                        await ViewModel.UpdateCheckInterval(hours);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"UpdateCheckInterval Error: {ex.Message}");
+                    }
                 }
             }
         }

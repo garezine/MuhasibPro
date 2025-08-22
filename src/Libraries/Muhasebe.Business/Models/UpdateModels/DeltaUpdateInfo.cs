@@ -1,4 +1,4 @@
-﻿namespace Muhasebe.Business.Models
+﻿namespace Muhasebe.Business.Models.UpdateModels
 {
     public class DeltaUpdateInfo
     {
@@ -11,6 +11,8 @@
         public string CurrentVersion { get; set; } = string.Empty;
         public string NewVersion { get; set; } = string.Empty;
         public int ChangedFilesCount { get; set; }
+        public string ChangelogUrl { get; set; }
+        public string ReleaseNotesUrl { get; set; }
 
         public int DeltaPercentage => FullSize > 0 ? (int)((double)DeltaSize / FullSize * 100) : 100;
 

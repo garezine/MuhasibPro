@@ -1,11 +1,9 @@
-﻿using Microsoft.UI;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Muhasebe.Business.Models;
+﻿using Microsoft.UI.Xaml;
+using Muhasebe.Business.Models.UpdateModels;
 using Muhasebe.Business.Services.Abstract.Update;
 using Muhasebe.Domain.Entities.SistemDb;
-using MuhasibPro.Core.Infrastructure.Helpers;
+using MuhasibPro.Core.Models.Update;
+using MuhasibPro.Core.Services.Abstract.Common;
 using System.Diagnostics;
 using Windows.Management.Deployment;
 
@@ -15,76 +13,213 @@ namespace MuhasibPro.Core.Services.Concreate.Update
     {
         private readonly IDeltaAnalyzer _deltaAnalyzer;
         private readonly IDeltaDownloader _deltaDownloader;
-        public IUpdateService _updateService;
-        private ContentDialog _currentProgressDialog;
+        private readonly IUpdateService _updateService;
+        private readonly IMessageService _messageService;
 
-        public UpdateManager(IUpdateService updateService, IDeltaAnalyzer deltaAnalyzer, IDeltaDownloader deltaDownloader)
+        public bool HasPendingUpdate { get; private set; }
+
+        public UpdateInfo PendingUpdateInfo { get; private set; }
+
+        public string PendingUpdateLocalPath { get; private set; }
+
+        // Mevcut güncelleme bilgilerini tutmak için ek property
+        private UpdateInfo _currentAvailableUpdate;
+
+        public UpdateManager(
+            IUpdateService updateService,
+            IDeltaAnalyzer deltaAnalyzer,
+            IDeltaDownloader deltaDownloader,
+            IMessageService messageService)
         {
             _updateService = updateService;
             _deltaAnalyzer = deltaAnalyzer;
             _deltaDownloader = deltaDownloader;
+            _messageService = messageService;
         }
 
         public async Task CheckForUpdatesOnStartup()
         {
             try
             {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.Checking, "Güncellemeler kontrol ediliyor..."));
+
                 var settings = await _updateService.GetUpdateSettings();
 
-                // Otomatik kontrol açık değilse çık
-                if (!settings.AutoCheckOnStartup)
-                    return;
+                // Önce bekleyen güncelleme var mı kontrol et
+                await CheckForPendingUpdates(settings);
 
-                // Kontrol aralığı kontrolü
-                if (!ShouldCheckForUpdates(settings))
+                if(!settings.AutoCheckOnStartup)
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Idle, "Otomatik kontrol kapalı"));
                     return;
+                }
 
-                // Önce delta güncelleme kontrolü yap
+                if(!ShouldCheckForUpdates(settings))
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Idle, "Henüz kontrol zamanı gelmedi"));
+                    return;
+                }
+
+                // Delta güncelleme kontrolü
                 var deltaUpdateInfo = await _updateService.CheckForDeltaUpdateAsync();
-
-                if (deltaUpdateInfo.IsDeltaAvailable)
+                if(deltaUpdateInfo.IsDeltaAvailable)
                 {
                     await ProcessDeltaUpdate(deltaUpdateInfo, settings);
                     return;
                 }
 
-                // Delta yoksa normal güncelleme kontrolü
+                // Normal güncelleme kontrolü
                 var updateInfo = await _updateService.CheckForUpdatesAsync();
                 await _updateService.UpdateLastCheckDateAsync();
 
-                if (updateInfo.HasError)
+                if(updateInfo.HasError)
                 {
-                    Debug.WriteLine($"Update check failed: {updateInfo.ErrorMessage}");
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.Error,
+                        new UpdateEventArgs(new Exception(updateInfo.ErrorMessage)));
                     return;
                 }
 
-                if (updateInfo.HasUpdate)
+                if(updateInfo.HasUpdate)
                 {
+                    // Mevcut güncellemeyi sakla
+                    _currentAvailableUpdate = updateInfo;
                     await HandleRegularUpdate(updateInfo, settings);
+                } else
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Idle, "Uygulama güncel"));
                 }
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                Debug.WriteLine($"Update check exception: {ex.Message}");
+                await _messageService.SendAsync(this, UpdateEvents.Error, new UpdateEventArgs(ex));
             }
         }
 
-        private async Task HandleRegularUpdate(UpdateInfo updateInfo, UpdateSettings settings)
+        // Manuel güncelleme kontrolü - UI'dan çağrılabilir
+        public async Task<UpdateInfo> CheckForUpdatesManually()
         {
-            // Otomatik indirme varsa sessizce indir
-            if (settings.AutoDownload)
+            try
             {
-                await AutoDownloadUpdate(updateInfo, settings);
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.Checking, "Güncellemeler kontrol ediliyor..."));
+
+                var settings = await _updateService.GetUpdateSettings();
+
+                // Önce bekleyen güncelleme var mı kontrol et
+                await CheckForPendingUpdates(settings);
+                if(HasPendingUpdate)
+                {
+                    var state = !string.IsNullOrEmpty(PendingUpdateLocalPath)
+                        ? UpdateState.Downloaded
+                        : UpdateState.UpdateAvailable;
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(
+                            state,
+                            PendingUpdateInfo,
+                            state == UpdateState.Downloaded ? "İndirilen güncelleme mevcut" : "Güncelleme mevcut"));
+
+                    return PendingUpdateInfo;
+                }
+
+                // Delta güncelleme kontrolü
+                var deltaUpdateInfo = await _updateService.CheckForDeltaUpdateAsync();
+                if(deltaUpdateInfo.IsDeltaAvailable)
+                {
+                    await ProcessDeltaUpdate(deltaUpdateInfo, settings);
+                    return _currentAvailableUpdate;
+                }
+
+                // Normal güncelleme kontrolü
+                var updateInfo = await _updateService.CheckForUpdatesAsync();
+                await _updateService.UpdateLastCheckDateAsync();
+
+                if(updateInfo.HasError)
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.Error,
+                        new UpdateEventArgs(new Exception(updateInfo.ErrorMessage)));
+                    return null;
+                }
+
+                if(updateInfo.HasUpdate)
+                {
+                    _currentAvailableUpdate = updateInfo;
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.UpdateAvailable, updateInfo, "Güncelleme mevcut"));
+
+                    SetPendingUpdate(updateInfo);
+                } else
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Idle, "Uygulama güncel"));
+                }
+
+                return updateInfo;
+            } catch(Exception ex)
+            {
+                await _messageService.SendAsync(this, UpdateEvents.Error, new UpdateEventArgs(ex));
+                return null;
             }
-            // Bildirim açıksa dialog göster
-            else if (settings.ShowNotifications)
+        }
+
+        private async Task CheckForPendingUpdates(UpdateSettings settings)
+        {
+            try
             {
-                await ShowUpdateDialog(updateInfo);
-            }
-            // Hiçbiri açık değilse sadece pending olarak işaretle
-            else
+                // Pending update info'yu settings'den yükle
+                var pendingInfo = await _updateService.GetPendingUpdateAsync();
+
+                if(pendingInfo != null)
+                {
+                    // Dosya hala var mı kontrol et
+                    if(!string.IsNullOrEmpty(pendingInfo.LocalPath) && File.Exists(pendingInfo.LocalPath))
+                    {
+                        // İndirme tamamlanmış, kurulum bekliyor
+                        SetPendingUpdate(pendingInfo.UpdateInfo, pendingInfo.LocalPath);
+
+                        await _messageService.SendAsync(
+                            this,
+                            UpdateEvents.StateChanged,
+                            new UpdateEventArgs(
+                                UpdateState.Downloaded,
+                                pendingInfo.UpdateInfo,
+                                "Güncelleme kurulmaya hazır"));
+                        return;
+                    } else
+                    {
+                        // Dosya bulunamadı, pending update'i temizle
+                        await _updateService.ClearPendingUpdateAsync();
+                    }
+                }
+            } catch(Exception ex)
             {
-                SetPendingUpdate(updateInfo);
+                Debug.WriteLine($"Pending update check failed: {ex.Message}");
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, "Bekleyen güncelleme kontrolü başarısız"));
             }
         }
 
@@ -92,118 +227,98 @@ namespace MuhasibPro.Core.Services.Concreate.Update
         {
             try
             {
-                // Önce delta uygulanabilirliği kontrol et
                 var canApplyDelta = await _deltaAnalyzer.CanApplyDeltaUpdate(deltaInfo);
 
-                if (!canApplyDelta)
+                if(!canApplyDelta)
                 {
                     Debug.WriteLine("Delta update cannot be applied, falling back to regular update");
-                    await ShowErrorDialog("Delta güncelleme uygulanamıyor. Tam güncelleme yapılacak.");
                     await FallbackToRegularUpdate(settings);
                     return;
                 }
 
-                // Otomatik indirme kapalıysa ve bildirim açıksa kullanıcıya sor
-                if (!settings.AutoDownload && settings.ShowNotifications)
+                var deltaUpdateInfo = new UpdateInfo
                 {
-                    var confirmResult = await ShowDeltaUpdateConfirmDialog(deltaInfo);
-                    if (!confirmResult)
-                    {
-                        // Kullanıcı delta güncellemeyi reddetti, normal güncelleme kontrolü yap
-                        Debug.WriteLine("User declined delta update, falling back to regular update");
-                        await FallbackToRegularUpdate(settings);
-                        return;
-                    }
-                }
-                else if (!settings.AutoDownload && !settings.ShowNotifications)
-                {
-                    // Sessiz mod - delta güncellemeyi pending olarak işaretle
-                    SetPendingDeltaUpdate(deltaInfo);
-                    return;
-                }
+                    HasUpdate = true,
+                    LatestVersion = deltaInfo.NewVersion,
+                    CurrentVersion = deltaInfo.CurrentVersion,
+                    ReleaseNotes = $"Hızlı Delta Güncelleme - Sadece {deltaInfo.ChangedFilesCount} dosya değişti",
+                    DownloadUrl = deltaInfo.DeltaDownloadUrl,
+                    ChangelogUrl = deltaInfo.ChangelogUrl,
+                    ReleaseNotesUrl = deltaInfo.ReleaseNotesUrl,
+                };
 
-                // Delta güncellemeyi başlat
-                var progressDialog = await ShowProgressDialog("Delta güncelleme indiriliyor...");
+                _currentAvailableUpdate = deltaUpdateInfo;
 
-                // İndirme ilerlemesini takip et
-                var progress = new Progress<(long downloaded, long total, double speed)>(p =>
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.UpdateAvailable, deltaUpdateInfo, "Delta güncelleme mevcut"));
+
+                SetPendingUpdate(deltaUpdateInfo);
+
+                if(settings.AutoDownload)
                 {
-                    var percentage = p.total > 0 ? (int)((double)p.downloaded / p.total * 100) : 0;
-                    UpdateProgressDialog(progressDialog,
-                        $"Delta güncelleme indiriliyor... {percentage}%",
-                        $"{FormatBytes(p.downloaded)} / {FormatBytes(p.total)} • {FormatBytes((long)p.speed)}/s",
-                        percentage);
-                });
-
-                var success = await _deltaDownloader.DownloadDeltaUpdateAsync(deltaInfo, progress);
-                progressDialog.Hide();
-
-                if (success)
-                {
-                    await ShowRestartDialog("Delta güncelleme başarıyla uygulandı. Değişikliklerin etkili olması için uygulamayı yeniden başlatın.");
+                    await StartDeltaDownload(deltaInfo);
                 }
-                else
-                {
-                    Debug.WriteLine("Delta update failed, falling back to regular update");
-                    await ShowErrorDialog("Delta güncelleme uygulanamadı. Tam güncelleme yapılacak.");
-                    await FallbackToRegularUpdate(settings);
-                }
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 Debug.WriteLine($"Delta update failed: {ex.Message}");
-                _currentProgressDialog?.Hide();
-                await ShowErrorDialog($"Delta güncelleme hatası: {ex.Message}. Tam güncelleme yapılacak.");
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, "Delta güncelleme başarısız"));
                 await FallbackToRegularUpdate(settings);
             }
         }
 
-        private async Task<bool> ShowDeltaUpdateConfirmDialog(DeltaUpdateInfo deltaInfo)
+        private async Task StartDeltaDownload(DeltaUpdateInfo deltaInfo)
         {
-            var dialog = new ContentDialog
+            try
             {
-                Title = "Hızlı Güncelleme Mevcut",
-                Content = CreateDeltaUpdateContent(deltaInfo),
-                PrimaryButtonText = "Hızlı Güncelle",
-                SecondaryButtonText = "Tam Güncelle",
-                CloseButtonText = "Daha Sonra",
-                XamlRoot = WindowHelper.CurrentXamlRoot
-            };
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.Downloading, "Delta güncelleme indiriliyor..."));
 
-            var result = await dialog.ShowAsync();
-            return result == ContentDialogResult.Primary;
-        }
+                var progress = new Progress<(long downloaded, long total, double speed)>(
+                    p =>
+                    {
+                        _ = _messageService.SendAsync(
+                            this,
+                            UpdateEvents.Progress,
+                            new UpdateProgressEventArgs(
+                                    UpdateState.Downloading,
+                                    p.downloaded,
+                                    p.total,
+                                    p.speed,
+                                    "Delta güncelleme"));
+                    });
 
-        private UIElement CreateDeltaUpdateContent(DeltaUpdateInfo deltaInfo)
-        {
-            var stackPanel = new StackPanel { Spacing = 10 };
+                var success = await _deltaDownloader.DownloadDeltaUpdateAsync(deltaInfo, progress);
 
-            var titleText = new TextBlock
+                if(success)
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(
+                            UpdateState.Installed,
+                            "Delta güncelleme başarıyla uygulandı. Uygulama yeniden başlatılacak."));
+
+                    await Task.Delay(2000);
+                    Application.Current.Exit();
+                } else
+                {
+                    throw new Exception("Delta güncelleme uygulaması başarısız");
+                }
+            } catch(Exception ex)
             {
-                Text = "Hızlı Delta Güncelleme",
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                FontSize = 16
-            };
-            stackPanel.Children.Add(titleText);
-
-            var infoText = new TextBlock
-            {
-                Text = $"Yeni versiyon: {deltaInfo.NewVersion}\n" +
-                       $"Sadece değişen dosyalar indirilecek\n" +
-                       $"Boyut: {FormatBytes(deltaInfo.DeltaSize)} (Tam: {FormatBytes(deltaInfo.FullSize)})",
-                TextWrapping = TextWrapping.Wrap
-            };
-            stackPanel.Children.Add(infoText);
-
-            var benefitText = new TextBlock
-            {
-                Text = "✓ Daha hızlı indirme\n✓ Daha az veri kullanımı\n✓ Daha hızlı uygulama",
-                Foreground = new SolidColorBrush(Colors.Green),
-                FontSize = 12
-            };
-            stackPanel.Children.Add(benefitText);
-
-            return stackPanel;
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, "Delta güncelleme başarısız"));
+                await FallbackToRegularUpdate(await _updateService.GetUpdateSettings());
+            }
         }
 
         private async Task FallbackToRegularUpdate(UpdateSettings settings)
@@ -211,97 +326,422 @@ namespace MuhasibPro.Core.Services.Concreate.Update
             try
             {
                 var updateInfo = await _updateService.CheckForUpdatesAsync();
-                if (updateInfo.HasUpdate)
+                if(updateInfo.HasUpdate)
                 {
+                    _currentAvailableUpdate = updateInfo;
                     await HandleRegularUpdate(updateInfo, settings);
                 }
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                Debug.WriteLine($"Fallback to regular update failed: {ex.Message}");
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, "Normal güncelleme kontrolü başarısız"));
             }
         }
 
-        private void SetPendingDeltaUpdate(DeltaUpdateInfo deltaInfo)
+        private async Task HandleRegularUpdate(UpdateInfo updateInfo, UpdateSettings settings)
         {
-            // Delta update'i pending olarak işaretle
-            // Bu durumda normal UpdateInfo'ya çevirmemiz gerekebilir
-            var updateInfo = new UpdateInfo
-            {
-                HasUpdate = true,
-                LatestVersion = deltaInfo.NewVersion,
-                CurrentVersion = deltaInfo.CurrentVersion,
-                ReleaseNotes = $"Delta Güncelleme - Sadece {deltaInfo.ChangedFilesCount} dosya değişti",
-                DownloadUrl = deltaInfo.DeltaDownloadUrl
-            };
+            await _messageService.SendAsync(
+                this,
+                UpdateEvents.StateChanged,
+                new UpdateEventArgs(UpdateState.UpdateAvailable, updateInfo, "Güncelleme mevcut"));
 
             SetPendingUpdate(updateInfo);
+
+            if(settings.AutoDownload)
+            {
+                await AutoDownloadUpdate(updateInfo);
+            }
         }
 
-        private async Task ShowRestartDialog(string message)
+        private async Task AutoDownloadUpdate(UpdateInfo updateInfo)
         {
-            var dialog = new ContentDialog
+            try
             {
-                Title = "Güncelleme Tamamlandı",
-                Content = message,
-                PrimaryButtonText = "Yeniden Başlat",
-                CloseButtonText = "Daha Sonra",
-                XamlRoot = WindowHelper.CurrentXamlRoot
-            };
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.Downloading, "Otomatik indirme başladı"));
 
-            var result = await dialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
+                var progress = new Progress<(long downloaded, long total, double speed)>(
+                    p =>
+                    {
+                        _ = _messageService.SendAsync(
+                            this,
+                            UpdateEvents.Progress,
+                            new UpdateProgressEventArgs(UpdateState.Downloading, p.downloaded, p.total, p.speed));
+                    });
+
+                var setupPath = await DownloadUpdateFile(updateInfo.DownloadUrl, progress);
+
+                if(setupPath != null)
+                {
+                    // İndirme tamamlandı - Downloaded state'ine geç
+                    SetPendingUpdate(updateInfo, setupPath);
+
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Downloaded, updateInfo, "İndirme tamamlandı"));
+
+                    // Pending update'i kaydet
+                    await _updateService.SavePendingUpdateAsync(
+                        new PendingUpdateInfo
+                        {
+                            UpdateInfo = updateInfo,
+                            LocalPath = setupPath,
+                            DownloadedAt = DateTime.Now
+                        });
+                } else
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.Error,
+                        new UpdateEventArgs(new Exception("Otomatik indirme başarısız")));
+                }
+            } catch(Exception ex)
             {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, "Otomatik indirme sırasında hata oluştu"));
+            }
+        }
+
+        // Manuel indirme - daha güvenli hale getirildi
+        public async Task DownloadUpdate(string downloadUrl = null)
+        {
+            try
+            {
+                UpdateInfo updateToDownload = null;
+                string urlToUse = downloadUrl;
+
+                // Önce PendingUpdateInfo'yu kontrol et
+                if(PendingUpdateInfo != null)
+                {
+                    updateToDownload = PendingUpdateInfo;
+                    urlToUse = urlToUse ?? PendingUpdateInfo.DownloadUrl;
+                }
+ // Eğer PendingUpdateInfo null ama _currentAvailableUpdate varsa onu kullan
+ else if(_currentAvailableUpdate != null)
+                {
+                    updateToDownload = _currentAvailableUpdate;
+                    urlToUse = urlToUse ?? _currentAvailableUpdate.DownloadUrl;
+                    SetPendingUpdate(_currentAvailableUpdate); // PendingUpdate'i set et
+                }
+ // Son çare olarak güncelleme kontrolü yap
+ else
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Checking, "Güncelleme bilgisi alınıyor..."));
+
+                    var updateInfo = await _updateService.CheckForUpdatesAsync();
+                    if(updateInfo.HasUpdate)
+                    {
+                        updateToDownload = updateInfo;
+                        urlToUse = urlToUse ?? updateInfo.DownloadUrl;
+                        _currentAvailableUpdate = updateInfo;
+                        SetPendingUpdate(updateInfo);
+                    } else
+                    {
+                        await _messageService.SendAsync(
+                            this,
+                            UpdateEvents.Error,
+                            new UpdateEventArgs(new Exception("Mevcut güncelleme bulunamadı")));
+                        return;
+                    }
+                }
+
+                if(string.IsNullOrEmpty(urlToUse))
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.Error,
+                        new UpdateEventArgs(new Exception("İndirme URL'si bulunamadı")));
+                    return;
+                }
+
+                // Zaten indirilmiş mi kontrol et
+                if(!string.IsNullOrEmpty(PendingUpdateLocalPath) && File.Exists(PendingUpdateLocalPath))
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Downloaded, updateToDownload, "Güncelleme zaten indirilmiş"));
+                    return;
+                }
+
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.Downloading, "İndirme başladı"));
+
+                var progress = new Progress<(long downloaded, long total, double speed)>(
+                    p =>
+                    {
+                        _ = _messageService.SendAsync(
+                            this,
+                            UpdateEvents.Progress,
+                            new UpdateProgressEventArgs(UpdateState.Downloading, p.downloaded, p.total, p.speed));
+                    });
+
+                var setupPath = await DownloadUpdateFile(urlToUse, progress);
+
+                if(setupPath != null)
+                {
+                    // İndirme tamamlandı - Downloaded state'ine geç
+                    SetPendingUpdate(updateToDownload, setupPath);
+
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(UpdateState.Downloaded, updateToDownload, "İndirme tamamlandı"));
+
+                    // Pending update'i kaydet
+                    await _updateService.SavePendingUpdateAsync(
+                        new PendingUpdateInfo
+                        {
+                            UpdateInfo = updateToDownload,
+                            LocalPath = setupPath,
+                            DownloadedAt = DateTime.Now
+                        });
+                } else
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.Error,
+                        new UpdateEventArgs(new Exception("İndirme başarısız oldu")));
+                }
+            } catch(Exception ex)
+            {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, $"İndirme hatası: {ex.Message}"));
+            }
+        }
+
+        public async Task<string> DownloadUpdateFile(
+            string downloadUrl,
+            IProgress<(long, long, double)> progress = null)
+        {
+            try
+            {
+                if(string.IsNullOrEmpty(downloadUrl))
+                {
+                    throw new ArgumentException("İndirme URL'si boş olamaz", nameof(downloadUrl));
+                }
+
+                var progressCallback = progress ??
+                    new Progress<(long downloaded, long total, double speed)>(
+                        p =>
+                        {
+                            _ = _messageService.SendAsync(
+                                this,
+                                UpdateEvents.Progress,
+                                new UpdateProgressEventArgs(UpdateState.Downloading, p.downloaded, p.total, p.speed));
+                        });
+
+                var filePath = await _updateService.DownloadUpdateFile(downloadUrl, progressCallback);
+
+                // Dosya integrity'sini kontrol et
+                if(!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+                {
+                    var fileInfo = new FileInfo(filePath);
+                    if(fileInfo.Length == 0)
+                    {
+                        File.Delete(filePath);
+                        throw new Exception("İndirilen dosya bozuk (dosya boyutu 0 byte)");
+                    }
+
+                    Debug.WriteLine($"Dosya başarıyla indirildi: {filePath} ({fileInfo.Length} bytes)");
+                } else
+                {
+                    throw new Exception("Dosya indirilemedi veya bulunamadı");
+                }
+
+                return filePath;
+            } catch(Exception ex)
+            {
+                Debug.WriteLine($"DownloadUpdateFile hatası: {ex.Message}");
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, $"Dosya indirme hatası: {ex.Message}"));
+                throw;
+            }
+        }
+
+        // Eski method - önce indir sonra kur
+        public async Task DownloadAndInstallUpdate(string downloadUrl = null)
+        {
+            try
+            {
+                // Önce indir
+                await DownloadUpdate(downloadUrl);
+
+                // Sonra kurulum yap
+                if(!string.IsNullOrEmpty(PendingUpdateLocalPath) && File.Exists(PendingUpdateLocalPath))
+                {
+                    await InstallPendingUpdate();
+                } else
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.Error,
+                        new UpdateEventArgs(new Exception("İndirme tamamlandıktan sonra kurulum dosyası bulunamadı")));
+                }
+            } catch(Exception ex)
+            {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, $"İndirme ve kurulum hatası: {ex.Message}"));
+            }
+        }
+
+        public async Task InstallPendingUpdate()
+        {
+            if(!HasPendingUpdate || PendingUpdateInfo == null)
+            {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(new Exception("Kurulacak bekleyen güncelleme bulunamadı")));
+                return;
+            }
+
+            try
+            {
+                if(!string.IsNullOrEmpty(PendingUpdateLocalPath) && File.Exists(PendingUpdateLocalPath))
+                {
+                    await InstallUpdate(PendingUpdateLocalPath);
+                } else
+                {
+                    // Dosya bulunamazsa tekrar indir ve kur
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(
+                            UpdateState.Downloading,
+                            "Kurulum dosyası bulunamadı, tekrar indiriliyor..."));
+
+                    await DownloadAndInstallUpdate(PendingUpdateInfo.DownloadUrl);
+                }
+            } catch(Exception ex)
+            {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, $"Güncelleme kurulumu başarısız: {ex.Message}"));
+            }
+        }
+
+        private async Task InstallUpdate(string setupPath)
+        {
+            try
+            {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.Installing, "Kurulum başlıyor..."));
+
+                await InstallPackageWithPackageManager(setupPath);
+
+                // Kurulum başarılı olursa temizle
+                await _updateService.ClearPendingUpdateAsync();
+                ClearPendingUpdate();
+
+                if(File.Exists(setupPath))
+                    File.Delete(setupPath);
+
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.StateChanged,
+                    new UpdateEventArgs(UpdateState.Installed, "Kurulum tamamlandı. Uygulama yeniden başlatılacak."));
+
+                await Task.Delay(2000);
                 Application.Current.Exit();
+            } catch(Exception ex)
+            {
+                await _messageService.SendAsync(
+                    this,
+                    UpdateEvents.Error,
+                    new UpdateEventArgs(ex, $"Kurulum hatası: {ex.Message}"));
+
+                // DEĞIŞIKLIK: Debug mode'da dosyayı silme, sadece error state'ine geç
+                if(System.Diagnostics.Debugger.IsAttached)
+                {
+                    await _messageService.SendAsync(
+                        this,
+                        UpdateEvents.StateChanged,
+                        new UpdateEventArgs(
+                            UpdateState.Downloaded,
+                            PendingUpdateInfo,
+                            "Debug modunda kurulum atlandı - dosya korundu"));
+                } else
+                {
+                    // Production'da hatalı dosyayı temizle
+                    try
+                    {
+                        if(File.Exists(setupPath))
+                        {
+                            File.Delete(setupPath);
+                            await _updateService.ClearPendingUpdateAsync();
+                            ClearPendingUpdate();
+                        }
+                    } catch(Exception deleteEx)
+                    {
+                        Debug.WriteLine($"Hatalı kurulum dosyası silinemedi: {deleteEx.Message}");
+                    }
+                }
+
+                throw;
             }
         }
 
-        private string FormatBytes(long bytes)
+        private async Task InstallPackageWithPackageManager(string packagePath)
         {
-            if (bytes == 0) return "0 B";
-
-            string[] suffixes = { "B", "KB", "MB", "GB" };
-            int suffixIndex = 0;
-            double size = bytes;
-
-            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
+            try
             {
-                size /= 1024;
-                suffixIndex++;
-            }
+                var packageManager = new PackageManager();
+                var deploymentOperation = packageManager.AddPackageAsync(
+                    new Uri(packagePath),
+                    null,
+                    DeploymentOptions.ForceApplicationShutdown);
 
-            return $"{size:F1} {suffixes[suffixIndex]}";
-        }
+                deploymentOperation.Progress = (operation, progress) =>
+                {
+                    _ = _messageService.SendAsync(
+                        this,
+                        UpdateEvents.Progress,
+                        new UpdateProgressEventArgs(
+                            UpdateState.Installing,
+                            (long)progress.percentage,
+                            100,
+                            0,
+                            "Kurulum yapılıyor..."));
+                };
 
-        private void UpdateProgressDialog(ContentDialog dialog, string status, string details = "", int percentage = -1)
-        {
-            if (dialog?.Tag is ProgressDialogElements elements)
+                var result = await deploymentOperation.AsTask();
+
+                if(result.ExtendedErrorCode != null)
+                {
+                    throw new Exception($"Paket kurulum hatası: {result.ErrorText} (Kod: {result.ExtendedErrorCode})");
+                }
+            } catch(Exception ex)
             {
-                if (elements.StatusText != null)
-                    elements.StatusText.Text = status;
-
-                if (elements.DetailsText != null)
-                    elements.DetailsText.Text = details;
-
-                // Percentage verilmişse ProgressBar göster ve ProgressRing gizle
-                if (percentage >= 0 && elements.ProgressBar != null && elements.ProgressRing != null)
-                {
-                    elements.ProgressRing.Visibility = Visibility.Collapsed;
-                    elements.ProgressBar.Visibility = Visibility.Visible;
-                    elements.ProgressBar.Value = percentage;
-                }
-                // Percentage yoksa ProgressRing göster
-                else if (percentage < 0 && elements.ProgressBar != null && elements.ProgressRing != null)
-                {
-                    elements.ProgressRing.Visibility = Visibility.Visible;
-                    elements.ProgressBar.Visibility = Visibility.Collapsed;
-                }
+                Debug.WriteLine($"InstallPackageWithPackageManager hatası: {ex.Message}");
+                throw new Exception($"Paket kurulumu başarısız: {ex.Message}", ex);
             }
         }
 
         private bool ShouldCheckForUpdates(UpdateSettings settings)
         {
-            if (settings.LastCheckDate == null)
+            if(settings.LastCheckDate == null)
                 return true;
 
             var timeSinceLastCheck = DateTime.Now - settings.LastCheckDate.Value;
@@ -310,392 +750,42 @@ namespace MuhasibPro.Core.Services.Concreate.Update
             return timeSinceLastCheck >= checkInterval;
         }
 
-        public bool HasPendingUpdate { get; private set; }
-        public UpdateInfo PendingUpdateInfo { get; private set; }
-        public string PendingUpdateLocalPath { get; private set; } // YENI: İndirilen dosyanın local path'i
-
-        private void SetPendingUpdate(UpdateInfo updateInfo, string localPath = null)
+        private async void SetPendingUpdate(UpdateInfo updateInfo, string localPath = null)
         {
             HasPendingUpdate = true;
             PendingUpdateInfo = updateInfo;
-            PendingUpdateLocalPath = localPath; // Local path'i sakla
-            PendingUpdateChanged?.Invoke(updateInfo);
+            PendingUpdateLocalPath = localPath;
+            _currentAvailableUpdate = updateInfo;
+            var state = string.IsNullOrEmpty(localPath) ? UpdateState.UpdateAvailable : UpdateState.Downloaded;
+
+            await _messageService.SendAsync(
+                this,
+                UpdateEvents.PendingUpdateChanged,
+                new UpdateEventArgs(state, updateInfo));
         }
 
-        // YENI: Pending update'i kurmak için metod
-        public async Task InstallPendingUpdate()
-        {
-            if (!HasPendingUpdate || PendingUpdateInfo == null)
-            {
-                await ShowErrorDialog("Kurulacak bekleyen güncelleme bulunamadı.");
-                return;
-            }
-
-            try
-            {
-                // Eğer local path varsa direkt kur
-                if (!string.IsNullOrEmpty(PendingUpdateLocalPath) && File.Exists(PendingUpdateLocalPath))
-                {
-                    await InstallUpdate(PendingUpdateLocalPath);
-                }
-                // Yoksa önce indir sonra kur
-                else
-                {
-                    await DownloadAndInstallUpdate(PendingUpdateInfo.DownloadUrl);
-                }
-            }
-            catch (Exception ex)
-            {
-                await ShowErrorDialog($"Pending güncelleme kurulumu başarısız: {ex.Message}");
-            }
-        }
-
-        public async Task ShowUpdateDialog(UpdateInfo updateInfo)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Güncelleme Mevcut",
-                Content = CreateUpdateContent(updateInfo),
-                PrimaryButtonText = "Güncelle",
-                CloseButtonText = "Daha Sonra",
-                XamlRoot = WindowHelper.CurrentXamlRoot,
-            };
-
-            var result = await dialog.ShowAsync();
-
-            if (result == ContentDialogResult.Primary)
-            {
-                await DownloadAndInstallUpdate(updateInfo.DownloadUrl);
-            }
-            else
-            {
-                SetPendingUpdate(updateInfo);
-            }
-        }
-
-        private UIElement CreateUpdateContent(UpdateInfo updateInfo)
-        {
-            var stackPanel = new StackPanel { Spacing = 10 };
-
-            // Versiyon bilgisi
-            var versionText = new TextBlock
-            {
-                Text = $"Mevcut versiyon: {updateInfo.CurrentVersion}\nYeni versiyon: {updateInfo.LatestVersion}",
-                FontSize = 14
-            };
-            stackPanel.Children.Add(versionText);
-
-            // Release notes (varsa)
-            if (!string.IsNullOrEmpty(updateInfo.ReleaseNotes))
-            {
-                var notesHeader = new TextBlock
-                {
-                    Text = "Bu güncellemenin içeriği:",
-                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Margin = new Thickness(0, 10, 0, 5)
-                };
-                stackPanel.Children.Add(notesHeader);
-
-                var notesScroll = new ScrollViewer
-                {
-                    MaxHeight = 150,
-                    Content = new TextBlock
-                    {
-                        Text = updateInfo.ReleaseNotes,
-                        TextWrapping = TextWrapping.Wrap,
-                        IsTextSelectionEnabled = true
-                    }
-                };
-                stackPanel.Children.Add(notesScroll);
-            }
-
-            return stackPanel;
-        }
-
-        public event Action<UpdateInfo> PendingUpdateChanged;
-
-        public async Task DownloadAndInstallUpdate(string downloadUrl)
-        {
-            try
-            {
-                var progressDialog = await ShowProgressDialog("İndiriliyor...");
-
-                var setupPath = await DownloadUpdateFile(downloadUrl, progressDialog);
-
-                if (setupPath != null)
-                {
-                    progressDialog.Hide();
-                    await InstallUpdate(setupPath);
-
-                    // Pending update'i temizle
-                    ClearPendingUpdate();
-                }
-            }
-            catch (Exception ex)
-            {
-                _currentProgressDialog?.Hide();
-                await ShowErrorDialog($"Güncelleme hatası: {ex.Message}");
-            }
-        }
-
-        // Progress dialog elemanları için helper class
-        private class ProgressDialogElements
-        {
-            public TextBlock StatusText { get; set; }
-            public TextBlock DetailsText { get; set; }
-            public ProgressRing ProgressRing { get; set; }
-            public ProgressBar ProgressBar { get; set; }
-        }
-
-        public async Task<ContentDialog> ShowProgressDialog(string message = "İşlem devam ediyor...")
-        {
-            var progressRing = new ProgressRing
-            {
-                IsActive = true,
-                Width = 50,
-                Height = 50
-            };
-
-            var progressBar = new ProgressBar
-            {
-                Width = 300,
-                Height = 4,
-                Margin = new Thickness(0, 10, 0, 0),
-                Visibility = Visibility.Collapsed // Başlangıçta gizli
-            };
-
-            var statusText = new TextBlock
-            {
-                Text = message,
-                Margin = new Thickness(0, 10, 0, 0),
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-
-            var detailsText = new TextBlock
-            {
-                Text = "",
-                Margin = new Thickness(0, 5, 0, 0),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                FontSize = 12,
-                Foreground = new SolidColorBrush(Colors.Gray)
-            };
-
-            var stackPanel = new StackPanel
-            {
-                Children = { progressRing, progressBar, statusText, detailsText }
-            };
-
-            var dialog = new ContentDialog
-            {
-                Title = "Güncelleme",
-                Content = stackPanel,
-                SecondaryButtonText = "İptal",
-                XamlRoot = WindowHelper.CurrentXamlRoot,
-                IsPrimaryButtonEnabled = false
-            };
-
-            dialog.Tag = new ProgressDialogElements
-            {
-                StatusText = statusText,
-                DetailsText = detailsText,
-                ProgressRing = progressRing,
-                ProgressBar = progressBar
-            };
-
-            _currentProgressDialog = dialog;
-
-            // Dialog'u async olarak göster ama await etme
-            _ = dialog.ShowAsync();
-
-            // Kısa bir süre bekle ki dialog görünür olsun
-            await Task.Delay(100);
-
-            return dialog;
-        }
-
-        private async Task AutoDownloadUpdate(UpdateInfo updateInfo, UpdateSettings settings)
-        {
-            try
-            {
-                ContentDialog progressDialog = null;
-
-                // Sadece bildirim açıksa progress göster
-                if (settings.ShowNotifications)
-                {
-                    progressDialog = await ShowProgressDialog("Otomatik indiriliyor...");
-                }
-
-                var setupPath = await DownloadUpdateFile(updateInfo.DownloadUrl, progressDialog);
-
-                if (progressDialog != null)
-                {
-                    progressDialog.Hide();
-                }
-
-                if (setupPath != null)
-                {
-                    // Bildirim açıksa kullanıcıya haber ver
-                    if (settings.ShowNotifications)
-                    {
-                        await ShowDownloadCompletedDialog(updateInfo, setupPath);
-                    }
-                    else
-                    {
-                        // Sessizce pending olarak işaretle - local path ile birlikte
-                        SetPendingUpdate(updateInfo, setupPath);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Auto download failed: {ex.Message}");
-
-                if (settings.ShowNotifications)
-                {
-                    await ShowErrorDialog($"Otomatik indirme başarısız: {ex.Message}");
-                }
-            }
-        }
-
-        private async Task ShowDownloadCompletedDialog(UpdateInfo updateInfo, string setupPath)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "İndirme Tamamlandı",
-                Content = $"v{updateInfo.LatestVersion} indirildi.\n\nŞimdi kurulumu başlatmak istiyor musunuz?",
-                PrimaryButtonText = "Kurulumu Başlat",
-                CloseButtonText = "Daha Sonra",
-                XamlRoot = WindowHelper.CurrentXamlRoot
-            };
-
-            var result = await dialog.ShowAsync();
-
-            if (result == ContentDialogResult.Primary)
-            {
-                await InstallUpdate(setupPath);
-            }
-            else
-            {
-                // Daha sonra için pending olarak işaretle - local path ile birlikte
-                SetPendingUpdate(updateInfo, setupPath);
-            }
-        }
-
-        public async Task<string> DownloadUpdateFile(string downloadUrl, ContentDialog progressDialog = null, IProgress<(long downloaded, long total, double speed)> progress = null)
-        {
-            try
-            {
-                UpdateProgressDialog(progressDialog, "İndirme başlatılıyor...");
-
-                // Progress callback oluştur
-                var progressCallback = progress ?? new Progress<(long downloaded, long total, double speed)>(p =>
-                {
-                    if (progressDialog != null)
-                    {
-                        var downloadedFormatted = FormatBytes(p.downloaded);
-                        var totalFormatted = FormatBytes(p.total);
-                        var speedFormatted = FormatBytes((long)p.speed);
-                        var percentage = p.total > 0 ? (int)((double)p.downloaded / p.total * 100) : 0;
-
-                        var statusText = $"İndiriliyor... {percentage}%";
-                        var detailsText = $"{downloadedFormatted} / {totalFormatted} • {speedFormatted}/s";
-
-                        UpdateProgressDialog(progressDialog, statusText, detailsText, percentage);
-                    }
-                });
-
-                return await _updateService.DownloadUpdateFile(downloadUrl, progressCallback);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Download failed: {ex.Message}");
-                progressDialog?.Hide();
-                throw;
-            }
-        }
-        private async Task InstallPackageWithPackageManager(string packagePath)
-        {
-            var packageManager = new PackageManager();
-            var deploymentOperation = packageManager.AddPackageAsync(
-                new Uri(packagePath),
-                null,
-                DeploymentOptions.ForceApplicationShutdown
-            );
-
-            // İlerlemeyi takip et
-            deploymentOperation.Progress = (operation, progress) =>
-            {
-                Debug.WriteLine($"Kurulum ilerleme: {progress.percentage}%");
-            };
-
-            var result = await deploymentOperation.AsTask();
-
-            if (result.ExtendedErrorCode != null)
-            {
-                throw new Exception($"Kurulum hatası: {result.ErrorText}");
-            }
-        }
-
-        private async Task InstallUpdate(string setupPath)
-        {
-            var confirmDialog = new ContentDialog
-            {
-                Title = "Kurulum Hazır",
-                Content = "Güncelleme indirildi. Şimdi kurulumu başlatmak istiyor musunuz?\n\nUygulama kapatılacak ve kurulum başlayacak.",
-                PrimaryButtonText = "Kurulumu Başlat",
-                CloseButtonText = "İptal",
-                XamlRoot = WindowHelper.CurrentXamlRoot
-            };
-
-            var result = await confirmDialog.ShowAsync();
-
-            if (result == ContentDialogResult.Primary)
-            {
-                try
-                {
-                    await InstallPackageWithPackageManager(setupPath);
-                    Application.Current.Exit();
-                }
-                catch (Exception ex)
-                {
-                    await ShowErrorDialog($"Kurulum başlatılamadı: {ex.Message}");
-                }
-            }
-            else
-            {
-                // Kullanıcı iptal etti, temp dosyayı sil
-                try
-                {
-                    if (File.Exists(setupPath))
-                        File.Delete(setupPath);
-                }
-                catch
-                {
-                    // Silme hatası önemli değil
-                }
-            }
-        }
-
-        private async Task ShowErrorDialog(string message)
-        {
-            var errorDialog = new ContentDialog
-            {
-                Title = "Hata",
-                Content = message,
-                CloseButtonText = "Tamam",
-                XamlRoot = WindowHelper.CurrentXamlRoot
-            };
-
-            await errorDialog.ShowAsync();
-        }
-
-        // Pending update'i temizlemek için
-        public void ClearPendingUpdate()
+        public async void ClearPendingUpdate()
         {
             HasPendingUpdate = false;
             PendingUpdateInfo = null;
-            PendingUpdateLocalPath = null; // Local path'i de temizle
-            PendingUpdateChanged?.Invoke(null);
+            PendingUpdateLocalPath = null;
+            _currentAvailableUpdate = null;
+
+            await _messageService.SendAsync(
+                this,
+                UpdateEvents.PendingUpdateChanged,
+                new UpdateEventArgs(UpdateState.Idle));
+        }
+
+        // Debug için ek metodlar
+        public UpdateInfo GetCurrentAvailableUpdate() => _currentAvailableUpdate;
+
+        public string GetDebugInfo()
+        {
+            return $"HasPendingUpdate: {HasPendingUpdate}, " +
+                $"PendingUpdateInfo: {(PendingUpdateInfo != null ? "Set" : "Null")}, " +
+                $"PendingUpdateLocalPath: {PendingUpdateLocalPath ?? "Null"}, " +
+                $"CurrentAvailableUpdate: {(_currentAvailableUpdate != null ? "Set" : "Null")}";
         }
     }
 }

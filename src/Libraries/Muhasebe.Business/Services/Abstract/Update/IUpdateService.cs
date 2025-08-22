@@ -1,4 +1,4 @@
-﻿using Muhasebe.Business.Models;
+﻿using Muhasebe.Business.Models.UpdateModels;
 using Muhasebe.Domain.Entities.SistemDb;
 
 namespace Muhasebe.Business.Services.Abstract.Update
@@ -14,6 +14,10 @@ namespace Muhasebe.Business.Services.Abstract.Update
         Task<string> DownloadUpdateFile(string downloadUrl, IProgress<(long downloaded, long total, double speed)> progress = null);
         Task<DeltaUpdateInfo> CheckForDeltaUpdateAsync();
 
+        Task<PendingUpdateInfo> GetPendingUpdateAsync();
+        Task SavePendingUpdateAsync(PendingUpdateInfo pendingInfo);
+        Task ClearPendingUpdateAsync();
+        Task<bool> VerifyUpdateFileAsync(string filePath, string expectedHash);
     }
 
 

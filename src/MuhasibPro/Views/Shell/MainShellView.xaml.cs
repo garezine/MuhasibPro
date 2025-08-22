@@ -34,7 +34,7 @@ namespace MuhasibPro.Views.Shell
             InitializeNavigation();
             App.MainWindow.SetTitleBar(AppTitleBar);
             App.MainWindow.Activated += MainWindow_Activated;
-            AppTitleBarText.Text = "AppDisplayName".GetLocalized();
+            AppTitleBarText.Text = "MuhasibPro";
 
         }
         public void InitializeContext()

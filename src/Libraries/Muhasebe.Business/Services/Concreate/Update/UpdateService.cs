@@ -1,10 +1,11 @@
 ﻿using Muhasebe.Business.Helpers;
-using Muhasebe.Business.Models;
+using Muhasebe.Business.Models.UpdateModels;
 using Muhasebe.Business.Services.Abstract.Update;
 using Muhasebe.Domain.Entities.SistemDb;
 using Muhasebe.Domain.Interfaces.App;
-using Newtonsoft.Json;
+
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Muhasebe.Business.Services.Concreate.Update
 {
@@ -15,8 +16,12 @@ namespace Muhasebe.Business.Services.Concreate.Update
         private readonly IDeltaDownloader _deltaDownloader;
         private readonly HttpClient _httpClient;
         private readonly string _updateUrl;
+        private readonly string _pendingUpdateFilePath;
 
-        public UpdateService(IUpdateSettingsRepository updateSettingsRepository, IDeltaAnalyzer deltaAnalyzer, IDeltaDownloader deltaDownloader)
+        public UpdateService(
+            IUpdateSettingsRepository updateSettingsRepository,
+            IDeltaAnalyzer deltaAnalyzer,
+            IDeltaDownloader deltaDownloader)
         {
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", ProcessInfoHelper.ProductName);
@@ -25,6 +30,124 @@ namespace Muhasebe.Business.Services.Concreate.Update
             _updateSettingsRepository = updateSettingsRepository;
             _deltaAnalyzer = deltaAnalyzer;
             _deltaDownloader = deltaDownloader;
+
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var appFolder = Path.Combine(appDataPath, "MuhasibPro");
+            Directory.CreateDirectory(appFolder);
+            _pendingUpdateFilePath = Path.Combine(appFolder, "pending_update.json");
+        }
+
+        public async Task<PendingUpdateInfo> GetPendingUpdateAsync()
+        {
+            try
+            {
+                var settings = await GetUpdateSettings();
+
+                if(string.IsNullOrEmpty(settings.PendingUpdateVersion))
+                    return null;
+
+                // Dosya kontrolü
+                if(!string.IsNullOrEmpty(settings.PendingUpdateLocalPath) &&
+                    File.Exists(settings.PendingUpdateLocalPath))
+                {
+                    var fileInfo = new FileInfo(settings.PendingUpdateLocalPath);
+                    if(fileInfo.Length == settings.PendingUpdateFileSize)
+                    {
+                        return new PendingUpdateInfo
+                        {
+                            UpdateInfo =
+                                new UpdateInfo
+                                {
+                                    LatestVersion = settings.PendingUpdateVersion,
+                                    DownloadUrl = settings.PendingUpdateDownloadUrl,
+                                    HasUpdate = true
+                                },
+                            LocalPath = settings.PendingUpdateLocalPath,
+                            DownloadedAt = settings.PendingUpdateDownloadedAt ?? DateTime.Now,
+                            FileSize = settings.PendingUpdateFileSize,
+                            FileHash = settings.PendingUpdateFileHash
+                        };
+                    }
+                }
+
+                // Dosya bozuk, temizle
+                await ClearPendingUpdateAsync();
+                return null;
+            } catch(Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetPendingUpdateAsync error: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task SavePendingUpdateAsync(PendingUpdateInfo pendingInfo)
+        {
+            try
+            {
+                var settings = await GetUpdateSettings();
+
+                if(!string.IsNullOrEmpty(pendingInfo.LocalPath) && File.Exists(pendingInfo.LocalPath))
+                {
+                    pendingInfo.FileSize = new FileInfo(pendingInfo.LocalPath).Length;
+                    pendingInfo.FileHash = await CalculateFileHashAsync(pendingInfo.LocalPath);
+                }
+
+                settings.PendingUpdateVersion = pendingInfo.UpdateInfo?.LatestVersion;
+                settings.PendingUpdateLocalPath = pendingInfo.LocalPath;
+                settings.PendingUpdateDownloadUrl = pendingInfo.UpdateInfo?.DownloadUrl;
+                settings.PendingUpdateDownloadedAt = pendingInfo.DownloadedAt;
+                settings.PendingUpdateFileSize = pendingInfo.FileSize;
+                settings.PendingUpdateFileHash = pendingInfo.FileHash;
+
+                await SaveSettingsAsync(settings);
+            } catch(Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SavePendingUpdateAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task ClearPendingUpdateAsync()
+        {
+            try
+            {
+                var settings = await GetUpdateSettings();
+
+                settings.PendingUpdateVersion = null;
+                settings.PendingUpdateLocalPath = null;
+                settings.PendingUpdateDownloadUrl = null;
+                settings.PendingUpdateDownloadedAt = null;
+                settings.PendingUpdateFileSize = 0;
+                settings.PendingUpdateFileHash = null;
+
+                await SaveSettingsAsync(settings);
+            } catch(Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ClearPendingUpdateAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> VerifyUpdateFileAsync(string filePath, string expectedHash)
+        {
+            try
+            {
+                if(string.IsNullOrEmpty(expectedHash) || !File.Exists(filePath))
+                    return false;
+
+                var actualHash = await CalculateFileHashAsync(filePath);
+                return string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase);
+            } catch(Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"VerifyUpdateFileAsync error: {ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task<string> CalculateFileHashAsync(string filePath)
+        {
+            using var stream = File.OpenRead(filePath);
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var hash = await sha256.ComputeHashAsync(stream);
+            return Convert.ToHexString(hash);
         }
 
         public async Task<DeltaUpdateInfo> CheckForDeltaUpdateAsync()
@@ -32,54 +155,44 @@ namespace Muhasebe.Business.Services.Concreate.Update
             try
             {
                 var response = await _httpClient.GetStringAsync(_updateUrl);
-                var release = JsonConvert.DeserializeObject<GitHubRelease>(response);
+                var release = Newtonsoft.Json.JsonConvert.DeserializeObject<GitHubRelease>(response);
 
-               
+
                 var deltaInfo = _deltaAnalyzer.ParseDeltaInfo(release.Body, release.Assets);
 
-                if (deltaInfo.IsDeltaAvailable)
+                if(deltaInfo.IsDeltaAvailable)
                 {
                     deltaInfo.ChangedFiles = await _deltaAnalyzer.AnalyzeChangedFilesAsync(deltaInfo);
                 }
 
                 return deltaInfo;
-            }
-            catch (Exception)
+            } catch(Exception)
             {
-                return new DeltaUpdateInfo
-                {
-                    IsDeltaAvailable = false
-                };
+                return new DeltaUpdateInfo { IsDeltaAvailable = false };
             }
         }
+
         public async Task<UpdateInfo> CheckForUpdatesAsync()
         {
             try
             {
                 var currentVersion = ProcessInfoHelper.GetVersion();
                 var response = await _httpClient.GetStringAsync(_updateUrl);
-                var release = JsonConvert.DeserializeObject<GitHubRelease>(response);
+                var release = Newtonsoft.Json.JsonConvert.DeserializeObject<GitHubRelease>(response);
 
                 // Hem "v1.0.1" hem "v.1.0.1" formatını destekle
-                var versionString = release.TagName
-                    .TrimStart('v')
-                    .Replace("..", "."); // ".1.0.1" -> "1.0.1"
+                var versionString = release.TagName.TrimStart('v').Replace("..", "."); // ".1.0.1" -> "1.0.1"
 
-                if (versionString.StartsWith("."))
+                if(versionString.StartsWith("."))
                     versionString = versionString.Substring(1); // ".1.0.1" -> "1.0.1"
 
                 var latestVersion = Version.Parse(versionString);
 
                 var downloadUrl = GetSetupUrl(release.Assets);
-                if (string.IsNullOrEmpty(downloadUrl))
+                if(string.IsNullOrEmpty(downloadUrl))
                 {
-                    return new UpdateInfo
-                    {
-                        HasError = true,
-                        ErrorMessage = "Güncelleme dosyası bulunamadı."
-                    };
-                }
-
+                    return new UpdateInfo { HasError = true, ErrorMessage = "Güncelleme dosyası bulunamadı." };
+                }               
                 return new UpdateInfo
                 {
                     HasUpdate = latestVersion > currentVersion,
@@ -88,21 +201,20 @@ namespace Muhasebe.Business.Services.Concreate.Update
                     DownloadUrl = downloadUrl,
                     ReleaseNotes = release.Body ?? "Sürüm notları mevcut değil.",
                     FileSize = GetFileSize(release.Assets),
-                    ReleaseDate = release.PublishedAt
+                    ReleaseDate = release.PublishedAt,
+                    ChangelogUrl =release.HtmlUrl, // GitHub release sayfasının URL'si
+                    ReleaseNotesUrl = release.HtmlUrl // Alternatif olarak aynı URL
                 };
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                return new UpdateInfo
-                {
-                    HasError = true,
-                    ErrorMessage = ex.Message
-                };
+                return new UpdateInfo { HasError = true, ErrorMessage = ex.Message };
             }
         }
 
         // Progress tracking ile ana download metodu
-        public async Task<string> DownloadUpdateFile(string downloadUrl, IProgress<(long downloaded, long total, double speed)> progress = null)
+        public async Task<string> DownloadUpdateFile(
+            string downloadUrl,
+            IProgress<(long downloaded, long total, double speed)> progress = null)
         {
             var fileName = $"MuhasibPro_Update_{DateTime.Now:yyyyMMdd_HHmmss}.msix";
             var tempPath = Path.Combine(Path.GetTempPath(), fileName);
@@ -122,23 +234,30 @@ namespace Muhasebe.Business.Services.Concreate.Update
                 var lastProgressTime = DateTime.Now;
 
                 using var contentStream = await response.Content.ReadAsStreamAsync();
-                using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                using var fileStream = new FileStream(
+                    tempPath,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.None,
+                    8192,
+                    true);
 
-                while (true)
+                while(true)
                 {
                     var bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-                    if (bytesRead == 0) break;
+                    if(bytesRead == 0)
+                        break;
 
                     await fileStream.WriteAsync(buffer, 0, bytesRead);
                     downloadedBytes += bytesRead;
 
                     // Progress bildirimi - 100ms'de bir veya %1 değişimde
-                    if (progress != null)
+                    if(progress != null)
                     {
                         var now = DateTime.Now;
                         var elapsedMs = (now - lastProgressTime).TotalMilliseconds;
 
-                        if (elapsedMs >= 100 || bytesRead == 0) // Son chunk için de bildir
+                        if(elapsedMs >= 100 || bytesRead == 0) // Son chunk için de bildir
                         {
                             var elapsedSeconds = stopwatch.Elapsed.TotalSeconds;
                             var speed = elapsedSeconds > 0 ? downloadedBytes / elapsedSeconds : 0;
@@ -150,9 +269,11 @@ namespace Muhasebe.Business.Services.Concreate.Update
                 }
 
                 // Son progress bildirimi
-                if (progress != null)
+                if(progress != null)
                 {
-                    var finalSpeed = stopwatch.Elapsed.TotalSeconds > 0 ? downloadedBytes / stopwatch.Elapsed.TotalSeconds : 0;
+                    var finalSpeed = stopwatch.Elapsed.TotalSeconds > 0
+                        ? downloadedBytes / stopwatch.Elapsed.TotalSeconds
+                        : 0;
                     progress.Report((downloadedBytes, totalBytes, finalSpeed));
                 }
 
@@ -160,13 +281,17 @@ namespace Muhasebe.Business.Services.Concreate.Update
                 ValidateDownloadedFile(tempPath);
 
                 return tempPath;
-            }
-            catch
+            } catch
             {
                 // Hata durumunda temp dosyayı sil
-                if (File.Exists(tempPath))
+                if(File.Exists(tempPath))
                 {
-                    try { File.Delete(tempPath); } catch { }
+                    try
+                    {
+                        File.Delete(tempPath);
+                    } catch
+                    {
+                    }
                 }
                 throw;
             }
@@ -174,23 +299,21 @@ namespace Muhasebe.Business.Services.Concreate.Update
 
         // Backward compatibility için eski metod
         public async Task<string> DownloadUpdateFile(string downloadUrl)
-        {
-            return await DownloadUpdateFile(downloadUrl, null);
-        }
+        { return await DownloadUpdateFile(downloadUrl, null); }
 
         private async Task ValidateDownloadFile(string downloadUrl)
         {
             var headRequest = new HttpRequestMessage(HttpMethod.Head, downloadUrl);
             using var headResponse = await _httpClient.SendAsync(headRequest);
 
-            if (!headResponse.IsSuccessStatusCode)
+            if(!headResponse.IsSuccessStatusCode)
             {
                 throw new Exception($"Güncelleme dosyası bulunamadı: {headResponse.StatusCode}");
             }
 
             // Content-Type kontrolü
             var contentType = headResponse.Content.Headers.ContentType?.MediaType;
-            if (contentType != null &&
+            if(contentType != null &&
                 contentType != "application/octet-stream" &&
                 contentType != "application/x-msdownload" &&
                 !contentType.Contains("executable"))
@@ -203,7 +326,7 @@ namespace Muhasebe.Business.Services.Concreate.Update
         private static void ValidateDownloadedFile(string filePath)
         {
             var fileInfo = new FileInfo(filePath);
-            if (fileInfo.Length < 1024) // 1KB'dan küçükse muhtemelen hata sayfası
+            if(fileInfo.Length < 1024) // 1KB'dan küçükse muhtemelen hata sayfası
             {
                 throw new Exception("İndirilen dosya çok küçük, geçerli bir setup dosyası değil.");
             }
@@ -216,12 +339,11 @@ namespace Muhasebe.Business.Services.Concreate.Update
                 fileStream.Read(buffer, 0, 2);
 
                 // MZ header kontrolü (Windows executable)
-                if (buffer[0] != 0x4D || buffer[1] != 0x5A) // "MZ"
+                if(buffer[0] != 0x4D || buffer[1] != 0x5A) // "MZ"
                 {
                     Debug.WriteLine("Warning: Downloaded file may not be a valid Windows executable");
                 }
-            }
-            catch
+            } catch
             {
                 // PE header kontrolü başarısızsa devam et
             }
@@ -232,7 +354,7 @@ namespace Muhasebe.Business.Services.Concreate.Update
             try
             {
                 var shouldCheck = await _updateSettingsRepository.ShouldCheckForUpdatesAsync();
-                if (!shouldCheck)
+                if(!shouldCheck)
                 {
                     Debug.WriteLine("Update check skipped due to settings");
                     return null;
@@ -241,55 +363,51 @@ namespace Muhasebe.Business.Services.Concreate.Update
                 var updateInfo = await CheckForUpdatesAsync();
                 await _updateSettingsRepository.UpdateLastCheckDateAsync();
 
-                if (updateInfo.HasError)
+                if(updateInfo.HasError)
                 {
                     Debug.WriteLine($"Update check failed: {updateInfo.ErrorMessage}");
                     return null;
                 }
 
-                if (updateInfo.HasUpdate)
+                if(updateInfo.HasUpdate)
                 {
                     var settings = await _updateSettingsRepository.GetSettingsAsync();
                     return settings;
                 }
 
                 return null;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 Debug.WriteLine($"Update check exception: {ex.Message}");
                 return null;
             }
         }
 
-        public async Task UpdateLastCheckDateAsync()
-        {
-            await _updateSettingsRepository.UpdateLastCheckDateAsync();
-        }
+        public async Task UpdateLastCheckDateAsync() { await _updateSettingsRepository.UpdateLastCheckDateAsync(); }
 
         private string GetSetupUrl(GitHubAsset[] assets)
         {
-            if (assets == null || assets.Length == 0)
+            if(assets == null || assets.Length == 0)
                 return null;
             // Öncelikle .msix uzantılı dosyayı ara
-            foreach (var asset in assets)
+            foreach(var asset in assets)
             {
-                if (asset.Name.EndsWith(".msix", StringComparison.OrdinalIgnoreCase))
+                if(asset.Name.EndsWith(".msix", StringComparison.OrdinalIgnoreCase))
                     return asset.BrowserDownloadUrl;
             }
             // Öncelikle Setup.exe dosyasını ara
-            foreach (var asset in assets)
+            foreach(var asset in assets)
             {
-                if (asset.Name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase))
+                if(asset.Name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase))
                 {
                     return asset.BrowserDownloadUrl;
                 }
             }
 
             // Setup.exe bulunamazsa .exe uzantılı ilk dosyayı ara
-            foreach (var asset in assets)
+            foreach(var asset in assets)
             {
-                if (asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                if(asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                 {
                     return asset.BrowserDownloadUrl;
                 }
@@ -301,22 +419,22 @@ namespace Muhasebe.Business.Services.Concreate.Update
 
         private long GetFileSize(GitHubAsset[] assets)
         {
-            if (assets == null || assets.Length == 0)
+            if(assets == null || assets.Length == 0)
                 return 0;
 
             // Setup.exe dosyasının boyutunu bul
-            foreach (var asset in assets)
+            foreach(var asset in assets)
             {
-                if (asset.Name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase))
+                if(asset.Name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase))
                 {
                     return asset.Size;
                 }
             }
 
             // Setup.exe bulunamazsa ilk exe dosyasının boyutunu döndür
-            foreach (var asset in assets)
+            foreach(var asset in assets)
             {
-                if (asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                if(asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                 {
                     return asset.Size;
                 }
@@ -330,8 +448,7 @@ namespace Muhasebe.Business.Services.Concreate.Update
             try
             {
                 return await _updateSettingsRepository.GetSettingsAsync();
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 Debug.WriteLine($"Get settings error: {ex.Message}");
 
@@ -353,21 +470,13 @@ namespace Muhasebe.Business.Services.Concreate.Update
             try
             {
                 await _updateSettingsRepository.SaveSettingsAsync(updateSettings);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 Debug.WriteLine($"Settings save error: {ex.Message}");
                 throw; // Settings kaydederken hata önemli, yukarı fırlat
             }
         }
 
-        public void Dispose()
-        {
-            _httpClient?.Dispose();
-        }
+        public void Dispose() { _httpClient?.Dispose(); }
     }
-
-
- 
-
 }

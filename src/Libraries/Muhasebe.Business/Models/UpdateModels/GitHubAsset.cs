@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Muhasebe.Business.Models
+namespace Muhasebe.Business.Models.UpdateModels
 {
     public class GitHubAsset
     {

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Muhasebe.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class intialMigration : Migration
+    public partial class firstInitialContext : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -36,7 +36,18 @@ namespace Muhasebe.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DbYedekZamanlama",
+                name: "AppVersiyon",
+                columns: table => new
+                {
+                    Versiyon = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AppVersiyon", x => x.Versiyon);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DbYedekAl",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "INTEGER", nullable: false),
@@ -49,7 +60,7 @@ namespace Muhasebe.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DbYedekZamanlama", x => x.Id);
+                    table.PrimaryKey("PK_DbYedekAl", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -247,12 +258,38 @@ namespace Muhasebe.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UpdateSettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    AutoCheckOnStartup = table.Column<bool>(type: "INTEGER", nullable: false),
+                    AutoDownload = table.Column<bool>(type: "INTEGER", nullable: false),
+                    AutoInstall = table.Column<bool>(type: "INTEGER", nullable: false),
+                    CheckIntervalHours = table.Column<int>(type: "INTEGER", nullable: false),
+                    IncludeBetaVersions = table.Column<bool>(type: "INTEGER", nullable: false),
+                    LastCheckDate = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    ShowNotifications = table.Column<bool>(type: "INTEGER", nullable: false),
+                    UpdateChannel = table.Column<string>(type: "TEXT", nullable: false),
+                    PendingUpdateVersion = table.Column<string>(type: "TEXT", nullable: true),
+                    PendingUpdateLocalPath = table.Column<string>(type: "TEXT", nullable: true),
+                    PendingUpdateDownloadUrl = table.Column<string>(type: "TEXT", nullable: true),
+                    PendingUpdateDownloadedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    PendingUpdateFileSize = table.Column<long>(type: "INTEGER", nullable: false),
+                    PendingUpdateFileHash = table.Column<string>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UpdateSettings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CalismaDonemler",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "INTEGER", nullable: false),
                     FirmaId = table.Column<long>(type: "INTEGER", nullable: false),
-                    CalismaYilDonem = table.Column<int>(type: "INTEGER", nullable: false),
+                    MaliDonemler = table.Column<int>(type: "INTEGER", nullable: false),
                     KaydedenId = table.Column<long>(type: "INTEGER", nullable: false),
                     KayitTarihi = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     GuncellemeTarihi = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
@@ -299,12 +336,12 @@ namespace Muhasebe.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CalismaDonemSec",
+                name: "DonemDBSec",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "INTEGER", nullable: false),
                     FirmaId = table.Column<long>(type: "INTEGER", nullable: false),
-                    CalismaDonemId = table.Column<long>(type: "INTEGER", nullable: false),
+                    MaliDonemId = table.Column<long>(type: "INTEGER", nullable: false),
                     DBName = table.Column<string>(type: "TEXT", nullable: false),
                     Directory = table.Column<string>(type: "TEXT", nullable: false),
                     DBPath = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
@@ -318,10 +355,10 @@ namespace Muhasebe.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_CalismaDonemSec", x => x.Id);
+                    table.PrimaryKey("PK_DonemDBSec", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CalismaDonemSec_CalismaDonemler_CalismaDonemId",
-                        column: x => x.CalismaDonemId,
+                        name: "FK_DonemDBSec_CalismaDonemler_MaliDonemId",
+                        column: x => x.MaliDonemId,
                         principalTable: "CalismaDonemler",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -338,9 +375,9 @@ namespace Muhasebe.Data.Migrations
                 column: "FirmaId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CalismaDonemSec_CalismaDonemId",
-                table: "CalismaDonemSec",
-                column: "CalismaDonemId",
+                name: "IX_DonemDBSec_MaliDonemId",
+                table: "DonemDBSec",
+                column: "MaliDonemId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -356,10 +393,10 @@ namespace Muhasebe.Data.Migrations
                 name: "AppLogs");
 
             migrationBuilder.DropTable(
-                name: "CalismaDonemSec");
+                name: "AppVersiyon");
 
             migrationBuilder.DropTable(
-                name: "DbYedekZamanlama");
+                name: "DbYedekAl");
 
             migrationBuilder.DropTable(
                 name: "Degerler");
@@ -371,10 +408,16 @@ namespace Muhasebe.Data.Migrations
                 name: "DevirLogII");
 
             migrationBuilder.DropTable(
+                name: "DonemDBSec");
+
+            migrationBuilder.DropTable(
                 name: "Hesaplar");
 
             migrationBuilder.DropTable(
                 name: "ModulSecim");
+
+            migrationBuilder.DropTable(
+                name: "UpdateSettings");
 
             migrationBuilder.DropTable(
                 name: "CalismaDonemler");

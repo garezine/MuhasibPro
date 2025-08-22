@@ -210,5 +210,6 @@ namespace MuhasibPro.Core.Infrastructure.ViewModels
             _stopwatch.Stop();
             await StatusMessageAsync($"{message} ({_stopwatch.Elapsed.TotalSeconds:#0.000} saniye)");
         }
+     
     }
 }

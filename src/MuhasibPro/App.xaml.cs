@@ -44,7 +44,7 @@ namespace MuhasibPro
             if (MainWindow.Content is FrameworkElement rootelement)
             {
                 rootelement.RequestedTheme = themeSelectorService.Theme;
-            }
+            }        
             await ActivateAsync(args);
         }
         private async Task ActivateAsync(LaunchActivatedEventArgs args)
@@ -54,5 +54,8 @@ namespace MuhasibPro
             var activationService = Ioc.Default.GetService<IActivationService>();
             await activationService.ActivateAsync(args);
         }
+   
+
+
     }
 }

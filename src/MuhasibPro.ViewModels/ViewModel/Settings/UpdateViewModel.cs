@@ -1,13 +1,16 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Muhasebe.Business.Helpers;
-using Muhasebe.Business.Models;
+using Muhasebe.Business.Models.UpdateModels;
 using Muhasebe.Business.Services.Abstract.Update;
 using Muhasebe.Domain.Entities.SistemDb;
 using MuhasibPro.Core.Infrastructure.ViewModels;
+using MuhasibPro.Core.Models.Update;
 using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Core.Services.Concreate.Update;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.ViewModel.Settings
@@ -16,6 +19,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
     {
         private readonly IUpdateService _updateService;
         private readonly UpdateManager _updateManager;
+        private readonly IMessageService _messageService;
 
         #region Settings & Basic Properties
         private UpdateSettings _settings;
@@ -32,152 +36,410 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
         }
 
         private void OnSettingsChanged()
-        {          
+        {
             NotifyPropertyChanged(nameof(IsAutoDownloadEnabled));
-            NotifyPropertyChanged(nameof(IsNotificationEnabled));
+            NotifyPropertyChanged(nameof(IsNotificationEnabled));            
         }
 
         public bool IsAutoDownloadEnabled => Settings?.AutoCheckOnStartup == true;
         public bool IsNotificationEnabled => Settings?.AutoCheckOnStartup == true;
         #endregion
 
-        #region UI State Properties
-        private string _statusText = "MuhasibPro güncel";
-        public string StatusText
+        #region Core State Properties
+        private UpdateState _currentState = UpdateState.Idle;
+        public UpdateState CurrentState
         {
-            get => _statusText;
-            set => Set(ref _statusText, value);
+            get => _currentState;
+            set
+            {
+                if (Set(ref _currentState, value))
+                {
+                    UpdateUIForState();
+                }
+            }
         }
 
-        private string _versionText = "";
-        public string VersionText
+        private UpdateInfo _currentUpdateInfo;
+        public UpdateInfo CurrentUpdateInfo
         {
-            get => _versionText;
-            set => Set(ref _versionText, value);
+            get => _currentUpdateInfo;
+            set
+            {
+                if (Set(ref _currentUpdateInfo, value))
+                {
+                    NotifyPropertyChanged(nameof(UpdateSize));
+                    NotifyPropertyChanged(nameof(ReleaseDate));
+                    NotifyPropertyChanged(nameof(UpdateInfoVisibility));
+                    NotifyPropertyChanged(nameof(ChangelogUrl));
+                    UpdateUIForState();
+                }
+            }
         }
 
+        private int _progressPercentage;
+        public int ProgressPercentage
+        {
+            get => _progressPercentage;
+            set => Set(ref _progressPercentage, value);
+        }
+
+        private string _progressText = "";
+        public string ProgressText
+        {
+            get => _progressText;
+            set => Set(ref _progressText, value);
+        }
+
+        private string _progressDetails = "";
+        public string ProgressDetails
+        {
+            get => _progressDetails;
+            set => Set(ref _progressDetails, value);
+        }
+        #endregion
+
+        #region UI Display Properties (Computed from State)
+        public string StatusText => GetStatusTextForState();
+        public string VersionText => GetVersionTextForState();
+        public string UpdateButtonText => GetButtonTextForState();
+        public bool IsUpdateButtonEnabled => GetButtonEnabledForState();
+        public bool IsCheckButtonEnabled => CurrentState != UpdateState.Checking;
+        //public Visibility UpdateBadgeVisibility => CurrentState == UpdateState.UpdateAvailable ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility UpdateDetailsVisibility => ShouldShowDetails() ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility UpdateInfoVisibility => CurrentUpdateInfo != null ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility ProgressVisibility => IsProgressVisible() ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility UpdateCardVisibility => ShouldShowUpdateCard() ? Visibility.Visible : Visibility.Collapsed;
+        public string StatusIconGlyph => GetStatusIconForState();
+        public Brush StatusIconBrush => GetStatusIconBrushForState();
+        // Update info display
+        public string UpdateSize => CurrentUpdateInfo?.FormattedFileSize ?? "";
+        public string ReleaseDate => CurrentUpdateInfo?.FormattedReleaseDate ?? "";
+        public string ChangelogUrl
+        {
+            get
+            {
+                if (CurrentUpdateInfo == null) return "";
+
+                // İlk önce ChangelogUrl'i kontrol et
+                if (!string.IsNullOrEmpty(CurrentUpdateInfo.ChangelogUrl))
+                    return CurrentUpdateInfo.ChangelogUrl;
+
+                // Sonra ReleaseNotesUrl'i kontrol et
+                if (!string.IsNullOrEmpty(CurrentUpdateInfo.ReleaseNotesUrl))
+                    return CurrentUpdateInfo.ReleaseNotesUrl;
+
+                return "";
+            }
+        }
+        public Visibility ChangelogButtonVisibility => !string.IsNullOrEmpty(ChangelogUrl) ? Visibility.Visible : Visibility.Collapsed;
+        #endregion
+
+        #region Last Check Display
         private string _lastCheckText = "Son denetleme: Hiçbir zaman";
         public string LastCheckText
         {
             get => _lastCheckText;
             set => Set(ref _lastCheckText, value);
         }
-
-        private string _updateButtonText = "Kontrol Et";
-        public string UpdateButtonText
-        {
-            get => _updateButtonText;
-            set => Set(ref _updateButtonText, value);
-        }
-
-        private bool _isUpdateButtonEnabled = true;
-        public bool IsUpdateButtonEnabled
-        {
-            get => _isUpdateButtonEnabled;
-            set => Set(ref _isUpdateButtonEnabled, value);
-        }
-
-        private bool _isCheckButtonEnabled = true;
-        public bool IsCheckButtonEnabled
-        {
-            get => _isCheckButtonEnabled;
-            set => Set(ref _isCheckButtonEnabled, value);
-        }
-
-        private bool _hasUpdate = false;
-        public bool HasUpdate
-        {
-            get => _hasUpdate;
-            set
-            {
-                if (Set(ref _hasUpdate, value))
-                {
-                    UpdateUIVisibility();
-                }
-            }
-        }
-
-        private Visibility _updateBadgeVisibility = Visibility.Collapsed;
-        public Visibility UpdateBadgeVisibility
-        {
-            get => _updateBadgeVisibility;
-            set => Set(ref _updateBadgeVisibility, value);
-        }
-
-        private Visibility _updateDetailsVisibility = Visibility.Collapsed;
-        public Visibility UpdateDetailsVisibility
-        {
-            get => _updateDetailsVisibility;
-            set => Set(ref _updateDetailsVisibility, value);
-        }
-
-        private Visibility _updateInfoVisibility = Visibility.Collapsed;
-        public Visibility UpdateInfoVisibility
-        {
-            get => _updateInfoVisibility;
-            set => Set(ref _updateInfoVisibility, value);
-        }
-
-        private Visibility _actionButtonsVisibility = Visibility.Collapsed;
-        public Visibility ActionButtonsVisibility
-        {
-            get => _actionButtonsVisibility;
-            set => Set(ref _actionButtonsVisibility, value);
-        }
         #endregion
 
-        #region Update Info Display Properties
-        private string _updateDescription = "";
-        public string UpdateDescription
+        #region Error Handling
+        private string _errorMessage;
+        public string ErrorMessage
         {
-            get => _updateDescription;
-            set => Set(ref _updateDescription, value);
+            get => _errorMessage;
+            set => Set(ref _errorMessage, value);
         }
 
-        private string _updateSize = "";
-        public string UpdateSize
-        {
-            get => _updateSize;
-            set => Set(ref _updateSize, value);
-        }
-
-        private string _releaseDate = "";
-        public string ReleaseDate
-        {
-            get => _releaseDate;
-            set => Set(ref _releaseDate, value);
-        }
-
-        private bool _isDownloadButtonEnabled = false;
-        public bool IsDownloadButtonEnabled
-        {
-            get => _isDownloadButtonEnabled;
-            set => Set(ref _isDownloadButtonEnabled, value);
-        }
-
-        private bool _isInstallButtonEnabled = false;
-        public bool IsInstallButtonEnabled
-        {
-            get => _isInstallButtonEnabled;
-            set => Set(ref _isInstallButtonEnabled, value);
-        }
-
-        private bool _isScheduleButtonEnabled = false;
-        public bool IsScheduleButtonEnabled
-        {
-            get => _isScheduleButtonEnabled;
-            set => Set(ref _isScheduleButtonEnabled, value);
-        }
+        public Visibility ErrorVisibility => !string.IsNullOrEmpty(ErrorMessage) && CurrentState == UpdateState.Error ? Visibility.Visible : Visibility.Collapsed;
         #endregion
 
         #region Constructor
-        public UpdateViewModel(IUpdateService updateService, UpdateManager updateManager, ICommonServices commonServices) : base(commonServices)
+        public UpdateViewModel(IUpdateService updateService, UpdateManager updateManager,
+                             IMessageService messageService, ICommonServices commonServices) : base(commonServices)
         {
             _updateService = updateService;
             _updateManager = updateManager;
+            _messageService = messageService;
 
-            // UpdateManager event'lerini dinle
-            _updateManager.PendingUpdateChanged += OnPendingUpdateChanged;
+            // MessageService event'lerini dinle
+            _messageService.Subscribe<UpdateManager, UpdateEventArgs>(this, OnUpdateStateChanged);
+            _messageService.Subscribe<UpdateManager, UpdateProgressEventArgs>(this, OnUpdateProgress);
+        }
+        #endregion
+
+        #region MessageService Event Handlers
+        private void OnUpdateStateChanged(UpdateManager sender, string message, UpdateEventArgs args)
+        {
+            DispatcherQueue.GetForCurrentThread()?.TryEnqueue(() =>
+            {
+                switch (message)
+                {
+                    case UpdateEvents.StateChanged:
+                        CurrentState = args.State;
+                        CurrentUpdateInfo = args.UpdateInfo;
+                        ErrorMessage = args.Error?.Message ?? "";
+                        if (!string.IsNullOrEmpty(args.Message))
+                        {
+                            ProgressText = args.Message;
+                        }
+                        break;
+
+                    case UpdateEvents.PendingUpdateChanged:
+                        CurrentState = args.State;
+                        CurrentUpdateInfo = args.UpdateInfo;
+                        break;
+
+                    case UpdateEvents.Error:
+                        CurrentState = UpdateState.Error;
+                        ErrorMessage = args.Error?.Message ?? "Bilinmeyen bir hata oluştu";
+                        ProgressText = args.Message ?? "Bir hata oluştu";
+                        break;
+                }
+            });
+        }
+
+        private void OnUpdateProgress(UpdateManager sender, string message, UpdateProgressEventArgs args)
+        {
+            DispatcherQueue.GetForCurrentThread()?.TryEnqueue(() =>
+            {
+                if (message == UpdateEvents.Progress)
+                {
+                    // Artık args.Percentage güvenli şekilde kullanılabilir
+                    ProgressPercentage = args.Percentage;
+                    ProgressText = args.Status ?? GetStatusTextForState();
+
+                    if (args.Downloaded > 0 && args.Total > 0)
+                    {
+                        ProgressDetails = $"{args.FormattedDownloaded} / {args.FormattedTotal} • {args.FormattedSpeed}";
+                    }
+
+                    // Debug için
+                    System.Diagnostics.Debug.WriteLine($"Progress: {args.Percentage}% ({args.FormattedDownloaded}/{args.FormattedTotal})");
+                }
+            });
+        }
+        #endregion
+
+        #region State-based UI Logic
+        private string GetStatusTextForState()
+        {
+            return CurrentState switch
+            {
+                UpdateState.Idle => "Güncelsiniz",
+                UpdateState.Checking => "Güncelleştirmeler denetleniyor...",
+                UpdateState.UpdateAvailable => "Bir güncelleştirme hazır",
+                UpdateState.Downloading => "İndiriliyor...",
+                UpdateState.Downloaded => "Yüklemeye hazır",
+                UpdateState.Installing => "Yükleniyor...",
+                UpdateState.Installed => "Yeniden başlatma bekleniyor",
+                UpdateState.Error => "Bir sorun oluştu",
+                _ => "Güncelsiniz"
+            };
+        }
+        private bool ShouldShowUpdateCard()
+        {
+            return CurrentState switch
+            {
+                UpdateState.UpdateAvailable or
+                UpdateState.Downloading or
+                UpdateState.Downloaded or
+                UpdateState.Installing or
+                UpdateState.Installed or
+                UpdateState.Error => true,
+                _ => false,
+            };
+        }
+        // YENİ EKLENDİ: Duruma göre uygun simgeyi döndürür
+        private string GetStatusIconForState()
+        {
+            return CurrentState switch
+            {
+                UpdateState.Idle or UpdateState.Installed => "\uE930", // CheckmarkBold
+                UpdateState.Checking or UpdateState.Downloading or UpdateState.Installing => "\uE895", // Sync
+                UpdateState.UpdateAvailable or UpdateState.Downloaded => "\uE946", // Info
+                UpdateState.Error => "\uE783", // Error
+                _ => "\uE946", // Default to Info
+            };
+        }
+
+        // YENİ EKLENDİ: Duruma göre uygun simge rengini döndürür
+        private Brush GetStatusIconBrushForState()
+        {
+            var brushName = CurrentState switch
+            {
+                UpdateState.Idle or UpdateState.Installed => "SystemFillColorSuccessBrush",
+                UpdateState.Error => "SystemFillColorCriticalBrush",
+                _ => "SystemControlForegroundAccentBrush",
+            };
+            return (Brush)Application.Current.Resources[brushName];
+        }
+
+        private string GetVersionTextForState()
+        {
+            return CurrentState switch
+            {
+                UpdateState.UpdateAvailable when CurrentUpdateInfo != null =>
+                    $"v{CurrentUpdateInfo.LatestVersion} hazır",
+                UpdateState.Downloaded when CurrentUpdateInfo != null =>
+                    $"v{CurrentUpdateInfo.LatestVersion} indirildi",
+                // Error durumunda version text'te hata gösterme, sadece mevcut version'u göster
+                UpdateState.Error => $"v{CurrentUpdateInfo.LatestVersion} {StatusText}",
+                _ => $"Lütfen bekleyin..."
+            };
+        }
+
+        private string GetButtonTextForState()
+        {
+            return CurrentState switch
+            {
+                UpdateState.Idle => "Kontrol Et",
+                UpdateState.Checking => "Kontrol Ediliyor...",
+                UpdateState.UpdateAvailable => "İndir",
+                UpdateState.Downloading => "İndiriliyor...",
+                UpdateState.Downloaded => "Yükle ve Yeniden Başlat",
+                UpdateState.Installing => "Yükleniyor...",
+                UpdateState.Error => "Tekrar Dene",
+                UpdateState.Installed => "Yeniden Başlatılıyor...",
+                _ => "Kontrol Et"
+            };
+        }
+
+        private bool GetButtonEnabledForState()
+        {
+            return CurrentState switch
+            {
+                UpdateState.Checking => false,
+                UpdateState.Downloading => false,
+                UpdateState.Installing => false,
+                UpdateState.Installed => false,
+                _ => true
+            };
+        }
+
+        private bool ShouldShowDetails()
+        {
+            return CurrentState == UpdateState.UpdateAvailable ||
+                   CurrentState == UpdateState.Downloaded ||
+                   CurrentState == UpdateState.Downloading;
+        }
+
+        private bool IsProgressVisible()
+        {
+            return CurrentState == UpdateState.Downloading ||
+                   CurrentState == UpdateState.Installing;
+        }
+
+        private void UpdateUIForState()
+        {
+            // UI thread'de olduğumuzdan emin ol
+            DispatcherQueue.GetForCurrentThread()?.TryEnqueue(() =>
+            {
+                // Tüm computed property'leri güncelle
+                NotifyPropertyChanged(nameof(StatusText));
+                NotifyPropertyChanged(nameof(VersionText));
+                NotifyPropertyChanged(nameof(UpdateButtonText));
+                NotifyPropertyChanged(nameof(IsUpdateButtonEnabled));
+                
+                NotifyPropertyChanged(nameof(UpdateDetailsVisibility));
+                NotifyPropertyChanged(nameof(UpdateInfoVisibility));
+                NotifyPropertyChanged(nameof(ProgressVisibility));
+                NotifyPropertyChanged(nameof(ChangelogButtonVisibility));
+                NotifyPropertyChanged(nameof(ErrorVisibility));
+
+                NotifyPropertyChanged(nameof(UpdateCardVisibility));
+                NotifyPropertyChanged(nameof(StatusIconGlyph));
+                NotifyPropertyChanged(nameof(StatusIconBrush));
+            });
+        }
+        #endregion
+
+        #region Commands
+        public ICommand UpdateActionCommand => new RelayCommand(async () => await UpdateActionAsync());
+        public ICommand CheckNowCommand => new RelayCommand(async () => await CheckNowAsync());
+        public ICommand OpenChangelogCommand => new RelayCommand(async () => await OpenChangelogAsync());
+
+        // Settings commands
+        public ICommand ToggleAutoCheckCommand => new RelayCommand(async () => await ToggleAutoCheckAsync());
+        public ICommand ToggleAutoDownloadCommand => new RelayCommand(async () => await ToggleAutoDownloadAsync());
+        public ICommand ToggleShowNotificationsCommand => new RelayCommand(async () => await ToggleShowNotificationsAsync());
+        public ICommand ToggleIncludeBetaCommand => new RelayCommand(async () => await ToggleIncludeBetaAsync());
+        #endregion
+
+        #region Command Implementations
+        private async Task UpdateActionAsync()
+        {
+            try
+            {
+                switch (CurrentState)
+                {
+                    case UpdateState.Idle:
+                    case UpdateState.Error:
+                        await CheckNowAsync();
+                        break;
+
+                    case UpdateState.UpdateAvailable:
+                        if (CurrentUpdateInfo != null)
+                        {
+                            // Sadece indir - kurulum yapmaz
+                            await _updateManager.DownloadUpdate(CurrentUpdateInfo.DownloadUrl);
+                        }
+                        break;
+
+                    case UpdateState.Downloaded:
+                        // Kurulumu başlat
+                        await _updateManager.InstallPendingUpdate();
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                CurrentState = UpdateState.Error;
+                ErrorMessage = ex.Message;
+                ProgressText = "İşlem başarısız";
+            }
+        }
+
+        private async Task CheckNowAsync()
+        {
+            try
+            {
+                // UpdateManager'ın CheckForUpdatesManually metodunu kullan
+                var updateInfo = await _updateManager.CheckForUpdatesManually();
+                UpdateLastCheckText();
+
+                if (!string.IsNullOrEmpty(_updateManager.PendingUpdateLocalPath))
+                {
+                    CurrentState = UpdateState.Downloaded;
+                    ProgressText = "Güncelleme kurulmaya hazır";
+                }
+                else
+                {
+                    CurrentState = UpdateState.UpdateAvailable;
+                    ProgressText = "Güncelleme indirilebilir";
+                }
+            }
+            catch (Exception ex)
+            {
+                CurrentState = UpdateState.Error;
+                ErrorMessage = ex.Message;
+                ProgressText = "Kontrol başarısız";
+            }
+        }
+
+        private async Task OpenChangelogAsync()
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(ChangelogUrl))
+                {
+                    await Windows.System.Launcher.LaunchUriAsync(new Uri(ChangelogUrl));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Changelog açılamadı: {ex.Message}");
+            }
         }
         #endregion
 
@@ -200,18 +462,18 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
                 System.Diagnostics.Debug.WriteLine($"Settings load error: {ex.Message}");
             }
         }
-     
+
         private async Task CheckInitialUpdateState()
         {
             try
             {
-                // UpdateManager'ın startup check'ini kullan
                 await _updateManager.CheckForUpdatesOnStartup();
 
-                // Eğer pending update varsa UI'ı güncelle
                 if (_updateManager.HasPendingUpdate)
                 {
-                    UpdateUIState(_updateManager.PendingUpdateInfo);
+                    CurrentState = _updateManager.PendingUpdateLocalPath != null ?
+                        UpdateState.Downloaded : UpdateState.UpdateAvailable;
+                    CurrentUpdateInfo = _updateManager.PendingUpdateInfo;
                 }
 
                 UpdateLastCheckText();
@@ -223,190 +485,19 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
         }
         #endregion
 
-        #region Commands
-        public ICommand UpdateActionCommand => new RelayCommand(async () => await UpdateActionAsync());
-        public ICommand CheckNowCommand => new RelayCommand(async () => await CheckNowAsync());
-        public ICommand DownloadCommand => new RelayCommand(async () => await DownloadAsync());
-        public ICommand InstallCommand => new RelayCommand(async () => await InstallAsync());
-        public ICommand ScheduleCommand => new RelayCommand(async () => await ScheduleAsync());
-
-        // Settings commands
-        public ICommand ToggleAutoCheckCommand => new RelayCommand(async () => await ToggleAutoCheckAsync());
-        public ICommand ToggleAutoDownloadCommand => new RelayCommand(async () => await ToggleAutoDownloadAsync());
-        public ICommand ToggleShowNotificationsCommand => new RelayCommand(async () => await ToggleShowNotificationsAsync());
-        public ICommand ToggleIncludeBetaCommand => new RelayCommand(async () => await ToggleIncludeBetaAsync());
-        #endregion
-
-        #region Command Implementations
-        private async Task UpdateActionAsync()
-        {
-            if (HasUpdate && _updateManager.PendingUpdateInfo != null)
-            {
-                // UpdateManager'ın kendi dialog'unu kullan
-                await _updateManager.DownloadAndInstallUpdate(_updateManager.PendingUpdateInfo.DownloadUrl);
-                return;
-            }
-
-            await CheckNowAsync();
-        }
-
-        private async Task CheckNowAsync()
-        {
-            SetCheckingState();
-
-            try
-            {
-                // UpdateManager'ın manuel check metodunu kullan
-                var updateInfo = await _updateService.CheckForUpdatesAsync();
-                await _updateService.UpdateLastCheckDateAsync();
-
-                if (updateInfo.HasError)
-                {
-                    StatusText = "Kontrol edilemedi";
-                    VersionText = updateInfo.ErrorMessage;
-                }
-                else if (updateInfo.HasUpdate)
-                {
-                    // UpdateManager'ın dialog'unu göster
-                    await _updateManager.ShowUpdateDialog(updateInfo);
-                }
-                else
-                {
-                    // Manual check'te "güncel" mesajı göster
-                    StatusText = "MuhasibPro güncel";
-                }
-
-                UpdateUIState(updateInfo);
-                UpdateLastCheckText();
-            }
-            catch (Exception ex)
-            {
-                StatusText = "Kontrol edilemedi";
-                VersionText = ex.Message;
-            }
-            finally
-            {
-                ResetCheckingState();
-            }
-        }
-
-        private async Task DownloadAsync()
-        {
-            if (_updateManager.PendingUpdateInfo != null)
-            {
-                await _updateManager.DownloadAndInstallUpdate(_updateManager.PendingUpdateInfo.DownloadUrl);
-            }
-        }    
-        private async Task InstallAsync()
-        {
-            // Bu durumda UpdateManager'da bir install metodu olması gerekiyor
-            // Veya pending update'teki local path'i kullanabiliriz
-            if (_updateManager.HasPendingUpdate)
-            {
-                await _updateManager.InstallPendingUpdate(); // Bunu eklemek gerekiyor
-            }
-        }
-
-        private async Task ScheduleAsync()
-        {
-            // Sonraki başlangıçta yükle - pending update'i korumak yeterli
-            _updateManager.ClearPendingUpdate();
-            HasUpdate = false;
-            await Task.CompletedTask;
-        }
-        #endregion
-
-        #region UI State Management
-        private void SetCheckingState()
-        {
-            IsUpdateButtonEnabled = false;
-            IsCheckButtonEnabled = false;
-            UpdateButtonText = "Kontrol Ediliyor...";
-        }
-
-        private void ResetCheckingState()
-        {
-            IsUpdateButtonEnabled = true;
-            IsCheckButtonEnabled = true;
-            UpdateButtonText = HasUpdate ? "Güncelle" : "Kontrol Et";
-        }
-
-        private void UpdateUIVisibility()
-        {
-            UpdateDetailsVisibility = HasUpdate ? Visibility.Visible : Visibility.Collapsed;
-            UpdateBadgeVisibility = HasUpdate ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void UpdateUIState(UpdateInfo updateInfo)
-        {
-            if (updateInfo == null)
-            {
-                HasUpdate = false;
-                return;
-            }
-
-            VersionText = ProcessInfoHelper.Version;
-
-            if (updateInfo.HasError)
-            {
-                StatusText = "Kontrol edilemedi";
-                VersionText = updateInfo.ErrorMessage;
-                UpdateButtonText = "Tekrar Dene";
-                HasUpdate = false;
-            }
-            else if (updateInfo.HasUpdate)
-            {
-                StatusText = "Güncelleme mevcut";
-                VersionText = $"v{updateInfo.LatestVersion} hazır";
-                UpdateButtonText = "Güncelle";
-                HasUpdate = true;
-
-                // Update details'i set et
-                UpdateDescription = updateInfo.ReleaseNotes ?? "Yeni özellikler ve hata düzeltmeleri";
-                UpdateSize = updateInfo.FormattedFileSize;
-                ReleaseDate = updateInfo.FormattedReleaseDate;
-
-                // Action buttons'ı göster
-                UpdateInfoVisibility = Visibility.Visible;
-                ActionButtonsVisibility = Visibility.Visible;
-
-                // Button states - başlangıçta download enable
-                IsDownloadButtonEnabled = true;
-                IsInstallButtonEnabled = false;
-                IsScheduleButtonEnabled = false;
-            }
-            else
-            {
-                StatusText = "MuhasibPro güncel";
-                VersionText = $"En son sürüm: {updateInfo.CurrentVersion}";
-                UpdateButtonText = "Kontrol Et";
-                HasUpdate = false;
-            }
-        }
-
-        private void OnPendingUpdateChanged(UpdateInfo updateInfo)
-        {
-            // UI thread'de çalıştır
-            ContextService?.RunAsync(() =>
-            {
-                UpdateUIState(updateInfo);
-            });
-        }
-        #endregion
-
         #region Settings Management
         private async Task ToggleAutoCheckAsync()
         {
-           DispatcherQueue.GetForCurrentThread().TryEnqueue(async () =>
+            DispatcherQueue.GetForCurrentThread().TryEnqueue(async () =>
             {
                 if (Settings != null)
                 {
                     await SaveSettings();
                     OnSettingsChanged();
 
-                    // Otomatik kontrol kapatıldığında bağımlı ayarları da kapat
                     if (!Settings.AutoCheckOnStartup)
                     {
+                        
                         Settings.AutoDownload = false;
                         Settings.ShowNotifications = false;
                         await SaveSettings();
@@ -415,7 +506,6 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
                 }
             });
             await Task.CompletedTask;
-
         }
 
         private async Task ToggleAutoDownloadAsync()
@@ -489,6 +579,12 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
             {
                 LastCheckText = "Son denetleme: Hiçbir zaman";
             }
+        }
+
+        public void Unsubscribe()
+        {
+            _messageService.Unsubscribe<UpdateManager>(this);
+            _messageService.Unsubscribe<UpdateManager, UpdateProgressEventArgs>(this);
         }
         #endregion
     }
