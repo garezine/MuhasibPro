@@ -188,30 +188,41 @@ namespace MuhasibPro.Core.Services.Concreate.Update
         {
             try
             {
-                // Pending update info'yu settings'den yükle
                 var pendingInfo = await _updateService.GetPendingUpdateAsync();
 
                 if(pendingInfo != null)
                 {
-                    // Dosya hala var mı kontrol et
+                    // Dosya hala var mı ve hash doğru mu kontrol et
                     if(!string.IsNullOrEmpty(pendingInfo.LocalPath) && File.Exists(pendingInfo.LocalPath))
                     {
-                        // İndirme tamamlanmış, kurulum bekliyor
-                        SetPendingUpdate(pendingInfo.UpdateInfo, pendingInfo.LocalPath);
+                        // Hash doğrulaması yap
+                        var isValid = await _updateService.VerifyUpdateFileAsync(
+                            pendingInfo.LocalPath,
+                            pendingInfo.FileHash);
 
-                        await _messageService.SendAsync(
-                            this,
-                            UpdateEvents.StateChanged,
-                            new UpdateEventArgs(
-                                UpdateState.Downloaded,
-                                pendingInfo.UpdateInfo,
-                                "Güncelleme kurulmaya hazır"));
-                        return;
-                    } else
-                    {
-                        // Dosya bulunamadı, pending update'i temizle
-                        await _updateService.ClearPendingUpdateAsync();
+                        if(isValid)
+                        {
+                            SetPendingUpdate(pendingInfo.UpdateInfo, pendingInfo.LocalPath);
+                            await _messageService.SendAsync(
+                                this,
+                                UpdateEvents.StateChanged,
+                                new UpdateEventArgs(
+                                    UpdateState.Downloaded,
+                                    pendingInfo.UpdateInfo,
+                                    "Güncelleme kurulmaya hazır"));
+                            return;
+                        } else
+                        {
+                            // Hash doğrulanamadı, dosya bozuk
+                            await _messageService.SendAsync(
+                                this,
+                                UpdateEvents.Error,
+                                new UpdateEventArgs(new Exception("İndirilen güncelleme dosyası bozuk")));
+                        }
                     }
+
+                    // Dosya bulunamadı veya bozuk, pending update'i temizle
+                    await _updateService.ClearPendingUpdateAsync();
                 }
             } catch(Exception ex)
             {
@@ -373,7 +384,7 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                             new UpdateProgressEventArgs(UpdateState.Downloading, p.downloaded, p.total, p.speed));
                     });
 
-                var setupPath = await DownloadUpdateFile(updateInfo.DownloadUrl, progress);
+                var setupPath = await DownloadUpdateFile(updateInfo.DownloadUrl,expectedHash:null, progress);
 
                 if(setupPath != null)
                 {
@@ -416,22 +427,23 @@ namespace MuhasibPro.Core.Services.Concreate.Update
             {
                 UpdateInfo updateToDownload = null;
                 string urlToUse = downloadUrl;
+                string expectedHash = null;
 
                 // Önce PendingUpdateInfo'yu kontrol et
-                if(PendingUpdateInfo != null)
+                if (PendingUpdateInfo != null)
                 {
                     updateToDownload = PendingUpdateInfo;
                     urlToUse = urlToUse ?? PendingUpdateInfo.DownloadUrl;
+                    expectedHash = PendingUpdateInfo.FileHash;
                 }
- // Eğer PendingUpdateInfo null ama _currentAvailableUpdate varsa onu kullan
- else if(_currentAvailableUpdate != null)
+                else if (_currentAvailableUpdate != null)
                 {
                     updateToDownload = _currentAvailableUpdate;
                     urlToUse = urlToUse ?? _currentAvailableUpdate.DownloadUrl;
-                    SetPendingUpdate(_currentAvailableUpdate); // PendingUpdate'i set et
+                    expectedHash = _currentAvailableUpdate.FileHash;
+                    SetPendingUpdate(_currentAvailableUpdate);
                 }
- // Son çare olarak güncelleme kontrolü yap
- else
+                else
                 {
                     await _messageService.SendAsync(
                         this,
@@ -439,13 +451,15 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                         new UpdateEventArgs(UpdateState.Checking, "Güncelleme bilgisi alınıyor..."));
 
                     var updateInfo = await _updateService.CheckForUpdatesAsync();
-                    if(updateInfo.HasUpdate)
+                    if (updateInfo.HasUpdate)
                     {
                         updateToDownload = updateInfo;
                         urlToUse = urlToUse ?? updateInfo.DownloadUrl;
+                        expectedHash = updateInfo.FileHash;
                         _currentAvailableUpdate = updateInfo;
                         SetPendingUpdate(updateInfo);
-                    } else
+                    }
+                    else
                     {
                         await _messageService.SendAsync(
                             this,
@@ -455,7 +469,7 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                     }
                 }
 
-                if(string.IsNullOrEmpty(urlToUse))
+                if (string.IsNullOrEmpty(urlToUse))
                 {
                     await _messageService.SendAsync(
                         this,
@@ -464,14 +478,29 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                     return;
                 }
 
-                // Zaten indirilmiş mi kontrol et
-                if(!string.IsNullOrEmpty(PendingUpdateLocalPath) && File.Exists(PendingUpdateLocalPath))
+                // Zaten indirilmiş ve hash doğru mu kontrol et
+                if (!string.IsNullOrEmpty(PendingUpdateLocalPath) && File.Exists(PendingUpdateLocalPath))
                 {
-                    await _messageService.SendAsync(
-                        this,
-                        UpdateEvents.StateChanged,
-                        new UpdateEventArgs(UpdateState.Downloaded, updateToDownload, "Güncelleme zaten indirilmiş"));
-                    return;
+                    if (!string.IsNullOrEmpty(expectedHash))
+                    {
+                        var isValid = await _updateService.VerifyUpdateFileAsync(PendingUpdateLocalPath, expectedHash);
+                        if (isValid)
+                        {
+                            await _messageService.SendAsync(
+                                this,
+                                UpdateEvents.StateChanged,
+                                new UpdateEventArgs(UpdateState.Downloaded, updateToDownload, "Güncelleme zaten indirilmiş"));
+                            return;
+                        }
+                        else
+                        {
+                            // Hash doğrulanamadı, tekrar indir
+                            await _messageService.SendAsync(
+                                this,
+                                UpdateEvents.StateChanged,
+                                new UpdateEventArgs(UpdateState.Downloading, "Dosya bozuk, tekrar indiriliyor..."));
+                        }
+                    }
                 }
 
                 await _messageService.SendAsync(
@@ -488,11 +517,11 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                             new UpdateProgressEventArgs(UpdateState.Downloading, p.downloaded, p.total, p.speed));
                     });
 
-                var setupPath = await DownloadUpdateFile(urlToUse, progress);
+                // Hash bilgisi ile indirme yap
+                var setupPath = await DownloadUpdateFile(urlToUse, expectedHash, progress);
 
-                if(setupPath != null)
+                if (setupPath != null)
                 {
-                    // İndirme tamamlandı - Downloaded state'ine geç
                     SetPendingUpdate(updateToDownload, setupPath);
 
                     await _messageService.SendAsync(
@@ -500,22 +529,19 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                         UpdateEvents.StateChanged,
                         new UpdateEventArgs(UpdateState.Downloaded, updateToDownload, "İndirme tamamlandı"));
 
-                    // Pending update'i kaydet
+                    // Pending update'i kaydet (hash bilgisi ile)
                     await _updateService.SavePendingUpdateAsync(
                         new PendingUpdateInfo
                         {
                             UpdateInfo = updateToDownload,
                             LocalPath = setupPath,
-                            DownloadedAt = DateTime.Now
+                            DownloadedAt = DateTime.Now,
+                            FileSize = new FileInfo(setupPath).Length,
+                            FileHash = await CalculateFileHashAsync(setupPath)
                         });
-                } else
-                {
-                    await _messageService.SendAsync(
-                        this,
-                        UpdateEvents.Error,
-                        new UpdateEventArgs(new Exception("İndirme başarısız oldu")));
                 }
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 await _messageService.SendAsync(
                     this,
@@ -526,11 +552,12 @@ namespace MuhasibPro.Core.Services.Concreate.Update
 
         public async Task<string> DownloadUpdateFile(
             string downloadUrl,
+            string expectedHash,
             IProgress<(long, long, double)> progress = null)
         {
             try
             {
-                if(string.IsNullOrEmpty(downloadUrl))
+                if (string.IsNullOrEmpty(downloadUrl))
                 {
                     throw new ArgumentException("İndirme URL'si boş olamaz", nameof(downloadUrl));
                 }
@@ -545,26 +572,31 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                                 new UpdateProgressEventArgs(UpdateState.Downloading, p.downloaded, p.total, p.speed));
                         });
 
-                var filePath = await _updateService.DownloadUpdateFile(downloadUrl, progressCallback);
+                // Hash bilgisi ile indirme yap
+                string filePath;
+                if (!string.IsNullOrEmpty(expectedHash))
+                {
+                    filePath = await _updateService.DownloadUpdateFile(downloadUrl, expectedHash, progressCallback);
+                }
+                else
+                {
+                    filePath = await _updateService.DownloadUpdateFile(downloadUrl,expectedHash:null, progressCallback);
+                }
 
                 // Dosya integrity'sini kontrol et
-                if(!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+                if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
                     var fileInfo = new FileInfo(filePath);
-                    if(fileInfo.Length == 0)
+                    if (fileInfo.Length == 0)
                     {
                         File.Delete(filePath);
                         throw new Exception("İndirilen dosya bozuk (dosya boyutu 0 byte)");
                     }
-
-                    Debug.WriteLine($"Dosya başarıyla indirildi: {filePath} ({fileInfo.Length} bytes)");
-                } else
-                {
-                    throw new Exception("Dosya indirilemedi veya bulunamadı");
                 }
 
                 return filePath;
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Debug.WriteLine($"DownloadUpdateFile hatası: {ex.Message}");
                 await _messageService.SendAsync(
@@ -574,6 +606,22 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                 throw;
             }
         }
+        private async Task<string> CalculateFileHashAsync(string filePath)
+        {
+            try
+            {
+                using var stream = File.OpenRead(filePath);
+                using var sha256 = System.Security.Cryptography.SHA256.Create();
+                var hash = await sha256.ComputeHashAsync(stream);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Hash hesaplama hatası: {ex.Message}");
+                return null;
+            }
+        }
+
 
         // Eski method - önce indir sonra kur
         public async Task DownloadAndInstallUpdate(string downloadUrl = null)
@@ -620,7 +668,7 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                 {
                     await InstallUpdate(PendingUpdateLocalPath);
                 } else
-                {
+                {                    
                     // Dosya bulunamazsa tekrar indir ve kur
                     await _messageService.SendAsync(
                         this,
@@ -632,7 +680,7 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                     await DownloadAndInstallUpdate(PendingUpdateInfo.DownloadUrl);
                 }
             } catch(Exception ex)
-            {
+            {               
                 await _messageService.SendAsync(
                     this,
                     UpdateEvents.Error,
@@ -654,8 +702,7 @@ namespace MuhasibPro.Core.Services.Concreate.Update
                 // Kurulum başarılı olursa temizle
                 await _updateService.ClearPendingUpdateAsync();
                 ClearPendingUpdate();
-
-                if(File.Exists(setupPath))
+                if (File.Exists(setupPath))
                     File.Delete(setupPath);
 
                 await _messageService.SendAsync(

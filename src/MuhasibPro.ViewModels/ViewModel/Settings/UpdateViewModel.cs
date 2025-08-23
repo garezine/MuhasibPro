@@ -10,7 +10,6 @@ using MuhasibPro.Core.Infrastructure.ViewModels;
 using MuhasibPro.Core.Models.Update;
 using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Core.Services.Concreate.Update;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.ViewModel.Settings
@@ -193,7 +192,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
                     case UpdateEvents.Error:
                         CurrentState = UpdateState.Error;
                         ErrorMessage = args.Error?.Message ?? "Bilinmeyen bir hata oluştu";
-                        ProgressText = args.Message ?? "Bir hata oluştu";
+                        ProgressText = args.Message ?? "Bir hata oluştu";                        
                         break;
                 }
             });
@@ -284,7 +283,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
                 UpdateState.Downloaded when CurrentUpdateInfo != null =>
                     $"v{CurrentUpdateInfo.LatestVersion} indirildi",
                 // Error durumunda version text'te hata gösterme, sadece mevcut version'u göster
-                UpdateState.Error => $"v{CurrentUpdateInfo.LatestVersion} {StatusText}",
+                UpdateState.Error => $"Uygulama güncellenemedi",
                 _ => $"Lütfen bekleyin..."
             };
         }
@@ -477,6 +476,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Settings
                 }
 
                 UpdateLastCheckText();
+
             }
             catch (Exception ex)
             {

@@ -11,7 +11,9 @@ namespace Muhasebe.Business.Services.Abstract.Update
         Task UpdateLastCheckDateAsync();
         Task<UpdateSettings> GetUpdateSettings();
         Task SaveSettingsAsync(UpdateSettings updateSettings);
-        Task<string> DownloadUpdateFile(string downloadUrl, IProgress<(long downloaded, long total, double speed)> progress = null);
+        Task<string> DownloadUpdateFile(string downloadUrl,
+            string expectedHash,
+            IProgress<(long downloaded, long total, double speed)> progress = null);
         Task<DeltaUpdateInfo> CheckForDeltaUpdateAsync();
 
         Task<PendingUpdateInfo> GetPendingUpdateAsync();

@@ -214,9 +214,26 @@ namespace Muhasebe.Business.Services.Concreate.Update
         // Progress tracking ile ana download metodu
         public async Task<string> DownloadUpdateFile(
             string downloadUrl,
+            string expectedHash,
             IProgress<(long downloaded, long total, double speed)> progress = null)
         {
-            var fileName = $"MuhasibPro_Update_{DateTime.Now:yyyyMMdd_HHmmss}.msix";
+            // Önce aynı hash'e sahip dosya var mı kontrol et
+            var existingFile = FindFileByHash(expectedHash);
+            if (existingFile != null)
+            {
+                Debug.WriteLine($"Update file already exists with same hash: {existingFile}");
+                return existingFile;
+            }
+
+            // Eski dosyaları temizle (24 saatten eski)
+            CleanOldUpdateFiles(TimeSpan.FromHours(24));
+
+            // Versiyon bilgisini dosya adına ekle (opsiyonel)
+            var versionPart = !string.IsNullOrEmpty(expectedHash)
+                ? $"_{expectedHash.Substring(0, 8)}"
+                : $"_{DateTime.Now:yyyyMMdd_HHmmss}";
+
+            var fileName = $"MuhasibPro_Update{versionPart}.msix";
             var tempPath = Path.Combine(Path.GetTempPath(), fileName);
 
             try
@@ -242,22 +259,21 @@ namespace Muhasebe.Business.Services.Concreate.Update
                     8192,
                     true);
 
-                while(true)
+                while (true)
                 {
                     var bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-                    if(bytesRead == 0)
+                    if (bytesRead == 0)
                         break;
 
                     await fileStream.WriteAsync(buffer, 0, bytesRead);
                     downloadedBytes += bytesRead;
 
-                    // Progress bildirimi - 100ms'de bir veya %1 değişimde
-                    if(progress != null)
+                    if (progress != null)
                     {
                         var now = DateTime.Now;
                         var elapsedMs = (now - lastProgressTime).TotalMilliseconds;
 
-                        if(elapsedMs >= 100 || bytesRead == 0) // Son chunk için de bildir
+                        if (elapsedMs >= 100 || bytesRead == 0)
                         {
                             var elapsedSeconds = stopwatch.Elapsed.TotalSeconds;
                             var speed = elapsedSeconds > 0 ? downloadedBytes / elapsedSeconds : 0;
@@ -268,8 +284,7 @@ namespace Muhasebe.Business.Services.Concreate.Update
                     }
                 }
 
-                // Son progress bildirimi
-                if(progress != null)
+                if (progress != null)
                 {
                     var finalSpeed = stopwatch.Elapsed.TotalSeconds > 0
                         ? downloadedBytes / stopwatch.Elapsed.TotalSeconds
@@ -277,19 +292,29 @@ namespace Muhasebe.Business.Services.Concreate.Update
                     progress.Report((downloadedBytes, totalBytes, finalSpeed));
                 }
 
-                // İndirilen dosyanın boyutunu kontrol et
+                // İndirilen dosyanın hash'ini kontrol et
+                if (!string.IsNullOrEmpty(expectedHash))
+                {
+                    var isValid = await VerifyFileHash(tempPath, expectedHash);
+                    if (!isValid)
+                    {
+                        throw new Exception("Downloaded file hash does not match expected hash");
+                    }
+                }
+
                 ValidateDownloadedFile(tempPath);
 
                 return tempPath;
-            } catch
+            }
+            catch
             {
-                // Hata durumunda temp dosyayı sil
-                if(File.Exists(tempPath))
+                if (File.Exists(tempPath))
                 {
                     try
                     {
                         File.Delete(tempPath);
-                    } catch
+                    }
+                    catch
                     {
                     }
                 }
@@ -301,6 +326,7 @@ namespace Muhasebe.Business.Services.Concreate.Update
         public async Task<string> DownloadUpdateFile(string downloadUrl)
         { return await DownloadUpdateFile(downloadUrl, null); }
 
+        #region Dosya Doğrulama
         private async Task ValidateDownloadFile(string downloadUrl)
         {
             var headRequest = new HttpRequestMessage(HttpMethod.Head, downloadUrl);
@@ -348,6 +374,94 @@ namespace Muhasebe.Business.Services.Concreate.Update
                 // PE header kontrolü başarısızsa devam et
             }
         }
+        public async Task<bool> VerifyFileHash(string filePath, string expectedHash)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(expectedHash) || !File.Exists(filePath))
+                    return false;
+
+                var actualHash = await CalculateFileHashAsync(filePath);
+                return string.Equals(actualHash, expectedHash, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"VerifyFileHash error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public string FindFileByHash(string expectedHash)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(expectedHash))
+                    return null;
+
+                var tempDir = Path.GetTempPath();
+                var updateFiles = Directory.GetFiles(tempDir, "MuhasibPro_*.msix")
+                    .Concat(Directory.GetFiles(tempDir, "MuhasibPro_*.exe"))
+                    .ToArray();
+
+                foreach (var file in updateFiles)
+                {
+                    try
+                    {
+                        var fileHash = CalculateFileHashAsync(file).GetAwaiter().GetResult();
+                        if (string.Equals(fileHash, expectedHash, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return file;
+                        }
+                    }
+                    catch
+                    {
+                        // Hash hesaplama hatası durumunda bir sonraki dosyaya geç
+                        continue;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"FindFileByHash error: {ex.Message}");
+                return null;
+            }
+        }
+
+        public void CleanOldUpdateFiles(TimeSpan maxAge)
+        {
+            try
+            {
+                var tempDir = Path.GetTempPath();
+                var updateFiles = Directory.GetFiles(tempDir, "MuhasibPro_*.msix")
+                    .Concat(Directory.GetFiles(tempDir, "MuhasibPro_*.exe"))
+                    .ToArray();
+
+                foreach (var file in updateFiles)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        if (DateTime.Now - fileInfo.CreationTime > maxAge)
+                        {
+                            File.Delete(file);
+                            Debug.WriteLine($"Deleted old update file: {file}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error deleting file {file}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CleanOldUpdateFiles error: {ex.Message}");
+            }
+        }
+
+        #endregion
 
         public async Task<UpdateSettings> CheckForUpdatesOnSettings()
         {

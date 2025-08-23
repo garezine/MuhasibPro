@@ -110,6 +110,7 @@
                             <TextBlock
                                 FontSize="18"
                                 FontWeight="SemiBold"
+                                Foreground="{StaticResource ApplicationForegroundThemeBrush}"
                                 Text="{x:Bind ViewModel.VersionText, Mode=OneWay}" />
 
                             <StackPanel
