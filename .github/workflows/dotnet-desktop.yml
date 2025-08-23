@@ -5,6 +5,7 @@ name: .NET Desktop CI/CD
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -22,14 +23,12 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag-name: ${{ steps.version.outputs.tag-name }}
       build-number: ${{ steps.version.outputs.build-number }}
-      package-path: ${{ steps.find-packages.outputs.package-path }}
-      manifest-path: ${{ steps.find-packages.outputs.manifest-path }}
       
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Otomatik release notları için tam geçmiş gereklidir
+        fetch-depth: 0
 
     - name: Generate version number
       id: version
@@ -49,7 +48,6 @@ jobs:
         echo "build-number=${{ github.run_number }}" >> $env:GITHUB_OUTPUT
         echo "VERSION=$version" >> $env:GITHUB_ENV
 
-    # YORUM: .NET kurulumu ve diğer build adımları aynı kalabilir...
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
@@ -61,11 +59,6 @@ jobs:
     - name: Restore NuGet packages
       run: nuget restore $env:SOLUTION_NAME
 
-    # YORUM: Bu adımlar delta PAKETİ oluşturmadığınız için gereksiz. 
-    # Sadece süreci yavaşlatır ve karmaşıklık ekler. Bu yüzden kaldırıldı.
-    # - name: Download previous release (for delta)
-    # - name: Download previous MSIX (if exists)
-
     - name: Update version in manifest
       shell: pwsh
       run: |
@@ -75,40 +68,70 @@ jobs:
         $manifest.Save($manifestPath)
         Write-Host "Updated manifest version to: $env:VERSION"
 
-    # ... Build, sertifika ve MSIX oluşturma adımlarınız buradan devam ediyor (değişiklik yok) ...
-    # ... Bu adımların doğru çalıştığını varsayıyorum.
-    - name: Restore dependencies, Build solution, Create certificate, Create MSIX package adımları...
-    # (Kodun geri kalanı çok uzun olduğu için buraya eklemiyorum, aynı kalacak)
+    # === ORİJİNAL BUILD ADIMLARINIZ BURADA BAŞLIYOR ===
+    - name: Restore dependencies
+      run: dotnet restore $env:SOLUTION_NAME --runtime $env:RUNTIME_IDENTIFIER --verbosity normal
 
-    # YORUM: Find Packages adımını basitleştirip çıktıları düzenliyoruz.
-    - name: Find generated packages and manifest
-      id: find-packages
+    - name: Build solution
       shell: pwsh
       run: |
-        $mainPackage = Get-ChildItem -Recurse -Filter "*.msixbundle" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if (-not $mainPackage) {
-          $mainPackage = Get-ChildItem -Recurse -Filter "*.msix" | Where-Object { $_.Name -notlike "*_Test*" } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        }
-        if (-not $mainPackage) {
-          Write-Error "No MSIX or MSIXBUNDLE package found!"
-          exit 1
-        }
-        echo "package-path=$($mainPackage.FullName)" >> $env:GITHUB_OUTPUT
-        
-        # Manifest dosyasını da bulup artifact'e ekleyelim
-        $manifestFile = "update-manifest.json" # Bu dosyayı oluşturan adımınızın olduğunu varsayıyorum
-        if (Test-Path $manifestFile) {
-          echo "manifest-path=$manifestFile" >> $env:GITHUB_OUTPUT
+        msbuild $env:SOLUTION_NAME /p:Configuration=Release /p:Platform="x64" /p:RuntimeIdentifier=$env:RUNTIME_IDENTIFIER /p:PublishReadyToRun=false /p:RestorePackagesConfig=false /verbosity:detailed
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Solution build failed with exit code: $LASTEXITCODE"
+          exit $LASTEXITCODE
         }
 
-    # YORUM: Artifact'e hem paketi hem manifest dosyasını yüklüyoruz.
+    - name: Prepare certificate directory
+      shell: pwsh
+      run: |
+        $certDir = "MuhasibPro.Package"
+        if (!(Test-Path $certDir)) { New-Item -ItemType Directory -Path $certDir -Force | Out-Null }
+
+    - name: Create and install test certificate
+      shell: pwsh
+      run: |
+        # Sizin orijinal sertifika oluşturma kodunuz.
+        # Gizli (secret) değişkenlerinizi kullandığı için olduğu gibi çalışacaktır.
+        $certPassword = ConvertTo-SecureString -String "${{ secrets.PFX_PASSWORD }}" -Force -AsPlainText
+        $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=MuhasibPro Test Certificate" -KeyUsage DigitalSignature -FriendlyName "MuhasibPro Test Cert" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+        $certPath = Join-Path -Path "MuhasibPro.Package" -ChildPath "test_cert.pfx"
+        Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $certPath -Password $certPassword
+        echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
+
+    - name: Create MSIX package
+      shell: pwsh
+      run: |
+        # Sizin orijinal MSIX paketleme kodunuz.
+        # Env değişkenlerini kullandığı için olduğu gibi çalışacaktır.
+        $wapProjectFullPath = (Resolve-Path $env:WAP_PROJECT_PATH).Path
+        $certFullPath = (Resolve-Path $env:CERT_PATH).Path
+        $outputDirFullPath = (Resolve-Path "AppxPackages").Path + "\"
+        msbuild "$wapProjectFullPath" /p:Configuration=Release /p:Platform=x64 /p:PackageCertificateKeyFile="$certFullPath" /p:PackageCertificatePassword="${{ secrets.PFX_PASSWORD }}" /p:AppxPackageDir="$outputDirFullPath" /p:AppxBundle=Always /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxPackageSigningEnabled=true /verbosity:detailed
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "MSIX package build failed with exit code: $LASTEXITCODE"
+          exit $LASTEXITCODE
+        }
+
+    - name: Generate update manifest
+      shell: pwsh
+      run: |
+        # Sizin orijinal update manifest oluşturma kodunuz.
+        $mainPackage = Get-ChildItem -Recurse -Filter "*.msixbundle" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        $packageItem = Get-Item $mainPackage.FullName
+        $packageHash = (Get-FileHash -Path $mainPackage.FullName -Algorithm SHA256).Hash
+        $manifest = @{ version = "$env:VERSION"; releaseDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ"); packages = @{ full = @{ name = $mainPackage.Name; size = $packageItem.Length; hash = $packageHash; url = "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag-name }}/$($mainPackage.Name)" } } }
+        $manifest | ConvertTo-Json -Depth 10 | Out-File -FilePath "update-manifest.json" -Encoding utf8
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
         path: |
-          ${{ steps.find-packages.outputs.package-path }}
-          ${{ steps.find-packages.outputs.manifest-path }}
+          **/*.msixbundle
+          **/*.msix
+          update-manifest.json
+        retention-days: 7
+    # === BUILD ADIMLARI BURADA BİTİYOR ===
 
   release:
     needs: build-and-package
@@ -116,7 +139,7 @@ jobs:
     if: success() && startsWith(github.ref, 'refs/tags/v')
     
     permissions:
-      contents: write # Release oluşturmak için bu izin ŞART!
+      contents: write
 
     steps:
     - name: Download build artifacts
@@ -125,14 +148,8 @@ jobs:
         name: build-artifacts
         path: ./artifacts
 
-    # YORUM: Karmaşık script ve curl komutları yerine tek ve güçlü bir action kullanıyoruz.
     - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v1
       with:
-        # Bu ayar, bir önceki tag'den bu yana yapılan tüm değişiklikleri (Pull Request'leri)
-        # otomatik olarak release notlarına ekler. "Delta Changelog" budur.
         generate_release_notes: true 
-        
-        # Artifacts klasöründeki tüm dosyaları otomatik olarak bulup release'e ekler.
-        # *.msix, *.msixbundle, *.json gibi ne varsa yükler.
         files: artifacts/*
