@@ -13,5 +13,6 @@ namespace Muhasebe.Data.Database.Interfaces.Services
         /// <param name="backupFilePath">Geri yüklenecek yedek dosyasının yolu.</param>
         /// <returns>Geri yükleme sonucu.</returns>
         Task<RestoreResult> RestoreDatabaseAsync(long fId, long dId, string backupFilePath, DatabaseType targetDbType);
+        void RestoreUpdateSistemDatabase();
     }
 }

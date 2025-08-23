@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Muhasebe.Business.HostBuilders;
+using Muhasebe.Data.Database.Interfaces.Services;
 using Muhasebe.Domain.Helpers;
 using MuhasibPro.Core.Infrastructure.Helpers;
 using MuhasibPro.Core.Services;
@@ -40,6 +41,9 @@ namespace MuhasibPro
 
         protected async override void OnLaunched(LaunchActivatedEventArgs args)
         {
+            var databaseManager = Ioc.Default.GetService<IDatabaseRestoreService>();
+            databaseManager.RestoreUpdateSistemDatabase();
+
             var themeSelectorService = Ioc.Default.GetService<IThemeSelectorService>();
             if (MainWindow.Content is FrameworkElement rootelement)
             {
