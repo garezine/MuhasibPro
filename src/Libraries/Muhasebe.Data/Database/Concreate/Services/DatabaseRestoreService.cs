@@ -223,9 +223,8 @@ namespace Muhasebe.Data.Database.Concreate.Services
         }
 
         public void RestoreUpdateSistemDatabase()
-        {
-            using var context = _sistemContext;
-            context.Database.Migrate();
+        {            
+            _sistemContext.Database.Migrate();
         }
     }
 }

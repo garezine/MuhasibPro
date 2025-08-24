@@ -1,8 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using Microsoft.Data.Sqlite;
+using Microsoft.UI.Xaml;
 using Muhasebe.Business.Services.Abstract.App;
-using Muhasebe.Domain.Helpers;
-using MuhasibPro.Core.Infrastructure.Common;
 using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Services.Common;
 using MuhasibPro.ViewModels.ViewModel.Dashboard;
@@ -16,20 +14,23 @@ using MuhasibPro.Views.Firmalar;
 using MuhasibPro.Views.Login;
 using MuhasibPro.Views.Settings;
 using MuhasibPro.Views.Shell;
-using Windows.Storage;
+using MuhasibPro.Views.Splash;
 
 
 namespace MuhasibPro.Configuration
 {
-    public static class Startup
+    public class Startup
     {
-        public static async Task ConfigureAsync()
+        private static readonly Lazy<Startup> _instance =  new Lazy<Startup>(() => new Startup());
+        public static Startup Instance => _instance.Value;
+        private Startup() { }
+        public async Task ConfigureAsync()
         {
             ConfigureNavigation();
-            await EnsureSistemDbAsync();
+            await EnsureSistemDbAsync();            
         }
 
-        private static void ConfigureNavigation()
+        private void ConfigureNavigation()
         {
             NavigationService.Register<ShellViewModel, ShellView>();
             NavigationService.Register<MainShellViewModel, MainShellView>();
@@ -43,9 +44,8 @@ namespace MuhasibPro.Configuration
             NavigationService.Register<FirmalarViewModel, FirmalarView>();
         }
 
-        public static IFirmaService FirmaService = Ioc.Default.GetService<IFirmaService>();
-
-        public static async Task FirmaEkleAsync()
+        public IFirmaService FirmaService = Ioc.Default.GetService<IFirmaService>();
+        public async Task FirmaEkleAsync()
         {
             var navigation = Ioc.Default.GetService<INavigationService>();
             if (!await FirmaService.IsFirma())
@@ -54,58 +54,72 @@ namespace MuhasibPro.Configuration
             }
         }
 
-        public static async Task EnsureSistemDbAsync()
+        public async Task EnsureSistemDbAsync()
         {
-            var localFolder = ApplicationData.Current.LocalFolder;
-            var sistemDbFolder = await localFolder.CreateFolderAsync(
-                AppMessage.DatabaseName.DbFolder,
-                CreationCollisionOption.OpenIfExists);
-            if (await sistemDbFolder.TryGetItemAsync(AppMessage.DatabaseName.SistemDbName) == null)
-            {
-                var sourceSistemDbFile = await StorageFile.GetFileFromApplicationUriAsync(
-                    new Uri("ms-appx:///Databases/Sistem.db"));
-                var targetSistemDbFile = await sistemDbFolder.CreateFileAsync(
-                    AppMessage.DatabaseName.SistemDbName,
-                    CreationCollisionOption.ReplaceExisting);
-                await sourceSistemDbFile.CopyAndReplaceAsync(targetSistemDbFile);
-            }
-            // Veritabanı bağlantısını kontrol et
-            bool isDbConnected = CheckDatabaseConnection();
-
-            if (!isDbConnected)
-            {
-                StatusMessage.Message.Add("Veritabanına bağlanılamadı!");
-                throw new Exception("Veritabanına bağlanılamadı!");
-            }
-        }
-
-        public static bool CheckDatabaseConnection()
-        {
-            var dbPath = Path.Combine(
-                ApplicationData.Current.LocalFolder.Path,
-                AppMessage.DatabaseName.DbFolder,
-                AppMessage.DatabaseName.SistemDbName);
-            var statusBar = StatusBarManager.Instance;
-
-            try
-            {
-                using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+            
+                // Database initialization
+                bool success = await DatabaseManager.Instance.InitializeDatabaseAsync();
+                if (success)
                 {
-                    connection.Open();
-                    var command = connection.CreateCommand();
-                    command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1";
-                    command.ExecuteScalar();
-                    
-                    statusBar.SetDatabaseStatus(true);
-                    return true;
+                    ExtendedSplash.StatusMessages.Enqueue("Veritabanı güncelleniyor");
                 }
-            }
-            catch
-            {
-                statusBar.SetDatabaseStatus(false);
-                return false;
-            }
+            
+            
         }
+        //public static async Task EnsureSistemDbAsync()
+        //{
+        //    var localFolder = ApplicationData.Current.LocalFolder;
+        //    var sistemDbFolder = await localFolder.CreateFolderAsync(
+        //        AppMessage.DatabaseName.DbFolder,
+        //        CreationCollisionOption.OpenIfExists);
+        //    if (await sistemDbFolder.TryGetItemAsync(AppMessage.DatabaseName.SistemDbName) == null)
+        //    {
+        //        var sourceSistemDbFile = await StorageFile.GetFileFromApplicationUriAsync(
+        //            new Uri("ms-appx:///Databases/Sistem.db"));
+        //        var targetSistemDbFile = await sistemDbFolder.CreateFileAsync(
+        //            AppMessage.DatabaseName.SistemDbName,
+        //            CreationCollisionOption.ReplaceExisting);
+        //        await sourceSistemDbFile.CopyAndReplaceAsync(targetSistemDbFile);
+        //    }
+        //    // Veritabanı bağlantısını kontrol et
+        //    bool isDbConnected = CheckDatabaseConnection();
+
+        //    if (!isDbConnected)
+        //    {
+        //        StatusMessage.Message.Add("Veritabanına bağlanılamadı!");
+        //        throw new Exception("Veritabanına bağlanılamadı!");
+        //    }
+        //}
+
+        //public static bool CheckDatabaseConnection()
+        //{
+        //    var dbPath = Path.Combine(
+        //        ApplicationData.Current.LocalFolder.Path,
+        //        AppMessage.DatabaseName.DbFolder,
+        //        AppMessage.DatabaseName.SistemDbName);
+        //    var statusBar = StatusBarManager.Instance;
+
+        //    try
+        //    {
+        //        using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+        //        {
+        //            connection.Open();
+        //            var databaseManager = Ioc.Default.GetService<IDatabaseRestoreService>();
+        //            databaseManager.RestoreUpdateSistemDatabase();
+        //            var command = connection.CreateCommand();
+        //            command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1";
+        //            command.ExecuteScalar();
+                    
+        //            statusBar.SetDatabaseStatus(true);
+        //            return true;
+        //        }
+        //    }
+        //    catch
+        //    {
+        //        statusBar.SetDatabaseStatus(false);
+        //        return false;
+        //    }
+        //}
 
     }
 }

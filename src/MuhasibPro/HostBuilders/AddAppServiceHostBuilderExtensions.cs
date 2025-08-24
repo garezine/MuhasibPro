@@ -6,6 +6,7 @@ using Muhasebe.Business.Services.Concreate.Common;
 using Muhasebe.Business.Services.Concreate.Update;
 using Muhasebe.Data.EfRepositories.App;
 using Muhasebe.Domain.Interfaces.App;
+using MuhasibPro.Configuration;
 using MuhasibPro.Core.Models;
 using MuhasibPro.Core.Services;
 using MuhasibPro.Core.Services.Abstract.Common;
@@ -29,6 +30,7 @@ public static class AddAppServiceHostBuilderExtensions
             services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
             services.AddTransient<IWebViewService, WebViewService>();
             services.AddSingleton<IFileService, FileService>();
+            services.AddSingleton<DatabaseManager>();
 
             services.AddSingleton<ICommonServices, CommonServices>();
             services.AddSingleton<INavigationService, NavigationService>();

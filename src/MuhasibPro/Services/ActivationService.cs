@@ -1,8 +1,11 @@
 ﻿
+using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Muhasebe.Business.Common;
 using MuhasibPro.Core.Services;
+using MuhasibPro.Core.Services.Abstract.Common;
+using MuhasibPro.Services.Common;
 using MuhasibPro.ViewModels.ViewModel.Dashboard;
 using MuhasibPro.Views.Splash;
 
@@ -65,17 +68,27 @@ public class ActivationService : IActivationService
         StartSplashScreenAsync();
         await Task.CompletedTask;
     }
-    private void StartSplashScreenAsync()
+    private async void StartSplashScreenAsync()
     {
         var frame = App.MainWindow.Content as Frame;
-        // Eğer içerik yoksa, ExtendedSplash ile başlat
+
         if (frame != null)
         {
+            IMessageService messageService = Ioc.Default.GetService<IMessageService>();
+
+            // 1. Önce ExtendedSplash'i oluştur
             _extendedSplash = new ExtendedSplash();
             _extendedSplash.RequestedTheme = _themeSelectorService.Theme;
+
+            // 2. Window'a set et
             App.MainWindow.ExtendsContentIntoTitleBar = true;
-            App.MainWindow.Content = _extendedSplash; // Önce splash ekranını göster
+            App.MainWindow.Content = _extendedSplash;
             App.MainWindow.Activate();
+
+            // 3. UI'ın yüklenmesini bekle
+            await Task.Delay(100); // UI'ın render olması için kısa bekle
+
+            ExtendedSplash.StatusMessages.Enqueue("Uygulama başlatılıyor...");
         }
     }
 }

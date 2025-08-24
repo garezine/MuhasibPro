@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Muhasebe.Business.Services.Abstract.Common;
 using MuhasibPro.Configuration;
 using MuhasibPro.Core.Models;
+using MuhasibPro.Core.Services;
 using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.Helpers;
 using MuhasibPro.Services.Common;
@@ -26,6 +27,7 @@ namespace MuhasibPro.Views.Shell
     public sealed partial class MainShellView : Page
     {
         private INavigationService _navigationService = null;
+        private IThemeSelectorService themeSelectorService = Ioc.Default.GetService<IThemeSelectorService>();
         public MainShellView()
         {
             ViewModel = Ioc.Default.GetService<MainShellViewModel>();
@@ -198,6 +200,7 @@ namespace MuhasibPro.Views.Shell
             dialog.SecondaryButtonText = "Uygulamadan Çık";
             dialog.CloseButtonText = "İptal";
             dialog.DefaultButton = ContentDialogButton.Close;
+            dialog.RequestedTheme = themeSelectorService.Theme;
             var logout = await dialogService.ShowCustomDialogAsync(dialog);
             if (logout == ContentDialogResult.Primary)
             {
@@ -215,7 +218,7 @@ namespace MuhasibPro.Views.Shell
             }
         }
 
-        public bool IsSistemDatabaseConnection => Startup.CheckDatabaseConnection();
+        public bool IsSistemDatabaseConnection => DatabaseManager.Instance.TestConnectionAsync().Result;
     }
 }
 

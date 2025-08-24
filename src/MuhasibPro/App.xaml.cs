@@ -2,8 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
 using Muhasebe.Business.HostBuilders;
-using Muhasebe.Data.Database.Interfaces.Services;
-using Muhasebe.Domain.Helpers;
 using MuhasibPro.Core.Infrastructure.Helpers;
 using MuhasibPro.Core.Services;
 using MuhasibPro.HostBuilders;
@@ -16,13 +14,10 @@ namespace MuhasibPro
 
         public App()
         {
-            InitializeComponent();
-            StatusMessage.Message.Add("Uygulama başlatılıyor...");
-            _host = CreateHostBuilder().Build();
-
-            StatusMessage.Message.Add("Servisler çalıştırılıyor...");
+            InitializeComponent();            
+            _host = CreateHostBuilder().Build();            
             Ioc.Default.ConfigureServices(_host.Services);
-        }
+        }       
         public static IHostBuilder CreateHostBuilder(string[] args = null)
         {
             return Host.CreateDefaultBuilder(args)
@@ -41,15 +36,12 @@ namespace MuhasibPro
 
         protected async override void OnLaunched(LaunchActivatedEventArgs args)
         {
-            var databaseManager = Ioc.Default.GetService<IDatabaseRestoreService>();
-            databaseManager.RestoreUpdateSistemDatabase();
-
             var themeSelectorService = Ioc.Default.GetService<IThemeSelectorService>();
             if (MainWindow.Content is FrameworkElement rootelement)
             {
                 rootelement.RequestedTheme = themeSelectorService.Theme;
             }        
-            await ActivateAsync(args);
+            await ActivateAsync(args);            
         }
         private async Task ActivateAsync(LaunchActivatedEventArgs args)
         {
@@ -58,8 +50,7 @@ namespace MuhasibPro
             var activationService = Ioc.Default.GetService<IActivationService>();
             await activationService.ActivateAsync(args);
         }
-   
 
-
+     
     }
 }
