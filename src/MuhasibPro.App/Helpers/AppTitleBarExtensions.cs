@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using Microsoft.UI.Xaml;
 using MuhasibPro.App.Views.Shell;
 
 namespace MuhasibPro.App.Helpers

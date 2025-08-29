@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using Muhasebe.Business.Helpers;
 using MuhasibPro.Core.Services;
-using MuhasibPro.Core.Services.Abstract.Common;
 using MuhasibPro.ViewModels.ViewModel.Settings;
 
 namespace MuhasibPro.App.Views.Settings
@@ -9,7 +8,6 @@ namespace MuhasibPro.App.Views.Settings
     public sealed partial class SettingsView : Page
     {
         private readonly IThemeSelectorService _themeSelectorService;
-        private readonly INavigationService _navigationService = Ioc.Default.GetService<INavigationService>();
         public string Version => ProcessInfoHelper.VersionWithPrefix;
 
         public SettingsView()
@@ -33,11 +31,6 @@ namespace MuhasibPro.App.Views.Settings
         }
 
         #endregion
-        private void ChangePeriodButton_Click(object sender, RoutedEventArgs e)
-{
-    // Çalışma dönemi değiştirme logic'i burada
-    // Mevcut ChangeCompanyButton_Click method'unuza benzer şekilde implement edin
-}
 
         #region Header Actions
 

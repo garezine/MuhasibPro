@@ -15,7 +15,7 @@ namespace Muhasebe.Business.HostBuilders
                 services.AddScoped<ILogService, LogService>();
                 services.AddScoped(typeof(IPasswordHasher<>), typeof(PasswordHasher<>));
                 services.AddScoped<IAuthenticationService, AuthenticationService>();
-                
+
                 //services.AddScoped<ITenantManagementService, TenantManagementService>();
 
 

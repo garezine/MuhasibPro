@@ -32,10 +32,7 @@
 	<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
 	<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
   </PropertyGroup>
-  <ItemGroup>
-    <None Remove="Views\Firma\Details\FirmaCard.xaml" />
-    <None Remove="Views\Firma\Details\FirmaDetails.xaml" />
-  </ItemGroup>
+ 
   
   <ItemGroup>
 	<Manifest Include="$(ApplicationManifest)" />

@@ -5,7 +5,6 @@ using Muhasebe.Business.Models.SistemModel;
 using MuhasibPro.App.Configuration;
 using MuhasibPro.App.Services;
 using MuhasibPro.App.Views.Login;
-using MuhasibPro.App.Views.Splash;
 using MuhasibPro.Core.Services;
 using MuhasibPro.ViewModels.ViewModel.Shell;
 
@@ -46,7 +45,7 @@ namespace MuhasibPro.App.Views.Splash
             _ = Task.Run(async () => await ProcessMessagesAsync());
             _ = Task.Run(async () => await StartApplicationAsync());
         }
-     
+
         private async Task ShowSplashAnimation()
         {
             try
@@ -121,7 +120,7 @@ namespace MuhasibPro.App.Views.Splash
                 StatusMessages.Enqueue("Yapılandırma yükleniyor...");
                 await Startup.Instance.ConfigureAsync();
                 await Task.Delay(400);
-                StatusMessages.Enqueue("Veritabanı kontrol ediliyor..."); 
+                StatusMessages.Enqueue("Veritabanı kontrol ediliyor...");
                 await Startup.Instance.EnsureSistemDbAsync();
                 await Task.Delay(400);
                 StatusMessages.Enqueue("Servisler hazırlanıyor...");
@@ -171,7 +170,7 @@ namespace MuhasibPro.App.Views.Splash
         private async Task LoadMainApplicationAsync()
         {
             try
-            {                
+            {
                 var activationInfo = ActivationInfo.CreateDefault();
                 var shellArgs = new ShellArgs
                 {

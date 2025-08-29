@@ -12,10 +12,10 @@ public class FirmalarViewModel : ViewModelBase
         FirmaService = firmaService;
 
         FirmaList = new FirmaListViewModel(commonServices, FirmaService);
-        FirmaDetails = new FirmaDetailsViewModel(commonServices,filePickerService, FirmaService);
+        FirmaDetails = new FirmaDetailsViewModel(commonServices, filePickerService, FirmaService);
         FirmaCalismaDonemler = new CalismaDonemListViewModel(commonServices);
     }
-    public IFirmaService FirmaService { get;}
+    public IFirmaService FirmaService { get; }
     public FirmaListViewModel FirmaList { get; set; }
     public FirmaDetailsViewModel FirmaDetails { get; set; }
     public CalismaDonemListViewModel FirmaCalismaDonemler { get; set; }
@@ -40,7 +40,7 @@ public class FirmalarViewModel : ViewModelBase
         MessageService.Unsubscribe(this);
         FirmaList.Unsubscribe();
         FirmaDetails.Unsubscribe();
-        
+
     }
     private async void OnMessage(FirmaListViewModel viewModel, string message, object args)
     {

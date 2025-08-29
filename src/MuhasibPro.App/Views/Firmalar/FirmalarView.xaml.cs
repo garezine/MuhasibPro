@@ -32,8 +32,8 @@ namespace MuhasibPro.App.Views.Firmalar
             ViewModel.Unsubscribe();
         }
         private async void OpenInNewView(object sender, RoutedEventArgs e)
-        {           
-            await NavigationService.CreateNewViewAsync<FirmalarViewModel>(ViewModel.FirmaList.CreateArgs(),customTitle:"Firmalar");
+        {
+            await NavigationService.CreateNewViewAsync<FirmalarViewModel>(ViewModel.FirmaList.CreateArgs(), customTitle: "Firmalar");
         }
         private async void OpenDetailsInNewView(object sender, RoutedEventArgs e)
         {

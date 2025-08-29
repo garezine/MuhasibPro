@@ -1,5 +1,4 @@
 ﻿using Muhasebe.Business.Models.SistemModel;
-using MuhasibPro.App.Views.Firma;
 using MuhasibPro.ViewModels.ViewModel.Firmalar;
 
 // To learn more about WinUI, the WinUI project structure,

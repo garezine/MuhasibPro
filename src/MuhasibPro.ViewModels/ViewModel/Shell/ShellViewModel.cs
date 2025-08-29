@@ -22,7 +22,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Shell
             get => _isLocked;
             set => Set(ref _isLocked, value);
         }
-     
+
         private bool _isEnabled = true;
         public bool IsEnabled
         {
@@ -35,7 +35,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Shell
             get => _isSaveStatus;
             set => Set(ref _isSaveStatus, value);
         }
-  
+
 
         private bool _isError = false;
         public bool IsError
@@ -61,7 +61,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Shell
             {
                 UserInfo = ViewModelArgs.UserInfo;
                 NavigationService.Navigate(ViewModelArgs.ViewModel, ViewModelArgs.Parameter);
-            }           
+            }
             return Task.CompletedTask;
         }
         public virtual void Unload()
@@ -101,7 +101,7 @@ namespace MuhasibPro.ViewModels.ViewModel.Shell
                         IsError = message == "StatusError";
                         SetStatus(status);
                     }
-                    break;               
+                    break;
 
                 case "EnableThisView":
                 case "DisableThisView":
@@ -136,10 +136,10 @@ namespace MuhasibPro.ViewModels.ViewModel.Shell
         }
 
         private void SetStatus(string message)
-        {            
+        {
             message = message ?? "";
             message = message.Replace("\r\n", " ").Replace("\r", " ").Replace("\n", " ");
-            StatusBar.StatusMessage = message;            
+            StatusBar.StatusMessage = message;
         }
     }
 }

@@ -1,26 +1,42 @@
 ﻿using System.Diagnostics;
+using System.Threading.Channels;
 using MuhasibPro.Core.Models.Update;
 using MuhasibPro.Core.Services.Abstract.Common;
 using Velopack;
+using Velopack.Sources;
 
 namespace MuhasibPro.Core.Services.Concreate.Update;
 
 public class UpdateService : IUpdateService
 {
-    private readonly UpdateManager? _updateManager;    
+    private UpdateManager? _updateManager;
     private UpdateSettings? _cachedSettings;
     private UpdateInfo _updateInfo;
 
-    // GitHub release feed URL
-    private const string GITHUB_REPO_URL = "https://github.com/garezine/MuhasibPro";
+    private const string REPO_URL = "https://github.com/garezine/MuhasibPro";
+    private readonly string? _githubToken = null;
 
-    public bool IsUpdatePendingRestart => _updateManager?.IsUpdatePendingRestart ?? false;
+    public bool IsUpdatePendingRestart => _updateManager?.UpdatePendingRestart != null;
 
     public UpdateService()
-    {        
-        _updateManager = new UpdateManager(GITHUB_REPO_URL);
+    {
+        EnsureManager(_lastPrereleaseFlag);
     }
-
+    private void EnsureManager(bool includePrereleases)
+    {
+        // includePrereleases değiştiyse manager'ı yeniden kur
+        if (_updateManager == null || (_updateManager is not null && _lastPrereleaseFlag != includePrereleases))
+        {
+            var source = new GithubSource(
+                repoUrl: REPO_URL,
+                accessToken: _githubToken,
+                prerelease: includePrereleases
+            );
+            _updateManager = new UpdateManager(source);
+            _lastPrereleaseFlag = includePrereleases;
+        }
+    }
+    private bool _lastPrereleaseFlag = false;
     public async Task<UpdateSettings> GetSettingsAsync()
     {
         if (_cachedSettings == null)
@@ -39,15 +55,12 @@ public class UpdateService : IUpdateService
 
     public async Task<UpdateInfo?> CheckForUpdatesAsync(bool includePrereleases = false)
     {
-        if (_updateManager == null)
-        {
-            Debug.Write("Güncelleme işlemi başlatılamadı");
-            return null;
-        }
+        EnsureManager(includePrereleases);
 
         try
         {
-           Debug.Write("Güncellemeler kontrol ediliyor...");
+            if (_updateManager == null) throw new InvalidOperationException("UpdateManager oluşturulamadı.");
+            Debug.Write("Güncellemeler kontrol ediliyor...");
 
             _updateInfo = await _updateManager.CheckForUpdatesAsync();
 
@@ -71,49 +84,41 @@ public class UpdateService : IUpdateService
         }
     }
 
-    public async Task<bool> DownloadUpdatesAsync(IProgress<int>? progress = null)
+    public async Task<bool> DownloadUpdatesAsync(IProgress<int>? progress = null, CancellationToken ct = default)
+    
     {
-        if (_updateManager == null)
-        {
-            throw new InvalidOperationException("UpdateManager mevcut değil");
-        }
-        Action<int> progressAction = (percent) =>
-        {
-            Debug.Write($"İndirme ilerlemesi: {percent}%");
-            progress?.Report(percent);
-        };
-
+        if (_updateManager == null) throw new InvalidOperationException("UpdateManager mevcut değil.");
+        if (_updateInfo?.TargetFullRelease == null) throw new InvalidOperationException("Önce CheckForUpdatesAsync çağrılmalı ve güncelleme bulunmalı.");
         try
         {
-            Debug.Write("Güncelleme indiriliyor...");
-
-            await _updateManager.DownloadUpdatesAsync(_updateInfo,progressAction);
-
-            Debug.Write("Güncelleme başarıyla indirildi");
+            Debug.WriteLine("Güncelleme indiriliyor...");
+            await _updateManager.DownloadUpdatesAsync(_updateInfo, p => progress?.Report(p), ct);
+            Debug.WriteLine("İndirme tamamlandı.");
             return true;
         }
         catch (Exception ex)
         {
-            Debug.Write(ex, "Güncelleme indirme sırasında hata");
+            Debug.WriteLine($"İndirme hatası: {ex}");
             throw;
         }
     }
 
-    public void ApplyUpdatesAndRestart()
+    public void ApplyUpdatesAndRestart(params string[] restartArgs)
     {
-        if (_updateManager == null)
-        {
-            throw new InvalidOperationException("UpdateManager mevcut değil");
-        }
+        if (_updateManager == null) throw new InvalidOperationException("UpdateManager mevcut değil.");
+
+        // Önce pending varsa onu uygula, yoksa CheckForUpdates'tan gelen target'ı kullan
+        var asset = _updateManager.UpdatePendingRestart ?? _updateInfo?.TargetFullRelease;
+        if (asset == null) throw new InvalidOperationException("Uygulanacak güncelleme bulunamadı.");
 
         try
         {
-            Debug.Write("Güncelleme uygulanıyor ve yeniden başlatılıyor...");
-            _updateManager.ApplyUpdatesAndRestart(_updateInfo);
+            Debug.WriteLine("Güncelleme uygulanıyor ve uygulama yeniden başlatılıyor...");
+            _updateManager.ApplyUpdatesAndRestart(asset, restartArgs);
         }
         catch (Exception ex)
         {
-            Debug.Write(ex, "Güncelleme uygulama sırasında hata");
+            Debug.WriteLine($"Uygulama sırasında hata: {ex}");
             throw;
         }
     }

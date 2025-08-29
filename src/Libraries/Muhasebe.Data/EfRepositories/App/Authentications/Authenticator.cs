@@ -32,7 +32,7 @@ namespace Muhasebe.Data.EfRepositories.App.Authentications
         public async Task<Kullanici> Login(string username, string password)
         {
             var account = await _authenticationRepository.Login(username, password).ConfigureAwait(false);
-            if(account != null)
+            if (account != null)
             {
                 CurrentAccount = account;
             }

@@ -29,7 +29,8 @@ namespace MuhasibPro.Core.Collections.App
                 Count = await FirmaService.GetFirmalarCountAsync(_dataRequest);
                 var range = await FirmaService.GetFirmalarAsync(0, RangeSize, _dataRequest);
                 Ranges[0] = range.Data;
-            } catch(Exception)
+            }
+            catch (Exception)
             {
                 Count = 0;
                 throw;
@@ -42,7 +43,8 @@ namespace MuhasibPro.Core.Collections.App
             {
                 var fetch = await FirmaService.GetFirmalarAsync(pageIndex * pageSize, pageSize, _dataRequest);
                 return fetch.Data;
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 LogException("Firma Koleksiyon", "Getir", ex);
             }

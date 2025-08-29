@@ -23,7 +23,7 @@ namespace MuhasibPro.App.Views.Shell
             InitializeContext();
         }
         public ShellViewModel ViewModel { get; private set; }
-     
+
         private void InitializeNavigation()
         {
             var navigationService = Ioc.Default.GetService<INavigationService>();
@@ -42,7 +42,7 @@ namespace MuhasibPro.App.Views.Shell
 
         private void Window_Closed(object sender, WindowEventArgs args)
         {
-            if (ViewModel != null) 
+            if (ViewModel != null)
             {
                 ViewModel.Unsubscribe();
                 ViewModel = null;

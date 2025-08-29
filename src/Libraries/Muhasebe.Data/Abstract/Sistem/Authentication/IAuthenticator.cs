@@ -8,7 +8,7 @@ namespace Muhasebe.Data.Abstract.Sistem.Authentication
         Kullanici CurrentAccount { get; }
         bool IsLoggedIn { get; }
 
-        event Action StateChanged;    
+        event Action StateChanged;
         void Logout();
         Task<Kullanici> Login(string username, string password);
         Task<RegistrationResult> Register(

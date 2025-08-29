@@ -12,7 +12,7 @@ namespace MuhasibPro.App.Views.Firmalar.Details
         public FirmalarDetails()
         {
             InitializeComponent();
-            
+
         }
         #region ViewModel
         public FirmaDetailsViewModel ViewModel
@@ -27,7 +27,7 @@ namespace MuhasibPro.App.Views.Firmalar.Details
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-           ValidationHelper.RegisterAllControls(this);
+            ValidationHelper.RegisterAllControls(this);
         }
 
         private void UserControl_Unloaded(object sender, RoutedEventArgs e)

@@ -34,7 +34,7 @@ public class ThemeSelectorService : IThemeSelectorService
 
     public async Task SetRequestedThemeAsync()
     {
-        foreach(var window in WindowHelper.GetAllWindows())
+        foreach (var window in WindowHelper.GetAllWindows())
         {
             if (window.Content is FrameworkElement rootElement)
             {
@@ -43,7 +43,7 @@ public class ThemeSelectorService : IThemeSelectorService
                 TitleBarHelper.UpdateTitleBar(Theme);
             }
         }
-        
+
 
         await Task.CompletedTask;
     }

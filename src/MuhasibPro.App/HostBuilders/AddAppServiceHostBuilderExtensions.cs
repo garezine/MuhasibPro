@@ -24,7 +24,7 @@ public static class AddAppServiceHostBuilderExtensions
             services.AddSingleton<IThemeSelectorService, ThemeSelectorService>();
             services.AddTransient<IWebViewService, WebViewService>();
             services.AddSingleton<IFileService, FileService>();
-            
+
 
             services.AddSingleton<ICommonServices, CommonServices>();
             services.AddSingleton<INavigationService, NavigationService>();
@@ -33,10 +33,10 @@ public static class AddAppServiceHostBuilderExtensions
             services.AddSingleton<IDialogService, DialogService>();
             services.AddSingleton<IFilePickerService, FilePickerService>();
             services.AddScoped<IContextService, ContextService>();
-           
+
             services.AddSingleton<IUpdateService, UpdateService>();
-          
-            
+
+
             services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));
 
             services.AddScoped<IFirmaService, FirmaService>();

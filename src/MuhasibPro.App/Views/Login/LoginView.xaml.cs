@@ -39,7 +39,7 @@ namespace MuhasibPro.App.Views.Login
         public void InitializeContext()
         {
             var context = Ioc.Default.GetService<IContextService>();
-            context.InitializeWithViewType(DispatcherQueue, ViewType.Login,this,"LoginView");
+            context.InitializeWithViewType(DispatcherQueue, ViewType.Login, this, "LoginView");
         }
         private void OnBackgroundFocus(object sender, RoutedEventArgs e)
         {

@@ -58,7 +58,7 @@ namespace MuhasibPro.App.Configuration
         public async Task FirmaEkleAsync()
         {
             var navigation = Ioc.Default.GetService<INavigationService>();
-            if(!await FirmaService.IsFirma())
+            if (!await FirmaService.IsFirma())
             {
                 await navigation.CreateNewViewAsync<FirmaDetailsViewModel>(
                     new FirmaDetailsArgs(),
@@ -108,7 +108,7 @@ namespace MuhasibPro.App.Configuration
             {
                 using (var connection = new SqliteConnection($"Data Source={dbPath}"))
                 {
-                    connection.Open();                                       
+                    connection.Open();
                     var command = connection.CreateCommand();
                     command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1";
                     command.ExecuteScalar();

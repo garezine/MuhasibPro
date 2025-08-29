@@ -13,7 +13,7 @@ namespace Muhasebe.Data.EfRepositories.App.Authentications
         }
         public async Task<Kullanici> GetByEmailAsync(string email)
         {
-            if(email == null) 
+            if (email == null)
                 throw new ArgumentNullException("email");
             var entity = await _context.Set<Kullanici>()
                 .FirstOrDefaultAsync((e) => e.Eposta == email)

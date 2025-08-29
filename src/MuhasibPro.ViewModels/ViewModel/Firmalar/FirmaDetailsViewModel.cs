@@ -126,7 +126,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
             LogException("Firma", "Kayıt", ex);
             return false;
         }
-    }  
+    }
     protected async override Task<bool> DeleteItemAsync(FirmaModel model)
     {
         try

@@ -43,13 +43,13 @@ public class GenelMap : Profile
         CreateMap<Hesap, HesapModel>()
             .PreserveReferences()
             .ReverseMap();
-            
+
 
 
         CreateMap<Firma, FirmaModel>()
             .IncludeBase<BaseEntity, BaseModel>()
             .ForMember(dest => dest.MaliDonemler, opt => opt.MapFrom(src => src.MaliDonemler))
-            
+
             .PreserveReferences()
             .ReverseMap()
             .IncludeBase<BaseModel, BaseEntity>();

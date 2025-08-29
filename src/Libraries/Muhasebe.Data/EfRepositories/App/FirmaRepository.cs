@@ -65,12 +65,12 @@ namespace Muhasebe.Data.EfRepositories.App
         public async Task<int> GetFirmalarCountAsync(DataRequest<Firma> request)
         {
             IQueryable<Firma> items = base.GetQuery(request);
-            if(!string.IsNullOrEmpty(request.Query))
+            if (!string.IsNullOrEmpty(request.Query))
             {
                 items.Where(r => r.ArananTerim.Contains(request.Query));
             }
             // Where
-            if(request.Where != null)
+            if (request.Where != null)
             {
                 items = items.Where(request.Where);
             }
@@ -80,7 +80,7 @@ namespace Muhasebe.Data.EfRepositories.App
 
         public async Task UpdateFirmaAsync(Firma firma)
         {
-            if (firma.Id > 0) 
+            if (firma.Id > 0)
             {
                 await UpdateAsync(firma);
                 firma.GuncellemeTarihi = DateTime.UtcNow;
@@ -88,9 +88,9 @@ namespace Muhasebe.Data.EfRepositories.App
             else
             {
                 firma.Id = UIDModuleGenerator.GenerateModuleId(UIDModuleType.Sistem);
-                firma.KayitTarihi=DateTime.UtcNow;
+                firma.KayitTarihi = DateTime.UtcNow;
                 await AddAsync(firma);
-            }            
+            }
             firma.ArananTerim = firma.BuildSearchTerms();
         }
         public async Task DeleteFirmalarAsync(params Firma[] firmalar) { await base.DeleteRangeAsync(firmalar); }

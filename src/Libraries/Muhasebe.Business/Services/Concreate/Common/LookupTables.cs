@@ -12,13 +12,13 @@ namespace Muhasebe.Business.Services.Concreate.Common
             LogService = logService;
             EntityTablesList = entityTablesList;
         }
-        public ILogService LogService { get;}
+        public ILogService LogService { get; }
         public IDefaultDataListRepository EntityTablesList { get; }
         public IList<IllerModel> IllerList { get; private set; }
 
         public string GetIller(long id)
         {
-            return IllerList.Where(r=> r.Id == id).Select(r=> r.IlAdi).FirstOrDefault();
+            return IllerList.Where(r => r.Id == id).Select(r => r.IlAdi).FirstOrDefault();
         }
 
         public async Task InitializeAsync()

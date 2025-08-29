@@ -18,7 +18,7 @@ public class FirmaListArgs
 
     public FirmaListArgs()
     {
-        OrderBy = r => r.KisaUnvani;        
+        OrderBy = r => r.KisaUnvani;
     }
     public bool IsEmpty { get; set; }
 
@@ -42,9 +42,9 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
     public async Task LoadAsync(FirmaListArgs args)
     {
         ViewModelArgs = args ?? FirmaListArgs.CreateEmpty();
-        Query = ViewModelArgs.Query;       
+        Query = ViewModelArgs.Query;
         StartStatusMessage("Firmalar yükleniyor....");
-        StatusBar.ShowProgress();       
+        StatusBar.ShowProgress();
         if (await RefreshAsync())
         {
             StatusBar.HideProgress();
@@ -61,7 +61,7 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
     }
 
     public void Unsubscribe() { MessageService.Unsubscribe(this); }
-    public FirmaListArgs CreateArgs() 
+    public FirmaListArgs CreateArgs()
     {
         return new FirmaListArgs
         {
@@ -79,14 +79,14 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
 
         Items = null;
         ItemsCount = 0;
-        SelectedItem = null;        
+        SelectedItem = null;
 
         try
-        {           
+        {
             Items = await GetItemsAsync();
         }
         catch (Exception ex)
-        {           
+        {
             Items = new List<FirmaModel>();
             StatusError($"Firmalar yüklenirken hata oluştu: {ex.Message}");
             LogException("Firmalar", "Yenile", ex);
@@ -98,7 +98,7 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
         {
             SelectedItem = Items.FirstOrDefault();
         }
-        NotifyPropertyChanged(nameof(Title));        
+        NotifyPropertyChanged(nameof(Title));
         return isOk;
     }
 
@@ -113,13 +113,13 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
     }
     private DataRequest<Firma> BuildDataRequest()
     {
-        
+
         return new DataRequest<Firma>()
         {
             Query = Query,
             OrderBy = ViewModelArgs.OrderBy,
             OrderByDesc = ViewModelArgs.OrderByDesc,
-            Includes=ViewModelArgs.Includes
+            Includes = ViewModelArgs.Includes
         };
     }
 
@@ -130,7 +130,7 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
         if (SelectedItem != null)
         {
             await NavigationService.CreateNewViewAsync<FirmaDetailsViewModel>(
-                new FirmaDetailsArgs { FirmaId = SelectedItem.Id },customTitle:"Firmalar");
+                new FirmaDetailsArgs { FirmaId = SelectedItem.Id }, customTitle: "Firmalar");
         }
     }
 
@@ -138,11 +138,11 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
     {
         if (IsMainWindow)
         {
-            await NavigationService.CreateNewViewAsync<FirmaDetailsViewModel>(new FirmaDetailsArgs(),customTitle:"Yeni Firma");
+            await NavigationService.CreateNewViewAsync<FirmaDetailsViewModel>(new FirmaDetailsArgs(), customTitle: "Yeni Firma");
         }
         else
         {
-            
+
             NavigationService.Navigate<FirmaDetailsViewModel>(new FirmaDetailsArgs());
         }
 

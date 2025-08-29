@@ -23,11 +23,11 @@ namespace MuhasibPro.App
             InitializeComponent();
             this.IsMaximizable = true;
             this.IsMinimizable = true;
-            this.IsResizable = true;            
+            this.IsResizable = true;
             // Mica desteği kontrolü
             if (MicaController.IsSupported())
             {
-                SystemBackdrop = new MicaBackdrop() { Kind = MicaKind.Base};
+                SystemBackdrop = new MicaBackdrop() { Kind = MicaKind.Base };
             }
             else if (DesktopAcrylicController.IsSupported())
             {
