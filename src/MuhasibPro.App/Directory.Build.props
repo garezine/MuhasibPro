@@ -1,0 +1,10 @@
+<Project>
+  <!-- See https://aka.ms/dotnet/msbuild/customize for more details on customizing your build -->
+  <PropertyGroup>
+	  <ResourceLanguages>tr;en</ResourceLanguages>
+	  <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
+	  
+  </PropertyGroup>
+	
+	
+</Project>

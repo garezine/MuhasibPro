@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MuhasibPro.App.Views.Shell.ShellStatusBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:MuhasibPro.App.Views.Shell"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid
+        x:Name="StatusBar"
+        Grid.Row="1"
+        Height="32"
+        Background="{ThemeResource LayerFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="0,1,0,0">
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sol taraf - Durum mesajları -->
+        <StackPanel
+            Grid.Column="0"
+            Margin="12,0,0,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="8">
+
+            <!-- Durum ikonu -->
+            <FontIcon
+                x:Name="StatusIcon"
+                FontFamily="{StaticResource SymbolThemeFontFamily}"
+                FontSize="14"
+                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                Glyph="&#xE73E;"
+                Visibility="{x:Bind StatusFontIcon, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+            <!-- Durum metni -->
+            <TextBlock
+                x:Name="StatusText"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="{x:Bind StatusMessage,Mode=OneWay}" />
+
+            <!-- Progress Ring -->
+            <ProgressRing
+                x:Name="StatusProgressRing"
+                Width="16"
+                Height="16"
+                Visibility="{x:Bind IsStatusProgress, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+        </StackPanel>
+
+        <!-- Orta alan - Ek bilgiler -->
+        <StackPanel
+            Grid.Column="1"
+            Margin="16,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="16">
+
+            <!-- Kullanıcı bilgisi -->
+            <TextBlock
+                x:Name="UserInfoText"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Text="{x:Bind UserName}"
+                Visibility="Visible" />
+
+            <!-- Separator -->
+            <Border
+                x:Name="SeparatorBorder"
+                Width="1"
+                Height="16"
+                Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+                Visibility="Visible" />
+
+            <!-- Database durumu -->
+            <TextBlock
+                x:Name="DatabaseStatusText"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Text="{x:Bind DatabaseConnectionMessage}"
+                Visibility="Visible" />
+        </StackPanel>
+
+        <!-- Sağ taraf - Zaman bilgileri -->
+        <StackPanel
+            Grid.Column="2"
+            Margin="16,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="12">
+
+            <!-- Son güncelleme zamanı -->
+            <TextBlock
+                x:Name="LastUpdateText"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Visibility="Collapsed" />
+        </StackPanel>
+
+        <!-- En sağ - Sistem ikonları -->
+        <StackPanel
+            Grid.Column="3"
+            Margin="0,0,12,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="8">
+            <!-- Kayıt durumu -->
+            <FontIcon
+                x:Name="SaveStatusIcon"
+                FontFamily="{StaticResource SymbolThemeFontFamily}"
+                FontSize="14"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Glyph="&#xE74E;"
+                ToolTipService.ToolTip="Kayıt Durumu"
+                Visibility="{x:Bind IsSaveStatus, Converter={StaticResource BoolToVisibilityConverter}}" />
+            <!-- Bağlantı durumu -->
+            <FontIcon
+                x:Name="ConnectionIcon"
+                FontFamily="{StaticResource SymbolThemeFontFamily}"
+                FontSize="14"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Glyph="&#xE968;"
+                ToolTipService.ToolTip="Bağlantı Durumu"
+                Visibility="{x:Bind IsDatabaseConnection, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+
+
+
+            <Border
+                x:Name="SeparatorBorder2"
+                Width="1"
+                Height="16"
+                Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+                Visibility="Visible" />
+
+            <Grid Width="50">
+                <!-- Zaman gösterimi -->
+                <TextBlock
+                    x:Name="TimeDisplay"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Visibility="Collapsed" />
+            </Grid>
+
+
+        </StackPanel>
+    </Grid>
+</UserControl>

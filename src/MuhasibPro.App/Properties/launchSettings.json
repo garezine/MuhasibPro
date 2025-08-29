@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MuhasibPro.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "MuhasibPro.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

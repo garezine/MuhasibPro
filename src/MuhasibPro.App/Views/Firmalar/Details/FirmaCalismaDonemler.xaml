@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MuhasibPro.App.Views.Firmalar.Details.FirmaCalismaDonemler"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MuhasibPro.Views.Firmalar.Details"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Muhasebe.Business.Models.SistemModel"
+    xmlns:controls="using:MuhasibPro.Core.Controls"
+     mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="400">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="HeaderTemplate" x:DataType="models:MaliDonemModel">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="10*"/>
+                    <ColumnDefinition Width="8*"/>
+                    <ColumnDefinition Width="8*"/>                   
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Donem ID" Style="{StaticResource ColumnHeaderStyle}"/>
+                <TextBlock Grid.Column="1" Text="Oluşturulma Tarihi" Style="{StaticResource ColumnHeaderStyle}"/>
+                <TextBlock Grid.Column="2" Text="Çalışma Yılı" Style="{StaticResource ColumnHeaderStyle}"/>
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:Key="ItemTemplate" x:DataType="models:MaliDonemModel">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="10*"/>
+                    <ColumnDefinition Width="8*"/>
+                    <ColumnDefinition Width="8*"/>                    
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{x:Bind Id}" Style="{StaticResource ColumnValueStyle}" />
+                <TextBlock Grid.Column="1" Text="{x:Bind KayitTarihi, Mode=OneWay, Converter={StaticResource DateTimeFormatConverter}}" Style="{StaticResource ColumnValueStyle}" />
+                <TextBlock Grid.Column="2" Text="{x:Bind MaliDonem, Mode=OneWay, Converter={StaticResource DateTimeFormatConverter}}" Style="{StaticResource ColumnValueStyle}" />
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+    <Grid>
+        <controls:DataList ItemsSource="{x:Bind ViewModel.Items, Mode=OneWay}"
+                       ItemSecondaryActionInvokedCommand="{x:Bind ViewModel.OpenInNewViewCommand}"
+                       NewLabel="New Order"
+                       SelectedItem="{x:Bind ViewModel.SelectedItem, Mode=TwoWay}"
+                       HeaderTemplate="{StaticResource HeaderTemplate}"
+                       ItemTemplate="{StaticResource ItemTemplate}"
+                       IsMultipleSelection="{x:Bind ViewModel.IsMultipleSelection, Mode=TwoWay}"
+                       ItemsCount="{x:Bind ViewModel.ItemsCount, Mode=OneWay}"
+                       NewCommand="{x:Bind ViewModel.NewCommand}"
+                       RefreshCommand="{x:Bind ViewModel.RefreshCommand}"
+                       Query="{x:Bind ViewModel.Query, Mode=TwoWay}"
+                       QuerySubmittedCommand="{x:Bind ViewModel.RefreshCommand}"
+                       StartSelectionCommand="{x:Bind ViewModel.StartSelectionCommand}"
+                       CancelSelectionCommand="{x:Bind ViewModel.CancelSelectionCommand}"
+                       SelectItemsCommand="{x:Bind ViewModel.SelectItemsCommand}"
+                       DeselectItemsCommand="{x:Bind ViewModel.DeselectItemsCommand}"
+                       SelectRangesCommand="{x:Bind ViewModel.SelectRangesCommand}"
+                       DeleteCommand="{x:Bind ViewModel.DeleteSelectionCommand}" />
+    </Grid>
+</UserControl>

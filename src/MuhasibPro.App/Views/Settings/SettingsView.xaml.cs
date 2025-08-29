@@ -1,0 +1,134 @@
+﻿using CommunityToolkit.Mvvm.DependencyInjection;
+using Muhasebe.Business.Helpers;
+using MuhasibPro.Core.Services;
+using MuhasibPro.Core.Services.Abstract.Common;
+using MuhasibPro.ViewModels.ViewModel.Settings;
+
+namespace MuhasibPro.App.Views.Settings
+{
+    public sealed partial class SettingsView : Page
+    {
+        private readonly IThemeSelectorService _themeSelectorService;
+        private readonly INavigationService _navigationService = Ioc.Default.GetService<INavigationService>();
+        public string Version => ProcessInfoHelper.VersionWithPrefix;
+
+        public SettingsView()
+        {
+            this.InitializeComponent();
+            _themeSelectorService = Ioc.Default.GetService<IThemeSelectorService>();
+        }
+        public SettingsViewModel ViewModel => Ioc.Default.GetService<SettingsViewModel>();
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            LoadThemeSettings();
+        }
+
+        #region Navigation
+
+        private void UpdateSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // UpdateView'e navigate et
+            //_navigationService.CreateNewViewAsync<UpdateViewModel>(null, "Ayarlar Güncelleme");
+            Frame.Navigate(typeof(UpdateView));
+        }
+
+        #endregion
+        private void ChangePeriodButton_Click(object sender, RoutedEventArgs e)
+{
+    // Çalışma dönemi değiştirme logic'i burada
+    // Mevcut ChangeCompanyButton_Click method'unuza benzer şekilde implement edin
+}
+
+        #region Header Actions
+
+        private async void ChangeCompanyButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Firma Değiştir",
+                Content = "Firma değiştirme özelliği yakında eklenecek.",
+                CloseButtonText = "Tamam",
+                XamlRoot = this.XamlRoot
+            };
+
+            await dialog.ShowAsync();
+        }
+
+        #endregion
+
+        #region About Actions
+
+        private async void ViewReleaseNotes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var uri = new Uri("https://github.com/garezine/MuhasibPro/releases");
+                await Windows.System.Launcher.LaunchUriAsync(uri);
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorDialog($"Sürüm notları açılamadı: {ex.Message}");
+            }
+        }
+
+        private async void ViewLicense_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Lisans Bilgileri",
+                Content = "MuhasibPro\n© 2025 Tüm hakları saklıdır.\n\nBu yazılım ticari kullanım için lisanslanmıştır.",
+                CloseButtonText = "Tamam",
+                XamlRoot = this.XamlRoot
+            };
+
+            await dialog.ShowAsync();
+        }
+
+        #endregion
+
+        #region Theme Settings
+
+        private void LoadThemeSettings()
+        {
+            var currentTheme = _themeSelectorService.Theme;
+            switch (currentTheme)
+            {
+                case ElementTheme.Light:
+                    themeMode.SelectedIndex = 0; break;
+                case ElementTheme.Dark:
+                    themeMode.SelectedIndex = 1; break;
+                case ElementTheme.Default:
+                    themeMode.SelectedIndex = 2; break;
+            }
+        }
+
+        private async void themeMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selectedTheme = ((ComboBoxItem)themeMode.SelectedItem)?.Tag?.ToString();
+
+            if (selectedTheme != null && Enum.TryParse<ElementTheme>(selectedTheme, out var theme))
+            {
+                await _themeSelectorService.SetThemeAsync(theme);
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private async Task ShowErrorDialog(string message)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Hata",
+                Content = message,
+                CloseButtonText = "Tamam",
+                XamlRoot = this.XamlRoot
+            };
+
+            await dialog.ShowAsync();
+        }
+
+        #endregion
+    }
+}

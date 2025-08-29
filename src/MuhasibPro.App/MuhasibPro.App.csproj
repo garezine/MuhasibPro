@@ -1,0 +1,83 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<OutputType>WinExe</OutputType>
+	<TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+	<RootNamespace>MuhasibPro.App</RootNamespace>
+	<ApplicationManifest>app.manifest</ApplicationManifest>
+	<Platforms>x64</Platforms>
+	<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+	<PublishProfile>win-$(Platform).pubxml</PublishProfile>
+	<UseWinUI>true</UseWinUI>
+	<EnableMsixTooling>false</EnableMsixTooling>
+	<Nullable>annotations</Nullable>
+	<TrimMode>partial</TrimMode>
+	<ImplicitUsings>true</ImplicitUsings>
+	<LangVersion>Latest</LangVersion>
+	<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+	<IsAotCompatible>False</IsAotCompatible>
+	<WindowsPackageType>None</WindowsPackageType>
+	<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+	<Version>1.0.0</Version>
+
+	<!--Remove git hash from assembly informational version in .NET >= 8, Example: false = 1.0.0, true = 1.0.0+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-->
+	<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  
+	<!-- Publish Properties -->
+  <PropertyGroup>
+	<PublishAot>False</PublishAot>
+	<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+	<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+	<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+	<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Views\Firma\Details\FirmaCard.xaml" />
+    <None Remove="Views\Firma\Details\FirmaDetails.xaml" />
+  </ItemGroup>
+  
+  <ItemGroup>
+	<Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!-- 
+	Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+	Tools extension to be activated for this project even if the Windows App SDK Nuget
+	package has not yet been restored.
+  -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+	<ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
+    <PackageReference Include="nucs.JsonSettings" Version="2.0.2" />
+    <PackageReference Include="nucs.JsonSettings.Autosave" Version="2.0.2" />
+    <PackageReference Include="WinUIEx" Version="2.7.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Page Update="Views\Firma\Details\FirmaDetails.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Views\Firma\Details\FirmaCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <!-- 
+	Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
+	Explorer "Package and Publish" context menu entry to be enabled for this project even if 
+	the Windows App SDK Nuget package has not yet been restored.
+  -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+	<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+   
+  </PropertyGroup>
+</Project>
