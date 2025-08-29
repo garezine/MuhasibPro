@@ -15,7 +15,7 @@ env:
   PUBLISH_OUTPUT_FOLDER: publish
   ZIP_OUTPUT_FOLDER: zip
   VELOPACK_OUTPUT_FOLDER: Release
-  VELOPACK_VERSION: 1.3.0 # Velopack sürümü
+  VELOPACK_VERSION: 1.3.0 # Güncel sürümünü değiştirebilirsin
   IS_PRE_RELEASE: false
 
 jobs:
@@ -36,20 +36,19 @@ jobs:
         with:
           proj-path: ${{ env.PROJECT_PATH }}
 
-      - name: Publish self-contained single file (win-x64)
+      - name: Publish self-contained
         run: |
           $rid = "win-x64"
           dotnet publish ${{ env.PROJECT_PATH }} -c Release -r $rid `
             --self-contained true `
-            -p:PublishSingleFile=true `
+            -p:PublishSingleFile=false `
             -p:PublishTrimmed=false `
             -p:PublishReadyToRun=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true `
             --output ${{ env.PUBLISH_OUTPUT_FOLDER }}/$rid
 
       - name: Create ZIP package
         run: |
-          $rid = "win-x64"
+          $rid = "x64"
           $zipName = "${{ env.APP_NAME }}-${{ steps.get-version.outputs.version }}-$rid.zip"
           mkdir -Force ${{ env.ZIP_OUTPUT_FOLDER }}
           Compress-Archive -Path "${{ env.PUBLISH_OUTPUT_FOLDER }}/$rid/*" `
@@ -67,18 +66,20 @@ jobs:
           $dest = "${GITHUB_WORKSPACE}/Velopack.exe"
           Invoke-WebRequest -Uri $url -OutFile $dest
 
-      - name: Run Velopack (setup build)
+      - name: Combine builds and run Velopack
         run: |
-          $inputDir = "${GITHUB_WORKSPACE}/publish/win-x64"
-          $outputDir = "${GITHUB_WORKSPACE}/${{ env.VELOPACK_OUTPUT_FOLDER }}"
-          mkdir -Force $outputDir
+          $combinedDir = "${GITHUB_WORKSPACE}/velopack_input"
+          mkdir -Force $combinedDir
+          Copy-Item -Path "${GITHUB_WORKSPACE}/publish/x64/*" -Destination $combinedDir -Recurse
 
           $setupName = "${{ env.APP_NAME }}-${{ steps.get-version.outputs.version }}-setup.exe"
           .\Velopack.exe `
-            --input $inputDir `
-            --output "$outputDir/$setupName" `
+            pack `
+            --input $combinedDir `
+            --output "${GITHUB_WORKSPACE}/${{ env.VELOPACK_OUTPUT_FOLDER }}" `
             --app-name ${{ env.APP_NAME }} `
-            --version ${{ steps.get-version.outputs.version }}
+            --version ${{ steps.get-version.outputs.version }} `
+            --channel stable
 
       - name: Generate CHANGELOG.md
         run: |
@@ -100,7 +101,8 @@ jobs:
           name: ${{ env.APP_NAME }}-setup
           path: |
             ${{ env.VELOPACK_OUTPUT_FOLDER }}/*.exe
-            ${{ env.VELOPACK_OUTPUT_FOLDER }}/*/RELEASES
+            ${{ env.VELOPACK_OUTPUT_FOLDER }}/*.nupkg
+            ${{ env.VELOPACK_OUTPUT_FOLDER }}/RELEASES
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
@@ -108,7 +110,8 @@ jobs:
           artifacts: |
             ${{ env.ZIP_OUTPUT_FOLDER }}/*.zip
             ${{ env.VELOPACK_OUTPUT_FOLDER }}/*.exe
-            ${{ env.VELOPACK_OUTPUT_FOLDER }}/*/RELEASES
+            ${{ env.VELOPACK_OUTPUT_FOLDER }}/*.nupkg
+            ${{ env.VELOPACK_OUTPUT_FOLDER }}/RELEASES
           bodyFile: CHANGELOG.md
           name: ${{ github.ref_name }}
           tag: ${{ github.ref_name }}
