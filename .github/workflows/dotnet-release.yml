@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 env:
-  PROJECT_PATH: src/MuhasibPro.App.csproj
+  PROJECT_PATH: src/MuhasibPro.App/MuhasibPro.App.csproj
   APP_NAME: MuhasibPro.App
   PUBLISH_OUTPUT_FOLDER: publish
   ZIP_OUTPUT_FOLDER: zip
