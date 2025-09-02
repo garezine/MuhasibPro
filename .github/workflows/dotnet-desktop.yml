@@ -72,8 +72,7 @@ jobs:
             }
           }
      
-    - uses: actions/setup-dotnet@v4
-      with:
+    - uses: actions/setup-dotnet@v4      
       dotnet-version: ${{ env.DOTNET_VERSION }}
 
       #Setup MSBuild
