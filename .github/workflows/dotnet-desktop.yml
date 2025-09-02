@@ -1,62 +1,36 @@
-name: GitHub Release Publisher
+name: Full WinUI3 Release - MuhasibPro
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: write
+    inputs:
+      version:
+        description: 'Version (e.g., 1.0.0)'
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
 
 env:
-  # Configuring Project
   PROJECT_PATH: MuhasibPro/MuhasibPro.csproj
+  SOLUTION_PATH: MuhasibPro.sln
   APP_NAME: MuhasibPro
-  
-  # Check Tag
-  CHECK_TAG_EXISTENCE_BEFORE_CREATING_TAG: false
-  
-  # Custom Nuget Source
-  IS_COMMUNITY_TOOLKIT_NUGET_SOURCE_ENABLED: false
-  IS_CUSTOM_NUGET_SOURCE_ENABLED: false
-  CUSTOM_NUGET_SOURCES: '' # Example ('https://api.nuget.org/v3/index.json, https://api.nuget.org/v2/index.json,...')
-
-  # Configuring Dotnet Build Commands
-  PUBLISH_OUTPUT_FOLDER: Publish
-  PUBLISH_SELF_CONTAINED: false
-  PUBLISH_SINGLE_FILE: false
-  PUBLISH_READY_TO_RUN: false
-  PUBLISH_AOT: false
-  PUBLISH_TRIMMED: false
-  PUBLISH_TRIM_MODE: partial # or full
-
-  # Configuring GitHub Release
-  IS_PRE_RELEASE: false
-  SKIP_IF_RELEASE_EXIST: true
-  MAKE_LATEST: true
-  ALLOW_UPDATES: false
-  ARTIFACT_ERRORS_FAIL_BUILD: false
+  DOTNET_VERSION: '8.0.407'
+  CI: true
 
 jobs:
-  build:
-    runs-on: windows-latest
-    outputs: # For accessing them from 'release' job
-      app-version: ${{ steps.get-version.outputs.version }}
-      IS_PRE_RELEASE: ${{ env.IS_PRE_RELEASE }}
-    strategy:
-      matrix:
-        platform: [x64] # Change platform if you want to build only a specific platform
+  release:
+    runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - uses: actions/setup-dotnet@v4
-      with:
-       dotnet-version: | 
-         8.x.x
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    #Remove .NET 9 SDKs
-    - run: |
+      # .NET 9 SDK'larını kaldır - bunlar sorun çıkarıyor
+      - name: Remove .NET 9 SDKs
+        run: |
           Write-Host "Removing .NET 9 SDKs that cause PRI issues..."
           
           $sdkPath = "C:\Program Files\dotnet\sdk"
@@ -71,154 +45,400 @@ jobs:
               }
             }
           }
-     
-    - uses: actions/setup-dotnet@v4      
-      
 
-      #Setup MSBuild
-    - uses: microsoft/setup-msbuild@v2
-        
-    - run: |
-         Write-Host "Active .NET version:"
-         dotnet --version
-         Write-Host "Available SDKs:"
-         dotnet --list-sdks
+      - name: Setup .NET 8.0.407
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # Get Version
-       
-    - run: |
-        if ("${{ github.event.inputs.version }}" -ne "") {
-          $version = "${{ github.event.inputs.version }}"
-        } elseif ("${{ github.ref_type }}" -eq "tag") {
-          $version = "${{ github.ref_name }}" -replace "^v", ""
-        } else {
-          $version = "1.0.0"
-        }
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
-        Write-Host "Version: $version"
-        Write-Host "Tag: v$version"
-          
-    # Add CommunityToolkit Labs and Main nuget sources
-    - run: |
-        nuget sources add -name CommunityToolkit-Labs -source https://pkgs.dev.azure.com/dotnet/CommunityToolkit/_packaging/CommunityToolkit-Labs/nuget/v3/index.json
-        nuget sources add -name CommunityToolkit-Main -source https://pkgs.dev.azure.com/dotnet/CommunityToolkit/_packaging/CommunityToolkit-MainLatest/nuget/v3/index.json
-      if: contains(env.IS_COMMUNITY_TOOLKIT_NUGET_SOURCE_ENABLED, 'true')
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
 
-    # Add Custom nuget sources
-    - run: |
-        $sources = $env:CUSTOM_NUGET_SOURCES -split ','
-        $trimmedSources = $sources | ForEach-Object { $_.Trim() }
-        $prefix = "CUSTOM_SOURCES_"
-        for ($i = 0; $i -lt $trimmedSources.Length; $i++) {
-          $sourceName = "${prefix}$($i + 1)"
-          nuget sources add -name $sourceName -source $trimmedSources[$i]
-        }
-      if: contains(env.IS_CUSTOM_NUGET_SOURCE_ENABLED, 'true')
+      - name: Verify .NET installation
+        run: |
+          Write-Host "Active .NET version:"
+          dotnet --version
+          Write-Host "Available SDKs:"
+          dotnet --list-sdks
 
-    # Reading version tag from the csproj file.
-    - uses: kzrnm/get-net-sdk-project-versions-action@v2
-      id: get-version
-      with:
-        proj-path: ${{ env.PROJECT_PATH }}
-        
-    # Building with configured commands
-    - run: |
-        $runtimeIdentifier = "${{ matrix.platform }}"
-        dotnet publish ${{ env.PROJECT_PATH }} -c Release -r win-$($runtimeIdentifier.ToLower()) /p:GITHUB_ACTIONS=true -p:Platform=${{ matrix.platform }} --self-contained ${{ env.PUBLISH_SELF_CONTAINED }} -p:PublishSingleFile=${{ env.PUBLISH_SINGLE_FILE }} -p:PublishReadyToRun=${{ env.PUBLISH_READY_TO_RUN }} -p:PublishTrimmed=${{ env.PUBLISH_TRIMMED }} -p:TrimMode=${{ env.PUBLISH_TRIM_MODE }} -p:PublishAot=${{ env.PUBLISH_AOT }} --output ${{ env.PUBLISH_OUTPUT_FOLDER }}/${{ matrix.platform }}
-
-    # Zipping folder and all files
-    - uses: vimtor/action-zip@v1.2
-      with:
-        files: ${{ env.PUBLISH_OUTPUT_FOLDER }}/${{ matrix.platform }}
-        recursive: true
-        dest: ${{ env.APP_NAME }}-v${{ steps.get-version.outputs.version }}-${{ matrix.platform }}.zip
-
-    # Uploading all zip files to access them in the 'release' job
-    - uses: actions/upload-artifact@v4
-      with:
-        name: artifacts-${{ matrix.platform }}
-        path: ${{ env.APP_NAME }}-v${{ steps.get-version.outputs.version }}-${{ matrix.platform }}.zip
-
-    # Checking version suffix for words like [alpha, beta, preview, and experiment]. Marking the release as a pre-release if any exists.
-    - run: |
-        # Define the list of strings
-        $list = @("beta", "alpha", "preview", "experiment")
-
-        # Define the suffix variable
-        $suffix = "${{ steps.get-version.outputs.version-suffix }}"
-
-        foreach ($item in $list) {
-          # Convert both strings to lower case for case-insensitive comparison
-          if ($suffix.ToLower().StartsWith($item.ToLower())) {
-            echo "IS_PRE_RELEASE=true" >> $env:GITHUB_ENV
-            break
+      - name: Get Version
+        id: version
+        run: |
+          if ("${{ github.event.inputs.version }}" -ne "") {
+            $version = "${{ github.event.inputs.version }}"
+          } elseif ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}" -replace "^v", ""
+          } else {
+            $version = "1.0.0"
           }
-        }
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $version"
+          Write-Host "Tag: v$version"
 
+      # Tüm projeler için platform ve PRI ayarlarını zorla
+      - name: Create comprehensive build override
+        run: |
+          @"
+          <Project>
+            <PropertyGroup>
+              <!-- Platform Override - her proje için x64 -->
+              <Platform>x64</Platform>
+              <PlatformTarget>x64</PlatformTarget>
+              <Platforms>x64</Platforms>
+              
+              <!-- Win2D Warning'i tamamen kapat -->
+              <Win2DWarnNoPlatform>false</Win2DWarnNoPlatform>
+              
+              <!-- PRI Generation - TÜM projeler için kapalı -->
+              <SkipPriGeneration>true</SkipPriGeneration>
+              <EnableMrtGeneration>false</EnableMrtGeneration>
+              <GeneratePriFile>false</GeneratePriFile>
+              <UsePriGeneration>false</UsePriGeneration>
+              
+              <!-- MSIX/AppX - Tamamen kapalı -->
+              <EnableMsixTooling>false</EnableMsixTooling>
+              <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+              <WindowsPackageType>None</WindowsPackageType>
+              <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+              <AppxBundle>Never</AppxBundle>
+              
+              <!-- Resource Languages -->
+              <ResourceLanguages>tr;en</ResourceLanguages>
+              <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
+            </PropertyGroup>
+          </Project>
+          "@ | Out-File Directory.Build.override.props -Encoding UTF8
+          Write-Host "✅ Build override created"
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      # Read some variables from the 'build' job
-      APP_VERSION: ${{ needs.build.outputs.app-version }}
-      IS_PRE_RELEASE: ${{ needs.build.outputs.IS_PRE_RELEASE }}
-    steps:
-      - uses: actions/checkout@v4
+      - name: Restore packages
+        run: |
+          dotnet restore "${{ env.SOLUTION_PATH }}" `
+            -p:Platform=x64 `
+            --verbosity normal
+
+      - name: Build solution
+        run: |
+          msbuild "${{ env.SOLUTION_PATH }}" `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:SkipPriGeneration=true `
+            /p:EnableMrtGeneration=false `
+            /p:GeneratePriFile=false `
+            /p:EnableMsixTooling=false `
+            /p:WindowsPackageType=None `
+            /p:Win2DWarnNoPlatform=false `
+            /verbosity:minimal `
+            /nologo
+
+      - name: Publish application
+        run: |
+          Write-Host "📤 Publishing application..."          
+          $publishPath = "publish-win-x64"  # ✅ Değişkeni tanımla
+
+          # MSBuild komutuna mutlak bir yol vererek dosyaların doğru yere yazılmasını sağla
+          $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
+
+          msbuild "${{ env.PROJECT_PATH }}" `
+            /t:Publish `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:SkipPriGeneration=true `
+            /p:EnableMrtGeneration=false `
+            /p:GeneratePriFile=false `
+            /p:UsePriGeneration=false `
+            /p:EnableMsixTooling=false `
+            /p:WindowsPackageType=None `
+            /p:PublishSingleFile=false `
+            /p:PublishTrimmed=true `
+            /p:PublishReadyToRun=false `
+            /p:SelfContained=true `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:PublishDir="$absolutePublishPath" `
+            /verbosity:minimal `
+            /nologo
+
+          Write-Host "✅ Application published to: $publishPath"
+          # Dizin yapısını kontrol et
+          Write-Host "📁 Publish directory contents:"
+          Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+
+      - name: Find main executable
+        id: find_exe
+        run: |
+            $publishPath = "publish-win-x64"
+    
+            # Recursive olarak exe ara
+            $exeFiles = Get-ChildItem $publishPath -Filter "*.exe" -Recurse | 
+                        Where-Object { $_.Name -eq "${{ env.APP_NAME }}.exe" }
+    
+            if ($exeFiles.Count -gt 0) {
+                $mainExe = $exeFiles[0]
+                echo "main_exe_path=$($mainExe.FullName)" >> $env:GITHUB_OUTPUT
+                echo "main_exe_name=$($mainExe.Name)" >> $env:GITHUB_OUTPUT
+                Write-Host "✅ Found main executable: $($mainExe.FullName)"
+            } else {
+                Write-Host "❌ Main executable not found"
+                Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+                exit 1
+            }
+
+      - name: Get latest Velopack CLI version
+        id: get_vpk_version
+        run: |
+            $response = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/vpk/index.json"
+            $latestVersion = $response.versions[-1]
+            echo "vpk_version=$latestVersion" >> $env:GITHUB_OUTPUT
+            Write-Host "Latest vpk version: $latestVersion"
+
+      - name: Install Velopack CLI
+        run: |
+            dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
+            echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+            $env:PATH = "$HOME/.dotnet/tools;" + $env:PATH
+            vpk --help
+
+      - name: Generate release notes
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $buildDate = Get-Date -Format "dd.MM.yyyy HH:mm"
+          $notes = @"
+          # MuhasibPro v$version
+
+          ## 📦 Sürüm Bilgileri
+          - **Sürüm:** $version
+          - **Derleme Tarihi:** $buildDate
+          - **Hedef Framework:** .NET 8.0
+          - **Platform:** Windows 10/11 (x64)
+          - **UI Framework:** WinUI 3
+
+          ## 💾 İndirme Seçenekleri
+          ### 🔄 Otomatik Kurulum (Velopack)
+          - Dosya: ${{ env.APP_NAME }}.v$version.vpk
+          - ✅ Otomatik kurulum ve güncelleme
+
+          ### 🛠️ Geleneksel Kurulum
+          - Dosya: ${{ env.APP_NAME }}-v$version-Setup.exe
+          - ✅ Windows kurulum sihirbazı
+          - ✅ Program Files'a kurulum
+          - ✅ Başlat Menüsü kısayolu
+
+          ### 📁 Taşınabilir Sürüm
+          - Dosya: ${{ env.APP_NAME }}-v$version-portable-win-x64.zip
+          - ✅ Kurulum gerektirmez
+          - ✅ Taşınabilir kullanım
+
+          ## ⚡ Öne Çıkan Özellikler
+          - Modern WinUI 3 arayüzü         
+          - Otomatik veri yedekleme
+          - Performans optimizasyonları
+
+          ## 🚀 Kurulum
+          1. **Velopack Otomatik:** .vpk dosyasını çalıştırın ve kurulum sihirbazını takip edin
+          2. **Geleneksel Kurulum:** Setup.exe'yi çalıştırın ve standart Windows kurulum sihirbazını takip edin
+          3. **Portable:** .zip dosyasını açın ve ${{ env.APP_NAME }}.exe'yi çalıştırın
+
+          ---
+          Bu sürüm otomatik olarak GitHub Actions ile derlenmiştir.
+          "@
+          $notes | Out-File -FilePath "RELEASE_NOTES.md" -Encoding UTF8
+          $txtNotes = @"
+          MuhasibPro v$version - $buildDate tarihinde yayınlandı.
+
+          Açıklama: MuhasibPro - Muhasebe ve Finans Yönetim Uygulaması
+
+          Öne Çıkan Özellikler:
+          - Modern WinUI 3 arayüzü         
+          - Otomatik veri yedekleme
+          - Performans optimizasyonları         
+
+          Sistem Gereksinimleri:
+          - Windows 10/11 (x64)
+          - .NET 8.0 Runtime
+          - 4GB RAM
+          - 2GB disk alanı
+          "@
+          $txtNotes | Out-File -FilePath "release-notes.txt" -Encoding UTF8
+          Write-Host "✅ RELEASE_NOTES.md and release-notes.txt created"
+          Get-ChildItem -Path "./RELEASE_NOTES.md" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+          Get-ChildItem -Path "./release-notes.txt" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+
+      - name: Create Velopack package
+        shell: pwsh
+        run: |
+            $version = "${{ steps.version.outputs.version }}"
+            $publishPath = "publish-win-x64"
+            $outputDir = "releases"
+            $mainExePath = "${{ steps.find_exe.outputs.main_exe_path }}"
+            $mainExeName = "${{ steps.find_exe.outputs.main_exe_name }}"
+
+            Write-Host "📦 Creating Velopack package..."
+            Write-Host "Version: $version"
+            Write-Host "Publish path: $publishPath"
+            Write-Host "Main EXE path: $mainExePath"
+            Write-Host "Main EXE name: $mainExeName"
+
+            # Çıktı dizinini oluştur
+            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+    
+            # Ana exe dosyasını kontrol et
+            $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+            if (-not (Test-Path "${{ steps.find_exe.outputs.main_exe_path }}")) {
+              Write-Host "❌ Main executable not found: ${{ steps.find_exe.outputs.main_exe_path }}"
+              exit 1
+            }          
+    
+            # Velopack paketini oluştur
+            vpk pack `
+              --packId "${{ env.APP_NAME }}" `
+              --packVersion "$version" `
+              --packDir "$publishPath" `
+              --outputDir "$outputDir" `
+              --mainExe "$mainExeName" `
+              --packTitle "MuhasibPro" `
+              --packAuthors "MuhasibPro Team" `
+              --releaseNotes "./RELEASE_NOTES.md" `
+              --verbose   
+
+      - name: Create portable ZIP
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $zipName = "${{ env.APP_NAME }}-v$version-portable-win-x64.zip"
+          $zipPath = Join-Path "releases" $zipName
+          Compress-Archive -Path "publish-win-x64/*" -DestinationPath $zipPath -Force
+
+      - name: Create Setup.exe (Traditional Installer)
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $outputDir = "releases"
+          $setupName = "${{ env.APP_NAME }}-v$version-Setup.exe"
+          $setupPath = Join-Path $outputDir $setupName
+
+          Write-Host "📦 Creating traditional setup.exe installer..."
+
+          # Inno Setup script oluştur
+          $innoScript = @"
+          #define MyAppName "MuhasibPro"
+          #define MyAppVersion "$version"
+          #define MyAppPublisher "MuhasibPro Team"
+          #define MyAppURL "https://github.com/garezine/MuhasibPro"
+          #define MyAppExeName "${{ env.APP_NAME }}.exe"
+
+          [Setup]
+          AppId={{12345678-1234-1234-1234-123456789012}
+          AppName={#MyAppName}
+          AppVersion={#MyAppVersion}
+          AppPublisher={#MyAppPublisher}
+          AppPublisherURL={#MyAppURL}
+          AppSupportURL={#MyAppURL}
+          AppUpdatesURL={#MyAppURL}
+          DefaultDirName={autopf}\{#MyAppName}
+          DefaultGroupName={#MyAppName}
+          AllowNoIcons=yes
+          LicenseFile=
+          OutputDir=releases
+          OutputBaseFilename=${{ env.APP_NAME }}-v$version-Setup
+          SetupIconFile=
+          Compression=lzma
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64
+          ArchitecturesInstallIn64BitMode=x64
+
+          [Languages]
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+          Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
+
+          [Tasks]
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+          [Files]
+          Source: "publish-win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+          Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+          Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+          [Run]
+          Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+          "@
+
+          # Geçici Inno Setup script dosyası oluştur
+          $innoScript | Out-File -FilePath "setup.iss" -Encoding UTF8
+
+          # Chocolatey ile Inno Setup kur
+          Write-Host "Installing Inno Setup via Chocolatey..."
+          try {
+            choco install innosetup -y --no-progress
+            
+            # Inno Setup'ı PATH'e ekle
+            $innoPath = "C:\Program Files (x86)\Inno Setup 6"
+            $env:PATH = "$innoPath;" + $env:PATH
+            
+            # Setup.exe oluştur
+            Write-Host "Compiling setup.exe with Inno Setup..."
+            & "$innoPath\ISCC.exe" "setup.iss"
+            
+            Write-Host "✅ Setup.exe created successfully!"
+          } catch {
+            Write-Host "❌ Inno Setup compilation failed: $_"
+            
+            # Fallback: 7zip ile self-extracting exe oluştur
+            Write-Host "📦 Creating self-extracting archive as fallback..."
+            choco install 7zip -y --no-progress
+            
+            $sfxPath = "C:\Program Files\7-Zip\7z.sfx"
+            $configFile = @"
+          ;!@Install@!UTF-8!
+          Title="MuhasibPro v$version Kurulum"
+          BeginPrompt="MuhasibPro v$version kurulumuna hoş geldiniz!"
+          RunProgram="${{ env.APP_NAME }}.exe"
+          Directory="MuhasibPro"
+          ;!@InstallEnd@!
+          "@
+            $configFile | Out-File -FilePath "config.txt" -Encoding UTF8
+            
+            # 7zip arşivi oluştur
+            & "C:\Program Files\7-Zip\7z.exe" a -t7z archive.7z "publish-win-x64\*" -mx=9
+            
+            # Self-extracting exe oluştur
+            cmd /c "copy /b `"$sfxPath`" + config.txt + archive.7z `"$setupPath`""
+            
+            Write-Host "✅ Self-extracting setup.exe created as fallback!"
+          }
+
+          # Temizlik
+          Remove-Item "setup.iss" -Force -ErrorAction SilentlyContinue
+          Remove-Item "config.txt" -Force -ErrorAction SilentlyContinue
+          Remove-Item "archive.7z" -Force -ErrorAction SilentlyContinue
+
+      # ✅ BURASI EKSİKTİ - GITHUB RELEASE OLUŞTURMA
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          fetch-depth: 0
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          name: "MuhasibPro v${{ steps.version.outputs.version }}"
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            releases/*.vpk
+            releases/*.zip
+            releases/*Setup.exe
 
-      # Downloading all zip files into the GitHub root directory (uploaded in 'build' job)
-      - uses: actions/download-artifact@v4
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
         with:
-          merge-multiple: true
+          name: muhasibpro-v${{ steps.version.outputs.version }}-release
+          path: |
+            releases/*
+            RELEASE_NOTES.md
+          retention-days: 90
 
-      # Configuring git to create a tag
-      - run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-
-          TAG_NAME="v${{ env.APP_VERSION }}"
-          if [[ "${{ env.CHECK_TAG_EXISTENCE_BEFORE_CREATING_TAG }}" == "true" ]]; then
-              git fetch --tags
-              if [[ $(git tag -l "$TAG_NAME") ]]; then
-                  echo "Tag found (already exist). Skipping to the next step"
-              else
-                  echo "Tag not found, creating new tag"
-                  git tag "$TAG_NAME"
-                  git push origin "$TAG_NAME"
-              fi
-          else
-              echo "Creating new tag"
-              git tag "$TAG_NAME"
-              git push origin "$TAG_NAME"
-          fi  
-          
-      # Installing a package for generating a changelog file
-      - run: npm install -g auto-changelog  
-      - run: auto-changelog --tag-pattern .+ --commit-limit false --starting-version v${{ env.APP_VERSION }} --ending-version v${{ env.APP_VERSION }} --hide-credit  
-      
-      # Creating a Release in GitHub
-      - uses: ncipollo/release-action@v1
-        with:
-          artifacts: "${{ env.APP_NAME }}-v${{ env.APP_VERSION }}-*.zip"
-          bodyFile: "CHANGELOG.md"
-          name: v${{ env.APP_VERSION }}
-          tag: v${{ env.APP_VERSION }}
-          prerelease: ${{ env.IS_PRE_RELEASE }}
-          skipIfReleaseExists: ${{ env.SKIP_IF_RELEASE_EXIST }}
-          makeLatest: ${{ env.MAKE_LATEST }}
-          allowUpdates: ${{ env.ALLOW_UPDATES }}
-          artifactErrorsFailBuild: ${{ env.ARTIFACT_ERRORS_FAIL_BUILD }}
-
-
-
-      # - uses: softprops/action-gh-release@v1
-      #   with:
-      #     name: v${{ env.APP_VERSION }}
-      #     tag_name: v${{ env.APP_VERSION }}
-      #     body_path: CHANGELOG.md
-      #     prerelease: ${{ env.PUBLISH_PRE_RELEASE }}
-      #     files: |
-      #       ${{ env.APP_NAME }}-v${{ env.APP_VERSION }}-*.zip
+      - name: Cleanup
+        run: |
+          Remove-Item "Directory.Build.override.props" -Force -ErrorAction SilentlyContinue
+          Remove-Item "release-notes.txt" -Force -ErrorAction SilentlyContinue
