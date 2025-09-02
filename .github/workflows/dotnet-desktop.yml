@@ -73,7 +73,7 @@ jobs:
           }
      
     - uses: actions/setup-dotnet@v4      
-      dotnet-version: ${{ env.DOTNET_VERSION }}
+      
 
       #Setup MSBuild
     - uses: microsoft/setup-msbuild@v2
