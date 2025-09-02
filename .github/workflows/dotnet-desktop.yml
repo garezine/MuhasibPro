@@ -54,8 +54,24 @@ jobs:
       with:
        dotnet-version: | 
          8.x.x
-         9.x.x
 
+    - name: Remove .NET 9 SDKs
+    - run: |
+          Write-Host "Removing .NET 9 SDKs that cause PRI issues..."
+          
+          $sdkPath = "C:\Program Files\dotnet\sdk"
+          if (Test-Path $sdkPath) {
+            $net9Sdks = Get-ChildItem $sdkPath | Where-Object { $_.Name -like "9.*" }
+            foreach ($sdk in $net9Sdks) {
+              Write-Host "Removing .NET SDK: $($sdk.Name)"
+              try {
+                Remove-Item -Path $sdk.FullName -Recurse -Force -ErrorAction SilentlyContinue
+              } catch {
+                Write-Host "Warning: Could not remove $($sdk.Name)"
+              }
+            }
+          }
+        
     # Add CommunityToolkit Labs and Main nuget sources
     - run: |
         nuget sources add -name CommunityToolkit-Labs -source https://pkgs.dev.azure.com/dotnet/CommunityToolkit/_packaging/CommunityToolkit-Labs/nuget/v3/index.json
