@@ -55,7 +55,7 @@ jobs:
        dotnet-version: | 
          8.x.x
 
-    - name: Remove .NET 9 SDKs
+    
     - run: |
           Write-Host "Removing .NET 9 SDKs that cause PRI issues..."
           
