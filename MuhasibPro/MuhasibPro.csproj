@@ -18,6 +18,7 @@
 	<IsAotCompatible>False</IsAotCompatible>
 	<WindowsPackageType>None</WindowsPackageType>
 	<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <AppxBundle>Never</AppxBundle>   
 	<Version>1.0.0</Version>
 
 	<!--Remove git hash from assembly informational version in .NET >= 8, Example: false = 1.0.0, true = 1.0.0+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-->
@@ -68,6 +69,9 @@
 
   <ItemGroup>
     <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Package.appxmanifest">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

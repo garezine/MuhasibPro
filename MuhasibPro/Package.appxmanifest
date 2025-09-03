@@ -12,7 +12,7 @@
     Publisher="CN=MuhasibProSoft"
     Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="cdd67c66-87d4-4dcd-8f43-607a245b8758" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  
 
   <Properties>
     <DisplayName>MuhasibPro</DisplayName>
@@ -20,13 +20,13 @@
     <Logo>Assets\Store\StoreLogo.png</Logo>
   </Properties>
 
-  <Dependencies>
-    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+  <Dependencies>    
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+    <PackageDependency Name="Microsoft.WindowsAppRuntime.1.7" MinVersion="1007.0.8.0" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" />
   </Dependencies>
 
   <Resources>
-    <Resource Language="x-generate"/>
+    <Resource Language="tr-TR"/>
   </Resources>
 
   <Applications>
