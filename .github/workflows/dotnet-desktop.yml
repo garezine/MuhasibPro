@@ -155,8 +155,7 @@ jobs:
             /p:PublishReadyToRun=false `
             /p:SelfContained=true `
             /p:RuntimeIdentifier=win-x64 `
-            /p:PublishDir="$absolutePublishPath" `
-            /p:WindowsAppSDKSelfContained=true `
+            /p:PublishDir="$absolutePublishPath" `            
             /p:WindowsAppSdkSelfContained=true `
             /p:IncludeNativeLibrariesForSelfExtract=true `
             /p:CopyLocalLockFileAssemblies=true `
