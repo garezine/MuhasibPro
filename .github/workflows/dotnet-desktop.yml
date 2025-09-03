@@ -149,7 +149,7 @@ jobs:
           /p:GeneratePriFile=false `
           /p:UsePriGeneration=false `
           /p:EnableMsixTooling=false `
-          /p:WindowsPackageType=None `         
+          /p:WindowsPackageType=None `      
           /p:WindowsAppSDKSelfContained=true `
           /p:IncludeNativeLibrariesForSelfExtract=true `
           /p:CopyLocalLockFileAssemblies=true `
