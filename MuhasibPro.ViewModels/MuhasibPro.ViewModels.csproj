@@ -7,6 +7,7 @@
 	  <Nullable>annotations</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	  <UseWinUI>true</UseWinUI>
+	  <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />

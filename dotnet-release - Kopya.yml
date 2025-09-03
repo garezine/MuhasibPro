@@ -53,52 +53,8 @@ jobs:
     - uses: actions/setup-dotnet@v4
       with:
        dotnet-version: | 
-         8.x.x
+         8.x.x        
 
-    #Remove .NET 9 SDKs
-    - run: |
-          Write-Host "Removing .NET 9 SDKs that cause PRI issues..."
-          
-          $sdkPath = "C:\Program Files\dotnet\sdk"
-          if (Test-Path $sdkPath) {
-            $net9Sdks = Get-ChildItem $sdkPath | Where-Object { $_.Name -like "9.*" }
-            foreach ($sdk in $net9Sdks) {
-              Write-Host "Removing .NET SDK: $($sdk.Name)"
-              try {
-                Remove-Item -Path $sdk.FullName -Recurse -Force -ErrorAction SilentlyContinue
-              } catch {
-                Write-Host "Warning: Could not remove $($sdk.Name)"
-              }
-            }
-          }
-     
-    - uses: actions/setup-dotnet@v4      
-      
-
-      #Setup MSBuild
-    - uses: microsoft/setup-msbuild@v2
-        
-    - run: |
-         Write-Host "Active .NET version:"
-         dotnet --version
-         Write-Host "Available SDKs:"
-         dotnet --list-sdks
-
-      # Get Version
-       
-    - run: |
-        if ("${{ github.event.inputs.version }}" -ne "") {
-          $version = "${{ github.event.inputs.version }}"
-        } elseif ("${{ github.ref_type }}" -eq "tag") {
-          $version = "${{ github.ref_name }}" -replace "^v", ""
-        } else {
-          $version = "1.0.0"
-        }
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-        echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
-        Write-Host "Version: $version"
-        Write-Host "Tag: v$version"
-          
     # Add CommunityToolkit Labs and Main nuget sources
     - run: |
         nuget sources add -name CommunityToolkit-Labs -source https://pkgs.dev.azure.com/dotnet/CommunityToolkit/_packaging/CommunityToolkit-Labs/nuget/v3/index.json
