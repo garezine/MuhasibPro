@@ -157,6 +157,7 @@ jobs:
             /p:RuntimeIdentifier=win-x64 `
             /p:PublishDir="$absolutePublishPath" `
             /p:WindowsAppSDKSelfContained=true `
+            /p:WindowsAppSdkSelfContained=true `
             /p:IncludeNativeLibrariesForSelfExtract=true `
             /p:CopyLocalLockFileAssemblies=true `
             /verbosity:normal `
