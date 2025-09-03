@@ -151,12 +151,15 @@ jobs:
             /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
             /p:PublishSingleFile=false `
-            /p:PublishTrimmed=true `
+            /p:PublishTrimmed=false `
             /p:PublishReadyToRun=false `
             /p:SelfContained=true `
             /p:RuntimeIdentifier=win-x64 `
             /p:PublishDir="$absolutePublishPath" `
-            /verbosity:minimal `
+            /p:WindowsAppSDKSelfContained=true `
+            /p:IncludeNativeLibrariesForSelfExtract=true `
+            /p:CopyLocalLockFileAssemblies=true `
+            /verbosity:normal `
             /nologo
 
           Write-Host "✅ Application published to: $publishPath"
