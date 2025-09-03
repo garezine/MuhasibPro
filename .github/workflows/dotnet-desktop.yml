@@ -141,26 +141,26 @@ jobs:
           $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
 
           msbuild "${{ env.PROJECT_PATH }}" `
-            /t:Publish `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:GeneratePriFile=false `
-            /p:UsePriGeneration=false `
-            /p:EnableMsixTooling=false `
-            /p:WindowsPackageType=None `
-            /p:PublishSingleFile=false `
-            /p:PublishTrimmed=false `
-            /p:PublishReadyToRun=false `
-            /p:SelfContained=true `
-            /p:RuntimeIdentifier=win-x64 `
-            /p:PublishDir="$absolutePublishPath" `            
-            /p:WindowsAppSdkSelfContained=true `
-            /p:IncludeNativeLibrariesForSelfExtract=true `
-            /p:CopyLocalLockFileAssemblies=true `
-            /verbosity:normal `
-            /nologo
+          /t:Publish `
+          /p:Configuration=Release `
+          /p:Platform=x64 `
+          /p:SkipPriGeneration=true `
+          /p:EnableMrtGeneration=false `
+          /p:GeneratePriFile=false `
+          /p:UsePriGeneration=false `
+          /p:EnableMsixTooling=false `
+          /p:WindowsPackageType=None `         
+          /p:WindowsAppSdkSelfContained=true `
+          /p:IncludeNativeLibrariesForSelfExtract=true `
+          /p:CopyLocalLockFileAssemblies=true `
+          /p:PublishSingleFile=false `
+          /p:PublishTrimmed=false `
+          /p:PublishReadyToRun=false `
+          /p:SelfContained=true `
+          /p:RuntimeIdentifier=win-x64 `
+          /p:PublishDir="$publishPath" `
+          /verbosity:normal `
+          /nologo
 
           Write-Host "✅ Application published to: $publishPath"
           # Dizin yapısını kontrol et
