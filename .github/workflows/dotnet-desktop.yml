@@ -155,7 +155,7 @@ jobs:
           /p:CopyLocalLockFileAssemblies=true `
           /p:PublishSingleFile=false `
           /p:PublishTrimmed=false `
-          /p:PublishReadyToRun=false `
+          /p:PublishReadyToRun=true `
           /p:SelfContained=true `
           /p:RuntimeIdentifier=win-x64 `
           /p:PublishDir="$publishPath" `
