@@ -100,7 +100,7 @@ jobs:
               <EnableMsixTooling>false</EnableMsixTooling>
               <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
               <WindowsPackageType>None</WindowsPackageType>
-              <WindowsAppSdkSelfContained>true</WindowsAppSDKSelfContained>
+              <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
               <AppxBundle>Never</AppxBundle>
               
               <!-- Resource Languages -->
