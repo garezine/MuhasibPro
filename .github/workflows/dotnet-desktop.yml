@@ -184,79 +184,147 @@ jobs:
                 exit 1
             }
 
-      - name: Diagnostic - Check published files
+      - name: Diagnostic - Comprehensive dependency check
         run: |
           $publishPath = "publish-win-x64"
           $mainExePath = "${{ steps.find_exe.outputs.main_exe_path }}"
           
-          Write-Host "🔍 DIAGNOSTIC CHECK - Published Files"
-          Write-Host "======================================"
+          Write-Host "🔍 COMPREHENSIVE DEPENDENCY CHECK"
+          Write-Host "================================="
           
-          # Dosya yapısını listele
-          Write-Host "📁 Directory structure:"
-          Get-ChildItem -Path $publishPath -Recurse | ForEach-Object {
-            $size = if ($_.PSIsContainer) { "DIR" } else { "$([math]::Round($_.Length/1KB, 2)) KB" }
-            Write-Host "  $($_.FullName.Replace($publishPath, '')) - $size"
-          }
-          
-          # Ana EXE dosyasını kontrol et
-          Write-Host "`n✅ Main EXE check:"
-          if (Test-Path $mainExePath) {
-            $exeInfo = Get-Item $mainExePath
-            Write-Host "  ✓ Found: $($exeInfo.Name)"
-            Write-Host "  ✓ Size: $([math]::Round($exeInfo.Length/1MB, 2)) MB"
-            Write-Host "  ✓ Path: $($exeInfo.FullName)"
-          } else {
-            Write-Host "  ✗ NOT FOUND: $mainExePath"
-            exit 1
-          }
-          
-          # Gerekli DLL'leri kontrol et
-          Write-Host "`n📦 Required DLL check:"
-          $requiredDlls = @(
+          # 1. Temel dosya varlık kontrolü
+          Write-Host "`n📁 1. FILE EXISTENCE CHECK:"
+          $criticalFiles = @(
+            "${{ env.APP_NAME }}.exe",
+            "${{ env.APP_NAME }}.deps.json",
+            "${{ env.APP_NAME }}.runtimeconfig.json",
             "Microsoft.UI.Xaml.dll",
-            "Microsoft.WindowsAppRuntime.dll", 
-            "Microsoft.Windows.System.Power.dll"
+            "Microsoft.WindowsAppRuntime.dll",
+            "Microsoft.WinUI.dll",
+            "WinRT.Runtime.dll"
           )
           
-          foreach ($dll in $requiredDlls) {
-            $dllPath = Join-Path $publishPath $dll
-            if (Test-Path $dllPath) {
-              Write-Host "  ✓ $dll"
+          foreach ($file in $criticalFiles) {
+            $filePath = Join-Path $publishPath $file
+            if (Test-Path $filePath) {
+              $size = (Get-Item $filePath).Length / 1KB
+              Write-Host "   ✓ $file ($([math]::Round($size, 2)) KB)"
             } else {
-              Write-Host "  ✗ MISSING: $dll"
+              Write-Host "   ✗ MISSING: $file"
             }
           }
           
-          # .deps.json dosyasını kontrol et
-          Write-Host "`n📄 Dependencies file check:"
+          # 2. .deps.json bağımlılık analizi
+          Write-Host "`n📦 2. DEPENDENCY ANALYSIS:"
           $depsPath = Join-Path $publishPath "${{ env.APP_NAME }}.deps.json"
           if (Test-Path $depsPath) {
-            Write-Host "  ✓ .deps.json found"
             try {
               $depsContent = Get-Content $depsPath -Raw | ConvertFrom-Json
-              $targetCount = ($depsContent.targets.PSObject.Properties | Measure-Object).Count
-              Write-Host "  ✓ Targets found: $targetCount"
+              $runtimeTarget = $depsContent.runtimeTarget.name
+              Write-Host "   ✓ Runtime Target: $runtimeTarget"
+              
+              # Windows App SDK bağımlılıklarını kontrol et
+              $windowsAppSdkDeps = $depsContent.libraries.PSObject.Properties | 
+                Where-Object { $_.Name -like "Microsoft.WindowsAppSDK*" }
+              
+              if ($windowsAppSdkDeps) {
+                Write-Host "   ✓ Windows App SDK Dependencies:"
+                foreach ($dep in $windowsAppSdkDeps) {
+                  Write-Host "     - $($dep.Name) ($($dep.Value.type))"
+                }
+              } else {
+                Write-Host "   ⚠ No Windows App SDK dependencies found"
+              }
+              
             } catch {
-              Write-Host "  ⚠ .deps.json invalid format"
+              Write-Host "   ✗ Error parsing .deps.json: $($_.Exception.Message)"
             }
-          } else {
-            Write-Host "  ✗ .deps.json NOT found"
           }
           
-          # Runtime config kontrolü
-          Write-Host "`n⚙ Runtime config check:"
+          # 3. Runtime config analizi
+          Write-Host "`n⚙ 3. RUNTIME CONFIG ANALYSIS:"
           $runtimeConfigPath = Join-Path $publishPath "${{ env.APP_NAME }}.runtimeconfig.json"
           if (Test-Path $runtimeConfigPath) {
-            Write-Host "  ✓ .runtimeconfig.json found"
-            $runtimeConfig = Get-Content $runtimeConfigPath -Raw
-            if ($runtimeConfig -like "*Microsoft.Windows.SDK.NET.Ref*") {
-              Write-Host "  ✓ Windows SDK reference found"
+            try {
+              $runtimeConfig = Get-Content $runtimeConfigPath -Raw | ConvertFrom-Json
+              $framework = $runtimeConfig.runtimeOptions.framework.name
+              $version = $runtimeConfig.runtimeOptions.framework.version
+              Write-Host "   ✓ Framework: $framework v$version"
+              
+              # Self-contained kontrolü
+              if ($runtimeConfig.runtimeOptions.includedFrameworks) {
+                Write-Host "   ✓ Self-contained: Yes"
+              } else {
+                Write-Host "   ⚠ Self-contained: No (requires .NET runtime)"
+              }
+              
+            } catch {
+              Write-Host "   ✗ Error parsing runtimeconfig.json"
             }
-          } else {
-            Write-Host "  ✗ .runtimeconfig.json NOT found"
           }
-
+          
+          # 4. Native library kontrolü
+          Write-Host "`n🔧 4. NATIVE LIBRARY CHECK:"
+          $nativeFiles = Get-ChildItem $publishPath -Include "*.dll", "*.exe" -Recurse | 
+            Where-Object { $_.Extension -in ".dll", ".exe" } |
+            ForEach-Object {
+              try {
+                # Dosyanın PE (Portable Executable) header'ını oku
+                $peInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($_.FullName)
+                Write-Host "   ✓ $($_.Name): $($peInfo.FileDescription) - $($peInfo.ProductVersion)"
+              } catch {
+                Write-Host "   ⚠ $($_.Name): Could not read file info"
+              }
+            }
+          
+          # 5. Windows App SDK runtime kontrolü
+          Write-Host "`n🏗 5. WINDOWS APP SDK CHECK:"
+          $sdkDlls = @(
+            "Microsoft.UI.Xaml.dll",
+            "Microsoft.WindowsAppRuntime.dll",
+            "Microsoft.WinUI.dll"
+          )
+          
+          foreach ($dll in $sdkDlls) {
+            $dllPath = Join-Path $publishPath $dll
+            if (Test-Path $dllPath) {
+              try {
+                $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($dllPath)
+                Write-Host "   ✓ $dll - v$($versionInfo.FileVersion)"
+              } catch {
+                Write-Host "   ✓ $dll - Present (version unknown)"
+              }
+            } else {
+              Write-Host "   ✗ MISSING: $dll"
+            }
+          }
+          
+          # 6. Bağımlılık çözümleme aracı ile derinlemesine kontrol
+          Write-Host "`n🔍 6. DEPENDENCY RESOLUTION CHECK:"
+          try {
+            # dotnet-depends aracı ile bağımlılıkları analiz et
+            $depsTree = dotnet list "$publishPath\${{ env.APP_NAME }}.deps.json" package
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "   ✓ Dependency tree generated successfully"
+              # Önemli bağımlılıkları filtrele
+              $importantDeps = $depsTree | Where-Object {
+                $_ -like "*Microsoft.WindowsAppSDK*" -or 
+                $_ -like "*WinUI*" -or 
+                $_ -like "*Microsoft.UI.Xaml*"
+              }
+              foreach ($dep in $importantDeps) {
+                Write-Host "     - $dep"
+              }
+            }
+          } catch {
+            Write-Host "   ⚠ Dependency analysis tool not available"
+          }
+          
+          Write-Host "`n🎯 DIAGNOSTIC SUMMARY:"
+          Write-Host "   Use this information to identify missing dependencies"
+          Write-Host "   Check Windows Event Viewer for detailed error logs"
+          Write-Host "   Test with 'test-app.bat' for runtime validation"
+          
       - name: Get latest Velopack CLI version
         id: get_vpk_version
         run: |
