@@ -100,7 +100,7 @@ jobs:
               <EnableMsixTooling>false</EnableMsixTooling>
               <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
               <WindowsPackageType>None</WindowsPackageType>
-              <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+              <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
               <AppxBundle>Never</AppxBundle>
               
               <!-- Resource Languages -->
@@ -127,6 +127,7 @@ jobs:
             /p:GeneratePriFile=false `
             /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
+            /p:WindowsAppSDKSelfContained=true `
             /p:Win2DWarnNoPlatform=false `
             /verbosity:minimal `
             /nologo
