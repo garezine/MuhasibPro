@@ -18,6 +18,9 @@
 	<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 	<IsAotCompatible>False</IsAotCompatible>
 	<WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSdkIncludeProjectReferences>false</WindowsAppSdkIncludeProjectReferences>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <WindowsAppSDKDeploymentManager>true</WindowsAppSDKDeploymentManager>
 	<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <!-- PRI ve Paketleme Ayarları -->
     <SkipPriGeneration>true</SkipPriGeneration>
@@ -95,6 +98,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
+    <FrameworkReference Update="Microsoft.Windows.SDK.NET.Ref" RuntimeFrameworkVersion="10.0.26100.4948" />
+    <FrameworkReference Update="Microsoft.Windows.SDK.NET.Ref" TargetingPackVersion="10.0.26100.4948" />
     <PackageReference Include="nucs.JsonSettings" Version="2.0.2" />
     <PackageReference Include="nucs.JsonSettings.Autosave" Version="2.0.2" />
     <PackageReference Include="WinUIEx" Version="2.7.0" />

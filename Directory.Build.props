@@ -4,22 +4,29 @@
     <Platform>x64</Platform>
     <PlatformTarget>x64</PlatformTarget>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
-    
-    <!-- AnyCPU hatasını önlemek için açıkça x64 hedeflemesi -->
+
     <AppxAutoInjectionPackageExtensions>false</AppxAutoInjectionPackageExtensions>
-    
-    <!-- Unpackaged uygulama için paketleme ayarlarını devre dışı bırak -->
     <AppxPackage>false</AppxPackage>
-    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
     <WindowsPackageType>None</WindowsPackageType>
-    
+
     <!-- Çıkış dizinlerini platforma göre ayırma -->
     <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
-    
-    <!-- Unpackaged dağıtım için gerekli ayarlar -->
+
     <WindowsAppSDKGeneratePackage>false</WindowsAppSDKGeneratePackage>
     <EnableMsixTooling>false</EnableMsixTooling>
+  </PropertyGroup>
+
+  <!-- ✅ CI/Publish durumunda self-contained, aksi halde framework-dependent -->
+  <PropertyGroup Condition="'$(CI)' == 'true' OR '$(PublishDir)' != ''">
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(CI)' != 'true' AND '$(PublishDir)' == ''">
+    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <SelfContained>false</SelfContained>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
