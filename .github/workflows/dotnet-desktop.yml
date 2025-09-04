@@ -113,7 +113,7 @@ jobs:
             </PropertyGroup>
           </Project>
             "@ | Out-File Directory.Build.override.props -Encoding UTF8
-            Write-Host "Build override created with consistent naming"
+          Write-Host "✅ Build override created"
               
       - name: Restore packages
         run: |
