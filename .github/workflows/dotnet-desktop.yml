@@ -184,6 +184,36 @@ jobs:
                 exit 1
             }
 
+      - name: Add only the missing critical DLLs
+        run: |
+          $publishPath = "publish-win-x64"
+          Write-Host "🔧 Adding only the missing DLLs..."
+          
+          # SADECE eksik olan iki kritik DLL'yi ekle
+          $missingDlls = @(
+              "Microsoft.Windows.System.Power.dll",
+              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
+          )
+          
+          # Windows App SDK package yolunu bul
+          $sdkPath = "C:\Users\runneradmin\.nuget\packages\microsoft.windowsappsdk"
+          if (Test-Path $sdkPath) {
+              $latestVersion = Get-ChildItem $sdkPath | Sort-Object Name -Descending | Select-Object -First 1
+              $libPath = Join-Path $latestVersion.FullName "lib\net8.0-windows10.0.19041.0\"
+              
+              foreach ($dll in $missingDlls) {
+                  $source = Join-Path $libPath $dll
+                  $target = Join-Path $publishPath $dll
+                  
+                  if (Test-Path $source) {
+                      Copy-Item $source $target
+                      Write-Host "✅ Added: $dll"
+                  } else {
+                      Write-Host "⚠️ Not found in lib: $dll"
+                  }
+              }
+          }
+
       - name: Diagnostic - Fixed dependency check
         run: |
           $publishPath = "publish-win-x64"
