@@ -8,6 +8,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWinUI>true</UseWinUI>
     <Platforms>x64</Platforms>
+
+    <!-- GitHub Actions için önemli ayarlar -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+
+    <!-- XAML ayarları -->
+    <EnableDefaultXamlItems>true</EnableDefaultXamlItems>
+    <EnableDefaultPageItems>true</EnableDefaultPageItems>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.WinUI.Animations" Version="8.2.250402" />
