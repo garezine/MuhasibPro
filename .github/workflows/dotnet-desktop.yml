@@ -126,7 +126,7 @@ jobs:
             /p:GeneratePriFile=false `
             /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
-            /p:WindowsAppSDKSelfContained=true `
+            /p:WindowsAppSdkSelfContained=true `
             /p:Win2DWarnNoPlatform=false `
             /p:BuildProjectReferences=true `
             /verbosity:minimal `
@@ -155,6 +155,7 @@ jobs:
             /p:SkipPriGeneration=true `
             /p:EnableMrtGeneration=false `
             /p:WindowsPackageType=None `
+            /p:WindowsAppSdkSelfContained=true `
             /p:EnableMsixTooling=false `
             /verbosity:normal `
             /nologo
