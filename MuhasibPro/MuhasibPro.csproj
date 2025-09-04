@@ -15,7 +15,7 @@
 	<TrimMode>partial</TrimMode>
 	<ImplicitUsings>true</ImplicitUsings>
 	<LangVersion>Latest</LangVersion>
-    <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
+  <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
 	<IsAotCompatible>False</IsAotCompatible>
 	<WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSdkIncludeProjectReferences>false</WindowsAppSdkIncludeProjectReferences>
