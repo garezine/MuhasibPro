@@ -79,7 +79,7 @@ jobs:
       # Tüm projeler için platform ve PRI ayarlarını zorla
       - name: Create comprehensive build override
         run: |
-          $buildOverride = @"
+          @"
           <Project>
             <PropertyGroup>
               <!-- Platform Override - her proje için x64 -->
@@ -112,9 +112,7 @@ jobs:
               <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
             </PropertyGroup>
           </Project>
-            "@
-            
-            $buildOverride | Out-File Directory.Build.override.props -Encoding UTF8
+            "@ | Out-File Directory.Build.override.props -Encoding UTF8
             Write-Host "Build override created with consistent naming"
               
       - name: Restore packages
