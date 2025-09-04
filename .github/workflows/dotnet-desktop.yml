@@ -116,7 +116,7 @@ jobs:
          -p:Platform=x64 `
          --verbosity normal
 
-      - name: Build solution
+      - name: Build solution with disabled PRI
         run: |
           msbuild "${{ env.SOLUTION_PATH }}" `
             /p:Configuration=Release `
@@ -128,33 +128,43 @@ jobs:
             /p:WindowsPackageType=None `
             /p:WindowsAppSDKSelfContained=true `
             /p:Win2DWarnNoPlatform=false `
+            /p:BuildProjectReferences=true `
             /verbosity:minimal `
             /nologo
 
-      - name: Publish application
+      - name: Publish only main project (bypass references)
         run: |
-          Write-Host "📤 Publishing application..."          
+          Write-Host "📤 Publishing ONLY main project..."          
           $publishPath = "publish-win-x64"
           $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
       
+          # Clean publish directory
           if (Test-Path $publishPath) {
             Remove-Item $publishPath -Recurse -Force
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # Artık daha az parametre gerekiyor
+          # SADECE ana projeyi publish et, reference'ları build etme
           dotnet publish "${{ env.PROJECT_PATH }}" `
             -c Release `
             -r win-x64 `
             --output "$absolutePublishPath" `
             --self-contained true `
-            /p:Platform=x64 `
+            --no-build `
+            --no-restore `
+            /p:SkipPriGeneration=true `
+            /p:EnableMrtGeneration=false `
+            /p:GeneratePriFile=false `
+            /p:EnableMsixTooling=false `
+            /p:WindowsPackageType=None `
+            /p:ErrorOnDuplicatePublishOutputFiles=false `
             /verbosity:normal
       
           if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
             exit 1
           }
+    
       - name: Find main executable
         id: find_exe
         run: |
