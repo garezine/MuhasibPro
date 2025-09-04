@@ -100,8 +100,13 @@ jobs:
               <EnableMsixTooling>false</EnableMsixTooling>
               <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
               <WindowsPackageType>None</WindowsPackageType>
-              <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+              <!-- ✅ FIXED: Consistent property naming -->
+              <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
               <AppxBundle>Never</AppxBundle>
+              
+              <!-- ✅ ADDED: CI-specific overrides -->
+              <PublishReadyToRun>false</PublishReadyToRun>
+              <PublishTrimmed>false</PublishTrimmed>
               
               <!-- Resource Languages -->
               <ResourceLanguages>tr;en</ResourceLanguages>
@@ -109,13 +114,13 @@ jobs:
             </PropertyGroup>
           </Project>
           "@ | Out-File Directory.Build.override.props -Encoding UTF8
-          Write-Host "✅ Build override created"
-
-      - name: Restore packages
-        run: |
-          dotnet restore "${{ env.SOLUTION_PATH }}" `
-            -p:Platform=x64 `
-            --verbosity normal
+          Write-Host "✅ Build override created with consistent naming"
+      
+            - name: Restore packages
+              run: |
+                dotnet restore "${{ env.SOLUTION_PATH }}" `
+                  -p:Platform=x64 `
+                  --verbosity normal
 
       - name: Build solution
         run: |
@@ -134,37 +139,54 @@ jobs:
 
       - name: Publish application
         run: |
-          Write-Host "📤 Publishing application..."          
-          $publishPath = "publish-win-x64"  # ✅ Değişkeni tanımla
+            Write-Host "📤 Publishing application..."          
+            $publishPath = "publish-win-x64"
+            $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
+        
+            # Clean publish directory first
+            if (Test-Path $publishPath) {
+              Remove-Item $publishPath -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
+        
+            # ✅ FIXED: Consistent property naming and safer publish
+            msbuild "${{ env.PROJECT_PATH }}" `
+              /t:Publish `
+              /p:Configuration=Release `
+              /p:Platform=x64 `
+              /p:SkipPriGeneration=true `
+              /p:EnableMrtGeneration=false `
+              /p:GeneratePriFile=false `
+              /p:UsePriGeneration=false `
+              /p:EnableMsixTooling=false `
+              /p:WindowsPackageType=None `
+              /p:PublishSingleFile=false `
+              /p:PublishTrimmed=false `
+              /p:PublishReadyToRun=false `
+              /p:SelfContained=true `
+              /p:RuntimeIdentifier=win-x64 `
+              /p:PublishDir="$absolutePublishPath" `
+              /p:WindowsAppSdkSelfContained=true `
+              /p:IncludeNativeLibrariesForSelfExtract=true `
+              /p:CopyLocalLockFileAssemblies=true `
+              /verbosity:normal `
+              /nologo
+        
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
+              exit 1
+            }
 
-          # MSBuild komutuna mutlak bir yol vererek dosyaların doğru yere yazılmasını sağla
-          $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
-
-          msbuild "${{ env.PROJECT_PATH }}" `
-            /t:Publish `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:GeneratePriFile=false `
-            /p:UsePriGeneration=false `
-            /p:EnableMsixTooling=false `
-            /p:WindowsPackageType=None `
-            /p:PublishSingleFile=false `
-            /p:PublishTrimmed=false `
-            /p:SelfContained=true `
-            /p:RuntimeIdentifier=win-x64 `
-            /p:PublishDir="$absolutePublishPath" `
-            /p:WindowsAppSdkSelfContained=true `
-            /p:IncludeNativeLibrariesForSelfExtract=true `
-            /p:CopyLocalLockFileAssemblies=true `
-            /verbosity:normal `
-            /nologo
-
-          Write-Host "✅ Application published to: $publishPath"
-          # Dizin yapısını kontrol et
-          Write-Host "📁 Publish directory contents:"
-          Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+            Write-Host "✅ Application published to: $publishPath"
+    
+            # Dizin yapısını kontrol et
+              Write-Host "📁 Publish directory contents:"
+              if (Test-Path $publishPath) {
+                Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+              } else {
+                Write-Host "❌ Publish directory not found!"
+                exit 1
+              }
 
       - name: Find main executable
         id: find_exe
