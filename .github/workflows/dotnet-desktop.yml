@@ -79,49 +79,49 @@ jobs:
       # Tüm projeler için platform ve PRI ayarlarını zorla
       - name: Create comprehensive build override
         run: |
-            $buildOverride = @"
-            <Project>
-              <PropertyGroup>
-                <!-- Platform Override - her proje için x64 -->
-                <Platform>x64</Platform>
-                <PlatformTarget>x64</PlatformTarget>
-                <Platforms>x64</Platforms>
-                
-                <!-- Win2D Warning'i tamamen kapat -->
-                <Win2DWarnNoPlatform>false</Win2DWarnNoPlatform>
-                
-                <!-- PRI Generation - TÜM projeler için kapalı -->
-                <SkipPriGeneration>true</SkipPriGeneration>
-                <EnableMrtGeneration>false</EnableMrtGeneration>
-                <GeneratePriFile>false</GeneratePriFile>
-                <UsePriGeneration>false</UsePriGeneration>
-                
-                <!-- MSIX/AppX - Tamamen kapalı -->
-                <EnableMsixTooling>false</EnableMsixTooling>
-                <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-                <WindowsPackageType>None</WindowsPackageType>
-                <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
-                <AppxBundle>Never</AppxBundle>
-                
-                <!-- CI-specific overrides -->
-                <PublishReadyToRun>false</PublishReadyToRun>
-                <PublishTrimmed>false</PublishTrimmed>
-                
-                <!-- Resource Languages -->
-                <ResourceLanguages>tr;en</ResourceLanguages>
-                <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
-              </PropertyGroup>
-            </Project>
+          $buildOverride = @"
+          <Project>
+            <PropertyGroup>
+              <!-- Platform Override - her proje için x64 -->
+              <Platform>x64</Platform>
+              <PlatformTarget>x64</PlatformTarget>
+              <Platforms>x64</Platforms>
+              
+              <!-- Win2D Warning'i tamamen kapat -->
+              <Win2DWarnNoPlatform>false</Win2DWarnNoPlatform>
+              
+              <!-- PRI Generation - TÜM projeler için kapalı -->
+              <SkipPriGeneration>true</SkipPriGeneration>
+              <EnableMrtGeneration>false</EnableMrtGeneration>
+              <GeneratePriFile>false</GeneratePriFile>
+              <UsePriGeneration>false</UsePriGeneration>
+              
+              <!-- MSIX/AppX - Tamamen kapalı -->
+              <EnableMsixTooling>false</EnableMsixTooling>
+              <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+              <WindowsPackageType>None</WindowsPackageType>
+              <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
+              <AppxBundle>Never</AppxBundle>
+              
+              <!-- CI-specific overrides -->
+              <PublishReadyToRun>false</PublishReadyToRun>
+              <PublishTrimmed>false</PublishTrimmed>
+              
+              <!-- Resource Languages -->
+              <ResourceLanguages>tr;en</ResourceLanguages>
+              <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
+            </PropertyGroup>
+          </Project>
             "@
             
             $buildOverride | Out-File Directory.Build.override.props -Encoding UTF8
             Write-Host "Build override created with consistent naming"
               
-            - name: Restore packages
-              run: |
-                dotnet restore "${{ env.SOLUTION_PATH }}" `
-                  -p:Platform=x64 `
-                  --verbosity normal
+      - name: Restore packages
+        run: |
+         dotnet restore "${{ env.SOLUTION_PATH }}" `
+         -p:Platform=x64 `
+         --verbosity normal
 
       - name: Build solution
         run: |
