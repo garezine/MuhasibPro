@@ -132,39 +132,38 @@ jobs:
             /verbosity:minimal `
             /nologo
 
-      - name: Publish only main project (bypass references)
+      - name: Publish with MSBuild (recommended for WinUI 3)
         run: |
-          Write-Host "📤 Publishing ONLY main project..."          
+          Write-Host "📤 MSBuild ile publishing..."          
           $publishPath = "publish-win-x64"
           $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
       
-          # Clean publish directory
+          # Temizlik
           if (Test-Path $publishPath) {
             Remove-Item $publishPath -Recurse -Force
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # SADECE ana projeyi publish et, reference'ları build etme
-          dotnet publish "${{ env.PROJECT_PATH }}" `
-            -c Release `
-            -r win-x64 `
-            --output "$absolutePublishPath" `
-            --self-contained true `
-            --no-build `
-            --no-restore `
+          # ✅ MSBuild ile publish
+          msbuild "${{ env.PROJECT_PATH }}" `
+            /t:Publish `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:SelfContained=true `
+            /p:PublishDir="$absolutePublishPath" `
             /p:SkipPriGeneration=true `
             /p:EnableMrtGeneration=false `
-            /p:GeneratePriFile=false `
-            /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
-            /p:ErrorOnDuplicatePublishOutputFiles=false `
-            /verbosity:normal
+            /p:EnableMsixTooling=false `
+            /verbosity:normal `
+            /nologo
       
           if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
             exit 1
           }
-    
+          
       - name: Find main executable
         id: find_exe
         run: |
