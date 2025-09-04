@@ -77,41 +77,24 @@ jobs:
           Write-Host "Tag: v$version"
 
       # Tüm projeler için platform ve PRI ayarlarını zorla
-      - name: Create comprehensive build override
+      - name: Create Directory.Build.props for CI
         run: |
           @"
           <Project>
-            <PropertyGroup>
-              <!-- Platform Override - her proje için x64 -->
-              <Platform>x64</Platform>
-              <PlatformTarget>x64</PlatformTarget>
-              <Platforms>x64</Platforms>
+          <PropertyGroup>
+              <!-- CI-specific overrides -->
+              <CI>true</CI>
+              <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
               
-              <!-- Win2D Warning'i tamamen kapat -->
-              <Win2DWarnNoPlatform>false</Win2DWarnNoPlatform>
+              <!-- Çakışma çözümü için ek güvenlik -->
+              <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+              <ExcludeDuplicatePublishOutputFiles>true</ExcludeDuplicatePublishOutputFiles>
               
-              <!-- PRI Generation - TÜM projeler için kapalı -->
-              <SkipPriGeneration>true</SkipPriGeneration>
-              <EnableMrtGeneration>false</EnableMrtGeneration>
-              <GeneratePriFile>false</GeneratePriFile>
-              <UsePriGeneration>false</UsePriGeneration>
-              
-              <!-- MSIX/AppX - Tamamen kapalı -->
+              <!-- MSIX tooling'i kesinlikle kapat -->
               <EnableMsixTooling>false</EnableMsixTooling>
               <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-              <WindowsPackageType>None</WindowsPackageType>
-              <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
-              <AppxBundle>Never</AppxBundle>
-              
-              <!-- CI-specific overrides -->
-              <PublishReadyToRun>false</PublishReadyToRun>
-              <PublishTrimmed>false</PublishTrimmed>
-              
-              <!-- Resource Languages -->
-              <ResourceLanguages>tr;en</ResourceLanguages>
-              <SatelliteResourceLanguages>tr;en</SatelliteResourceLanguages>
             </PropertyGroup>
-            </Project>
+          </Project>
           "@ | Out-File Directory.Build.override.props -Encoding UTF8
               
       - name: Restore packages
@@ -137,55 +120,28 @@ jobs:
 
       - name: Publish application
         run: |
-            Write-Host "📤 Publishing application..."          
-            $publishPath = "publish-win-x64"
-            $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
-        
-            # Clean publish directory first
-            if (Test-Path $publishPath) {
-              Remove-Item $publishPath -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
-        
-            # ✅ FIXED: Consistent property naming and safer publish
-            msbuild "${{ env.PROJECT_PATH }}" `
-              /t:Publish `
-              /p:Configuration=Release `
-              /p:Platform=x64 `
-              /p:SkipPriGeneration=true `
-              /p:EnableMrtGeneration=false `
-              /p:GeneratePriFile=false `
-              /p:UsePriGeneration=false `
-              /p:EnableMsixTooling=false `
-              /p:WindowsPackageType=None `
-              /p:PublishSingleFile=false `
-              /p:PublishTrimmed=false `
-              /p:PublishReadyToRun=false `
-              /p:SelfContained=true `
-              /p:RuntimeIdentifier=win-x64 `
-              /p:PublishDir="$absolutePublishPath" `
-              /p:WindowsAppSdkSelfContained=true `
-              /p:IncludeNativeLibrariesForSelfExtract=true `
-              /p:CopyLocalLockFileAssemblies=true `
-              /verbosity:normal `
-              /nologo
-        
-            if ($LASTEXITCODE -ne 0) {
-              Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
-              exit 1
-            }
-
-            Write-Host "✅ Application published to: $publishPath"
-    
-            # Dizin yapısını kontrol et
-              Write-Host "📁 Publish directory contents:"
-              if (Test-Path $publishPath) {
-                Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-              } else {
-                Write-Host "❌ Publish directory not found!"
-                exit 1
-              }
-
+          Write-Host "📤 Publishing application..."          
+          $publishPath = "publish-win-x64"
+          $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
+      
+          if (Test-Path $publishPath) {
+            Remove-Item $publishPath -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
+      
+          # Artık daha az parametre gerekiyor
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -r win-x64 `
+            --output "$absolutePublishPath" `
+            --self-contained true `
+            /p:Platform=x64 `
+            /verbosity:normal
+      
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
+            exit 1
+          }
       - name: Find main executable
         id: find_exe
         run: |
