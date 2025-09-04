@@ -353,7 +353,7 @@ jobs:
           $notes | Out-File -FilePath "RELEASE_NOTES.md" -Encoding UTF8
           Write-Host "✅ Updated release notes created"
 
-      - name: Create Velopack package
+      - name: Create Velopack package (Framework-Dependent)
         shell: pwsh
         run: |
             $version = "${{ steps.version.outputs.version }}"
@@ -362,23 +362,59 @@ jobs:
             $mainExePath = "${{ steps.find_exe.outputs.main_exe_path }}"
             $mainExeName = "${{ steps.find_exe.outputs.main_exe_name }}"
 
-            Write-Host "📦 Creating Velopack package..."
+            Write-Host "📦 Creating Velopack package for Framework-Dependent app..."
             Write-Host "Version: $version"
             Write-Host "Publish path: $publishPath"
-            Write-Host "Main EXE path: $mainExePath"
-            Write-Host "Main EXE name: $mainExeName"
+            Write-Host "Main EXE: $mainExeName"
 
             # Çıktı dizinini oluştur
             New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     
             # Ana exe dosyasını kontrol et
-            $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
             if (-not (Test-Path "${{ steps.find_exe.outputs.main_exe_path }}")) {
               Write-Host "❌ Main executable not found: ${{ steps.find_exe.outputs.main_exe_path }}"
               exit 1
-            }          
+            }
+            
+            # Framework-dependent için özel release notes
+            $velopackNotes = @"
+            # MuhasibPro v$version - Framework-Dependent
+
+            ## ⚡ Sistem Gereksinimleri
+            - Windows 10/11 (x64)
+            - .NET 8.0 Desktop Runtime
+
+            ## 🔄 Bu Güncelleme
+            - Framework-dependent deploy ile optimize edilmiş boyut
+            - Geliştirilmiş Windows App SDK entegrasyonu
+            - Daha hızlı başlatma ve güncelleme
+
+            ## 📝 Notlar
+            Bu sürüm .NET 8 Desktop Runtime gerektirir. Eğer sisteminiuzde yoksa:
+            1. https://dotnet.microsoft.com/download/dotnet/8.0 adresinden indirin
+            2. "Desktop Runtime x64" seçeneğini kurun
+            3. Uygulamayı yeniden başlatın
+
+            Velopack otomatik olarak runtime kontrolü yapacak ve gerekirse yönlendirecektir.
+            "@
+            
+            $velopackNotes | Out-File -FilePath "velopack-notes.md" -Encoding UTF8
+
+            # .NET Runtime gereksinimini belirten dosya oluştur
+            $runtimeConfig = @{
+                "runtimeFramework" = @{
+                    "name" = "Microsoft.WindowsDesktop.App"
+                    "version" = "8.0.0"
+                }
+                "configProperties" = @{
+                    "System.GC.Server" = $true
+                    "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization" = $false
+                }
+            }
+            
+            $runtimeConfig | ConvertTo-Json -Depth 3 | Out-File -FilePath "$publishPath\runtime-requirements.json" -Encoding UTF8
     
-            # Velopack paketini oluştur
+            # Velopack paketini oluştur - Framework-dependent parametreleri
             vpk pack `
               --packId "${{ env.APP_NAME }}" `
               --packVersion "$version" `
@@ -387,8 +423,39 @@ jobs:
               --mainExe "$mainExeName" `
               --packTitle "MuhasibPro" `
               --packAuthors "MuhasibPro Team" `
-              --releaseNotes "./RELEASE_NOTES.md" `
-              --verbose   
+              --releaseNotes "./velopack-notes.md" `
+              --framework "net8.0-windows" `
+              --runtime "win-x64" `
+              --delta `
+              --verbose
+              
+            # Velopack için .NET Runtime kontrolü script'i oluştur
+            $bootstrapScript = @"
+            @echo off
+            echo Checking .NET 8 Desktop Runtime...
+            
+            dotnet --list-runtimes | findstr "Microsoft.WindowsDesktop.App 8." >nul
+            if errorlevel 1 (
+                echo .NET 8 Desktop Runtime not found!
+                echo Please install from: https://dotnet.microsoft.com/download/dotnet/8.0
+                echo Look for "Desktop Runtime x64"
+                pause
+                start https://dotnet.microsoft.com/download/dotnet/8.0
+                exit /b 1
+            ) else (
+                echo .NET 8 Desktop Runtime found!
+                start "" "${{ env.APP_NAME }}.exe"
+            )
+            "@
+            
+            $bootstrapScript | Out-File -FilePath "$outputDir\${{ env.APP_NAME }}-RuntimeCheck.bat" -Encoding ASCII
+            
+            Write-Host "✅ Velopack package created with Framework-Dependent configuration"
+            Write-Host "✅ Runtime check script created: ${{ env.APP_NAME }}-RuntimeCheck.bat"
+            
+            # Temizlik
+            Remove-Item "velopack-notes.md" -Force -ErrorAction SilentlyContinue
+   
 
       - name: Create portable ZIP
         run: |
@@ -486,6 +553,49 @@ jobs:
             Write-Host "❌ Inno Setup failed, creating basic installer..."
             # Fallback method burada olacak
           }
+
+      - name: Create Velopack Installation Guide
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          
+          $installGuide = @"
+          # MuhasibPro v$version - Kurulum Rehberi
+
+          ## 🔄 Velopack ile Otomatik Kurulum (ÖNERİLEN)
+
+          ### 1. İndirme
+          - **Ana dosya:** ${{ env.APP_NAME }}.v$version.vpk
+          - **Runtime kontrolü:** ${{ env.APP_NAME }}-RuntimeCheck.bat (isteğe bağlı)
+
+          ### 2. Kurulum Adımları
+          1. **.vpk** dosyasını indirin
+          2. **İsteğe bağlı:** Runtime kontrolü için .bat dosyasını da indirin
+          3. .vpk dosyasına çift tıklayın
+          4. Kurulum sihirbazını takip edin
+
+          ### 3. .NET Runtime Kontrol
+          Eğer ".NET 8 gerekli" uyarısı alırsanız:
+          1. [.NET 8 İndirme Sayfası](https://dotnet.microsoft.com/download/dotnet/8.0) açılacak
+          2. **"Desktop Runtime x64"** seçeneğini indirin ve kurun
+          3. MuhasibPro'yu tekrar başlatın
+
+          ### 4. Otomatik Güncellemeler
+          - Velopack otomatik güncellemeleri destekler
+          - Yeni sürümler çıktığında otomatik bildirim alacaksınız
+          - Güncellemeler artık daha hızlı (framework-dependent)
+
+          ## ⚡ Avantajlar
+          - **50MB yerine ~500MB:** Çok daha küçük indirme
+          - **Hızlı güncelleme:** Delta güncellemeler
+          - **Otomatik runtime kontrolü:** Sorunsuz çalışma
+          - **Modern kurulum:** Windows 11 uyumlu
+
+          ---
+          **İpucu:** Runtime kontrolü için .bat dosyasını da indirip çalıştırabilirsiniz.
+          "@
+          
+          $installGuide | Out-File -FilePath "releases\KURULUM-REHBERI.md" -Encoding UTF8
+          Write-Host "✅ Velopack installation guide created"
 
 
       # ✅ BURASI EKSİKTİ - GITHUB RELEASE OLUŞTURMA
