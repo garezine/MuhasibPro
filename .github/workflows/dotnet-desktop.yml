@@ -183,7 +183,130 @@ jobs:
                 Write-Host "❌ Main executable not found"
                 Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
                 exit 1
-            }      
+            }
+
+      # Bu adımı "Diagnostic - Fixed dependency check" adımından ÖNCE ekleyin:
+
+      - name: Fix Windows App SDK Dependencies
+        run: |
+          $publishPath = "publish-win-x64"
+          
+          Write-Host "🔧 FIXING WINDOWS APP SDK DEPENDENCIES"
+          Write-Host "======================================"
+          
+          # 1. NuGet cache'den Windows App SDK dosyalarını bul
+          $nugetCache = "$env:USERPROFILE\.nuget\packages"
+          Write-Host "📦 Searching in NuGet cache: $nugetCache"
+          
+          # Windows App SDK paketini bul
+          $windowsAppSdkPath = Join-Path $nugetCache "microsoft.windowsappsdk"
+          if (Test-Path $windowsAppSdkPath) {
+              $latestVersion = Get-ChildItem $windowsAppSdkPath | Sort-Object Name -Descending | Select-Object -First 1
+              Write-Host "✅ Found Windows App SDK: $($latestVersion.Name)"
+              
+              # Runtime dosyalarını kopyala
+              $runtimePath = Join-Path $latestVersion.FullName "runtimes\win10-x64\native"
+              if (Test-Path $runtimePath) {
+                  Write-Host "📂 Copying from: $runtimePath"
+                  $copiedFiles = Get-ChildItem $runtimePath -Filter "*.dll" | ForEach-Object {
+                      Copy-Item $_.FullName $publishPath -Force -PassThru
+                      Write-Host "  ✅ Copied: $($_.Name)"
+                      return $_.Name
+                  }
+                  Write-Host "📊 Copied $($copiedFiles.Count) runtime DLLs"
+              }
+              
+              # Lib dosyalarını da kopyala
+              $libPath = Join-Path $latestVersion.FullName "lib\net6.0"
+              if (Test-Path $libPath) {
+                  Get-ChildItem $libPath -Filter "*.dll" | ForEach-Object {
+                      if (-not (Test-Path (Join-Path $publishPath $_.Name))) {
+                          Copy-Item $_.FullName $publishPath -Force
+                          Write-Host "  ✅ Copied lib: $($_.Name)"
+                      }
+                  }
+              }
+          }
+          
+          # 2. Eksik kritik DLL'leri manuel olarak bul ve kopyala
+          Write-Host "`n🔍 Searching for missing critical DLLs..."
+          $criticalDlls = @(
+              "Microsoft.Windows.System.Power.dll",
+              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
+          )
+          
+          foreach ($dll in $criticalDlls) {
+              $dllPath = Join-Path $publishPath $dll
+              if (-not (Test-Path $dllPath)) {
+                  Write-Host "❌ Missing: $dll - Searching..."
+                  
+                  # Windows SDK'dan ara
+                  $windowsKitsPath = "C:\Program Files (x86)\Windows Kits"
+                  if (Test-Path $windowsKitsPath) {
+                      $foundDll = Get-ChildItem $windowsKitsPath -Recurse -Filter $dll -ErrorAction SilentlyContinue | 
+                                  Where-Object { $_.FullName -like "*\x64\*" } | 
+                                  Select-Object -First 1
+                      
+                      if ($foundDll) {
+                          Copy-Item $foundDll.FullName $publishPath -Force
+                          Write-Host "  ✅ Found and copied: $($foundDll.FullName)"
+                      }
+                  }
+                  
+                  # NuGet packages'dan ara
+                  if (-not (Test-Path $dllPath)) {
+                      $nugetDll = Get-ChildItem $nugetCache -Recurse -Filter $dll -ErrorAction SilentlyContinue | 
+                                  Where-Object { $_.FullName -like "*win*x64*" -or $_.FullName -like "*native*" } | 
+                                  Select-Object -First 1
+                      
+                      if ($nugetDll) {
+                          Copy-Item $nugetDll.FullName $publishPath -Force
+                          Write-Host "  ✅ Found in NuGet and copied: $($nugetDll.FullName)"
+                      }
+                  }
+              } else {
+                  Write-Host "✅ Already exists: $dll"
+              }
+          }
+          
+          # 3. WinRT.Runtime.dll kontrolü
+          $winrtDll = Join-Path $publishPath "WinRT.Runtime.dll"
+          if (-not (Test-Path $winrtDll)) {
+              Write-Host "❌ Missing WinRT.Runtime.dll - Searching..."
+              $winrtPath = Join-Path $nugetCache "microsoft.windows.cswinrt"
+              if (Test-Path $winrtPath) {
+                  $latestWinRT = Get-ChildItem $winrtPath | Sort-Object Name -Descending | Select-Object -First 1
+                  $winrtRuntimePath = Join-Path $latestWinRT.FullName "lib\net6.0"
+                  $winrtDllSource = Join-Path $winrtRuntimePath "WinRT.Runtime.dll"
+                  if (Test-Path $winrtDllSource) {
+                      Copy-Item $winrtDllSource $publishPath -Force
+                      Write-Host "  ✅ Copied WinRT.Runtime.dll"
+                  }
+              }
+          }
+          
+          # 4. Son kontrol ve rapor
+          Write-Host "`n📊 FINAL REPORT:"
+          Write-Host "==============="
+          $allDlls = Get-ChildItem $publishPath -Filter "*.dll" | Sort-Object Name
+          Write-Host "📄 Total DLLs: $($allDlls.Count)"
+          
+          # Kritik DLL'leri tekrar kontrol et
+          $criticalCheck = @(
+              "WinRT.Runtime.dll",
+              "Microsoft.Windows.System.Power.dll",
+              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll",
+              "Microsoft.UI.Xaml.dll",
+              "Microsoft.WindowsAppRuntime.dll"
+          )
+          
+          Write-Host "`n🎯 Critical DLL Check:"
+          foreach ($dll in $criticalCheck) {
+              $exists = Test-Path (Join-Path $publishPath $dll)
+              Write-Host "$(if ($exists) {'✅'} else {'❌'}) $dll"
+          }
+          
+          Write-Host "`n✅ Windows App SDK dependency fix completed!"
 
       - name: Diagnostic - Fixed dependency check
         run: |
