@@ -77,23 +77,36 @@ jobs:
           Write-Host "Tag: v$version"
 
       # Tüm projeler için platform ve PRI ayarlarını zorla
-      - name: Create Directory.Build.props for CI
+      - name: Create strong Directory.Build.override.props
         run: |
           @"
           <Project>
-          <PropertyGroup>
-              <!-- CI-specific overrides -->
+            <PropertyGroup>
+              <!-- CI ortamında kesin ayarlar -->
               <CI>true</CI>
               <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
               
-              <!-- Çakışma çözümü için ek güvenlik -->
-              <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-              <ExcludeDuplicatePublishOutputFiles>true</ExcludeDuplicatePublishOutputFiles>
+              <!-- PRI Generation'ı KESİNLİKLE KAPAT -->
+              <SkipPriGeneration>true</SkipPriGeneration>
+              <EnableMrtGeneration>false</EnableMrtGeneration>
+              <GeneratePriFile>false</GeneratePriFile>
+              <UsePriGeneration>false</UsePriGeneration>
+              <PriGenEnabled>false</PriGenEnabled>
               
-              <!-- MSIX tooling'i kesinlikle kapat -->
+              <!-- MSIX tooling'i KESİNLİKLE KAPAT -->
               <EnableMsixTooling>false</EnableMsixTooling>
               <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+              <WindowsPackageType>None</WindowsPackageType>
+              
+              <!-- Çakışma çözümü -->
+              <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+              <ExcludeDuplicatePublishOutputFiles>true</ExcludeDuplicatePublishOutputFiles>
             </PropertyGroup>
+          
+            <!-- MrtCore target'larını tamamen devre dışı bırak -->
+            <Target Name="AddPriPayloadFilesToCopyToOutputDirectoryItems" Condition="false" />
+            <Target Name="PriGen" Condition="false" />
+            <Target Name="ExpandPriContent" Condition="false" />
           </Project>
           "@ | Out-File Directory.Build.override.props -Encoding UTF8
               
