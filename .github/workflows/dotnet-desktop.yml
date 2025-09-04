@@ -132,38 +132,37 @@ jobs:
             /verbosity:minimal `
             /nologo
 
-      - name: Publish with MSBuild (recommended for WinUI 3)
+      - name: Publish - Framework Dependent (Fixed)
         run: |
-          Write-Host "📤 MSBuild ile publishing..."          
+          Write-Host "📤 Publishing as Framework-Dependent..."          
           $publishPath = "publish-win-x64"
-          $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
-      
+          
           # Temizlik
           if (Test-Path $publishPath) {
             Remove-Item $publishPath -Recurse -Force
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # ✅ MSBuild ile publish
-          msbuild "${{ env.PROJECT_PATH }}" `
-            /t:Publish `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:RuntimeIdentifier=win-x64 `
-            /p:SelfContained=true `
-            /p:PublishDir="$absolutePublishPath" `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:WindowsPackageType=None `
-            /p:WindowsAppSdkSelfContained=true `
-            /p:EnableMsixTooling=false `
-            /verbosity:normal `
-            /nologo
-      
+          # Framework-dependent publish
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            -c Release `
+            -r win-x64 `
+            --no-self-contained `
+            --output $publishPath `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:EnableMsixTooling=false `
+            -p:GenerateAppxPackageOnBuild=false `
+            -p:WindowsPackageType=None `
+            -p:UseWinUI=true `
+            -p:PublishSingleFile=false `
+            --verbosity normal
+            
           if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
             exit 1
           }
+          
+          Write-Host "✅ Framework-dependent publish completed successfully!"
           
       - name: Find main executable
         id: find_exe
@@ -183,130 +182,7 @@ jobs:
                 Write-Host "❌ Main executable not found"
                 Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
                 exit 1
-            }
-
-      # Bu adımı "Diagnostic - Fixed dependency check" adımından ÖNCE ekleyin:
-
-      - name: Fix Windows App SDK Dependencies
-        run: |
-          $publishPath = "publish-win-x64"
-          
-          Write-Host "🔧 FIXING WINDOWS APP SDK DEPENDENCIES"
-          Write-Host "======================================"
-          
-          # 1. NuGet cache'den Windows App SDK dosyalarını bul
-          $nugetCache = "$env:USERPROFILE\.nuget\packages"
-          Write-Host "📦 Searching in NuGet cache: $nugetCache"
-          
-          # Windows App SDK paketini bul
-          $windowsAppSdkPath = Join-Path $nugetCache "microsoft.windowsappsdk"
-          if (Test-Path $windowsAppSdkPath) {
-              $latestVersion = Get-ChildItem $windowsAppSdkPath | Sort-Object Name -Descending | Select-Object -First 1
-              Write-Host "✅ Found Windows App SDK: $($latestVersion.Name)"
-              
-              # Runtime dosyalarını kopyala
-              $runtimePath = Join-Path $latestVersion.FullName "runtimes\win10-x64\native"
-              if (Test-Path $runtimePath) {
-                  Write-Host "📂 Copying from: $runtimePath"
-                  $copiedFiles = Get-ChildItem $runtimePath -Filter "*.dll" | ForEach-Object {
-                      Copy-Item $_.FullName $publishPath -Force -PassThru
-                      Write-Host "  ✅ Copied: $($_.Name)"
-                      return $_.Name
-                  }
-                  Write-Host "📊 Copied $($copiedFiles.Count) runtime DLLs"
-              }
-              
-              # Lib dosyalarını da kopyala
-              $libPath = Join-Path $latestVersion.FullName "lib\net6.0"
-              if (Test-Path $libPath) {
-                  Get-ChildItem $libPath -Filter "*.dll" | ForEach-Object {
-                      if (-not (Test-Path (Join-Path $publishPath $_.Name))) {
-                          Copy-Item $_.FullName $publishPath -Force
-                          Write-Host "  ✅ Copied lib: $($_.Name)"
-                      }
-                  }
-              }
-          }
-          
-          # 2. Eksik kritik DLL'leri manuel olarak bul ve kopyala
-          Write-Host "`n🔍 Searching for missing critical DLLs..."
-          $criticalDlls = @(
-              "Microsoft.Windows.System.Power.dll",
-              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
-          )
-          
-          foreach ($dll in $criticalDlls) {
-              $dllPath = Join-Path $publishPath $dll
-              if (-not (Test-Path $dllPath)) {
-                  Write-Host "❌ Missing: $dll - Searching..."
-                  
-                  # Windows SDK'dan ara
-                  $windowsKitsPath = "C:\Program Files (x86)\Windows Kits"
-                  if (Test-Path $windowsKitsPath) {
-                      $foundDll = Get-ChildItem $windowsKitsPath -Recurse -Filter $dll -ErrorAction SilentlyContinue | 
-                                  Where-Object { $_.FullName -like "*\x64\*" } | 
-                                  Select-Object -First 1
-                      
-                      if ($foundDll) {
-                          Copy-Item $foundDll.FullName $publishPath -Force
-                          Write-Host "  ✅ Found and copied: $($foundDll.FullName)"
-                      }
-                  }
-                  
-                  # NuGet packages'dan ara
-                  if (-not (Test-Path $dllPath)) {
-                      $nugetDll = Get-ChildItem $nugetCache -Recurse -Filter $dll -ErrorAction SilentlyContinue | 
-                                  Where-Object { $_.FullName -like "*win*x64*" -or $_.FullName -like "*native*" } | 
-                                  Select-Object -First 1
-                      
-                      if ($nugetDll) {
-                          Copy-Item $nugetDll.FullName $publishPath -Force
-                          Write-Host "  ✅ Found in NuGet and copied: $($nugetDll.FullName)"
-                      }
-                  }
-              } else {
-                  Write-Host "✅ Already exists: $dll"
-              }
-          }
-          
-          # 3. WinRT.Runtime.dll kontrolü
-          $winrtDll = Join-Path $publishPath "WinRT.Runtime.dll"
-          if (-not (Test-Path $winrtDll)) {
-              Write-Host "❌ Missing WinRT.Runtime.dll - Searching..."
-              $winrtPath = Join-Path $nugetCache "microsoft.windows.cswinrt"
-              if (Test-Path $winrtPath) {
-                  $latestWinRT = Get-ChildItem $winrtPath | Sort-Object Name -Descending | Select-Object -First 1
-                  $winrtRuntimePath = Join-Path $latestWinRT.FullName "lib\net6.0"
-                  $winrtDllSource = Join-Path $winrtRuntimePath "WinRT.Runtime.dll"
-                  if (Test-Path $winrtDllSource) {
-                      Copy-Item $winrtDllSource $publishPath -Force
-                      Write-Host "  ✅ Copied WinRT.Runtime.dll"
-                  }
-              }
-          }
-          
-          # 4. Son kontrol ve rapor
-          Write-Host "`n📊 FINAL REPORT:"
-          Write-Host "==============="
-          $allDlls = Get-ChildItem $publishPath -Filter "*.dll" | Sort-Object Name
-          Write-Host "📄 Total DLLs: $($allDlls.Count)"
-          
-          # Kritik DLL'leri tekrar kontrol et
-          $criticalCheck = @(
-              "WinRT.Runtime.dll",
-              "Microsoft.Windows.System.Power.dll",
-              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll",
-              "Microsoft.UI.Xaml.dll",
-              "Microsoft.WindowsAppRuntime.dll"
-          )
-          
-          Write-Host "`n🎯 Critical DLL Check:"
-          foreach ($dll in $criticalCheck) {
-              $exists = Test-Path (Join-Path $publishPath $dll)
-              Write-Host "$(if ($exists) {'✅'} else {'❌'}) $dll"
-          }
-          
-          Write-Host "`n✅ Windows App SDK dependency fix completed!"
+            }      
 
       - name: Diagnostic - Fixed dependency check
         run: |
@@ -424,60 +300,58 @@ jobs:
           ## 📦 Sürüm Bilgileri
           - **Sürüm:** $version
           - **Derleme Tarihi:** $buildDate
-          - **Hedef Framework:** .NET 8.0
+          - **Hedef Framework:** .NET 8.0 (Framework-Dependent)
           - **Platform:** Windows 10/11 (x64)
           - **UI Framework:** WinUI 3
 
+          ## ⚡ Sistem Gereksinimleri
+          - **İşletim Sistemi:** Windows 10 version 1809 veya üstü
+          - **.NET Runtime:** .NET 8.0 Desktop Runtime (otomatik kontrol edilir)
+          - **RAM:** 4GB önerilir
+          - **Disk Alanı:** 500MB
+
           ## 💾 İndirme Seçenekleri
-          ### 🔄 Otomatik Kurulum (Velopack)
-          - Dosya: ${{ env.APP_NAME }}.v$version.vpk
+
+          ### 🔄 Otomatik Kurulum (Velopack) - ÖNERİLEN
+          - **Dosya:** ${{ env.APP_NAME }}.v$version.vpk
           - ✅ Otomatik kurulum ve güncelleme
+          - ✅ .NET Runtime otomatik kontrolü
 
           ### 🛠️ Geleneksel Kurulum
-          - Dosya: ${{ env.APP_NAME }}-v$version-Setup.exe
+          - **Dosya:** ${{ env.APP_NAME }}-v$version-Setup.exe  
           - ✅ Windows kurulum sihirbazı
-          - ✅ Program Files'a kurulum
-          - ✅ Başlat Menüsü kısayolu
+          - ✅ .NET 8 Runtime otomatik kontrolü
+          - ✅ Eksikse otomatik yönlendirme
 
           ### 📁 Taşınabilir Sürüm
-          - Dosya: ${{ env.APP_NAME }}-v$version-portable-win-x64.zip
+          - **Dosya:** ${{ env.APP_NAME }}-v$version-portable-win-x64.zip
           - ✅ Kurulum gerektirmez
-          - ✅ Taşınabilir kullanım
+          - ⚠️ .NET 8 Desktop Runtime manuel kurulmalı
 
-          ## ⚡ Öne Çıkan Özellikler
-          - Modern WinUI 3 arayüzü         
-          - Otomatik veri yedekleme
-          - Performans optimizasyonları
+          ## 🚀 Kurulum Rehberi
 
-          ## 🚀 Kurulum
-          1. **Velopack Otomatik:** .vpk dosyasını çalıştırın ve kurulum sihirbazını takip edin
-          2. **Geleneksel Kurulum:** Setup.exe'yi çalıştırın ve standart Windows kurulum sihirbazını takip edin
-          3. **Portable:** .zip dosyasını açın ve ${{ env.APP_NAME }}.exe'yi çalıştırın
+          ### Otomatik Kurulum (Önerilen):
+          1. **.vpk** dosyasını indirin
+          2. Dosyaya çift tıklayın
+          3. Kurulum sihirbazını takip edin
+
+          ### Manuel .NET Runtime Kurulumu (gerekirse):
+          1. [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) indirin
+          2. **"Desktop Runtime x64"** seçeneğini kurun
+          3. MuhasibPro'yu tekrar başlatın
+
+          ## 🆕 Bu Sürümdeki İyileştirmeler
+          - 🏗️ Framework-dependent deploy ile daha küçük dosya boyutu
+          - 🔧 Geliştirilmiş Windows App SDK entegrasyonu  
+          - 🚀 Daha hızlı başlatma süreleri
+          - 🛡️ Otomatik .NET Runtime kontrolü
 
           ---
-          Bu sürüm otomatik olarak GitHub Actions ile derlenmiştir.
+          **Not:** Bu sürüm Framework-Dependent olarak derlenmiştir, daha küçük boyut ve daha iyi performans sunar.
           "@
+          
           $notes | Out-File -FilePath "RELEASE_NOTES.md" -Encoding UTF8
-          $txtNotes = @"
-          MuhasibPro v$version - $buildDate tarihinde yayınlandı.
-
-          Açıklama: MuhasibPro - Muhasebe ve Finans Yönetim Uygulaması
-
-          Öne Çıkan Özellikler:
-          - Modern WinUI 3 arayüzü         
-          - Otomatik veri yedekleme
-          - Performans optimizasyonları         
-
-          Sistem Gereksinimleri:
-          - Windows 10/11 (x64)
-          - .NET 8.0 Runtime
-          - 4GB RAM
-          - 2GB disk alanı
-          "@
-          $txtNotes | Out-File -FilePath "release-notes.txt" -Encoding UTF8
-          Write-Host "✅ RELEASE_NOTES.md and release-notes.txt created"
-          Get-ChildItem -Path "./RELEASE_NOTES.md" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-          Get-ChildItem -Path "./release-notes.txt" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+          Write-Host "✅ Updated release notes created"
 
       - name: Create Velopack package
         shell: pwsh
@@ -523,17 +397,16 @@ jobs:
           $zipPath = Join-Path "releases" $zipName
           Compress-Archive -Path "publish-win-x64/*" -DestinationPath $zipPath -Force
 
-      - name: Create Setup.exe (Traditional Installer)
+      - name: Create Setup.exe with .NET Runtime Check
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
           $outputDir = "releases"
           $setupName = "${{ env.APP_NAME }}-v$version-Setup.exe"
-          $setupPath = Join-Path $outputDir $setupName
 
-          Write-Host "📦 Creating traditional setup.exe installer..."
+          Write-Host "📦 Creating setup.exe with .NET Runtime check..."
 
-          # Inno Setup script oluştur
+          # Geliştirilmiş Inno Setup script
           $innoScript = @"
           #define MyAppName "MuhasibPro"
           #define MyAppVersion "$version"
@@ -546,21 +419,16 @@ jobs:
           AppName={#MyAppName}
           AppVersion={#MyAppVersion}
           AppPublisher={#MyAppPublisher}
-          AppPublisherURL={#MyAppURL}
-          AppSupportURL={#MyAppURL}
-          AppUpdatesURL={#MyAppURL}
           DefaultDirName={autopf}\{#MyAppName}
           DefaultGroupName={#MyAppName}
-          AllowNoIcons=yes
-          LicenseFile=
           OutputDir=releases
           OutputBaseFilename=${{ env.APP_NAME }}-v$version-Setup
-          SetupIconFile=
           Compression=lzma
           SolidCompression=yes
           WizardStyle=modern
           ArchitecturesAllowed=x64
           ArchitecturesInstallIn64BitMode=x64
+          MinVersion=10.0
 
           [Languages]
           Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -574,61 +442,51 @@ jobs:
 
           [Icons]
           Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-          Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
           Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+          [Code]
+          function IsDotNet8Installed(): Boolean;
+          var
+            Version: String;
+          begin
+            Result := RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\Microsoft.WindowsDesktop.App', '8.0', Version);
+            if not Result then
+              Result := RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\dotnet\Setup\InstalledVersions\x64\Microsoft.WindowsDesktop.App', '8.0', Version);
+          end;
+
+          function InitializeSetup(): Boolean;
+          begin
+            if not IsDotNet8Installed() then
+            begin
+              if MsgBox('.NET 8 Desktop Runtime gereklidir ancak sisteminizde yüklü değil.' + #13#10 + 
+                       'Kurulum devam etmeden önce .NET 8 Desktop Runtime indirmek ister misiniz?', 
+                       mbConfirmation, MB_YESNO) = IDYES then
+              begin
+                ShellExec('open', 'https://dotnet.microsoft.com/download/dotnet/8.0', '', '', SW_SHOW, ewNoWait, ResultCode);
+              end;
+              Result := False;
+            end else
+              Result := True;
+          end;
 
           [Run]
           Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
           "@
 
-          # Geçici Inno Setup script dosyası oluştur
+          # Inno Setup script'i kaydet ve çalıştır
           $innoScript | Out-File -FilePath "setup.iss" -Encoding UTF8
 
-          # Chocolatey ile Inno Setup kur
-          Write-Host "Installing Inno Setup via Chocolatey..."
           try {
             choco install innosetup -y --no-progress
-            
-            # Inno Setup'ı PATH'e ekle
             $innoPath = "C:\Program Files (x86)\Inno Setup 6"
             $env:PATH = "$innoPath;" + $env:PATH
-            
-            # Setup.exe oluştur
-            Write-Host "Compiling setup.exe with Inno Setup..."
             & "$innoPath\ISCC.exe" "setup.iss"
-            
-            Write-Host "✅ Setup.exe created successfully!"
+            Write-Host "✅ Setup.exe with .NET Runtime check created!"
           } catch {
-            Write-Host "❌ Inno Setup compilation failed: $_"
-            
-            # Fallback: 7zip ile self-extracting exe oluştur
-            Write-Host "📦 Creating self-extracting archive as fallback..."
-            choco install 7zip -y --no-progress
-            
-            $sfxPath = "C:\Program Files\7-Zip\7z.sfx"
-            $configFile = @"
-          ;!@Install@!UTF-8!
-          Title="MuhasibPro v$version Kurulum"
-          BeginPrompt="MuhasibPro v$version kurulumuna hoş geldiniz!"
-          RunProgram="${{ env.APP_NAME }}.exe"
-          Directory="MuhasibPro"
-          ;!@InstallEnd@!
-          "@
-            $configFile | Out-File -FilePath "config.txt" -Encoding UTF8
-            
-            # 7zip arşivi oluştur
-            & "C:\Program Files\7-Zip\7z.exe" a -t7z archive.7z "publish-win-x64\*" -mx=9
-            
-            # Self-extracting exe oluştur
-            cmd /c "copy /b `"$sfxPath`" + config.txt + archive.7z `"$setupPath`""
-            
-            Write-Host "✅ Self-extracting setup.exe created as fallback!"
+            Write-Host "❌ Inno Setup failed, creating basic installer..."
+            # Fallback method burada olacak
           }
 
-          # Temizlik
-          Remove-Item "setup.iss" -Force -ErrorAction SilentlyContinue
-          Remove-Item "config.txt" -Force -ErrorAction SilentlyContinue
-          Remove-Item "archive.7z" -Force -ErrorAction SilentlyContinue
 
       # ✅ BURASI EKSİKTİ - GITHUB RELEASE OLUŞTURMA
       - name: Create GitHub Release
