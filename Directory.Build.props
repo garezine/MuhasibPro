@@ -5,71 +5,50 @@
     <PlatformTarget>x64</PlatformTarget>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
 
-    <!-- MSIX/AppX ayarları -->
+    <!-- MSIX/AppX ayarları - TAMAMEN KAPAT -->
     <AppxAutoInjectionPackageExtensions>false</AppxAutoInjectionPackageExtensions>
     <AppxPackage>false</AppxPackage>
     <WindowsPackageType>None</WindowsPackageType>
     <EnableMsixTooling>false</EnableMsixTooling>
     <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+    <AppxBundle>Never</AppxBundle>
 
-    <!-- ÇAKIŞMA ÇÖZÜMÜ - Kritik özellikler -->
+    <!-- ✅ KRİTİK: PRI Generation'ı TAMAMEN DEVRE DIŞI BIRAK -->
+    <SkipPriGeneration>true</SkipPriGeneration>
+    <EnableMrtGeneration>false</EnableMrtGeneration>
+    <GeneratePriFile>false</GeneratePriFile>
+    <UsePriGeneration>false</UsePriGeneration>
+    <PriGenEnabled>false</PriGenEnabled>
+    <WindowsAppSDKIncludePackageReferences>false</WindowsAppSDKIncludePackageReferences>
+
+    <!-- ÇAKIŞMA ÇÖZÜMÜ -->
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     <ExcludeDuplicatePublishOutputFiles>true</ExcludeDuplicatePublishOutputFiles>
     <ShouldDeleteDuplicatePublishOutputFiles>true</ShouldDeleteDuplicatePublishOutputFiles>
 
-    <!-- Çıkış dizinlerini platforma göre ayırma -->
+    <!-- Çıkış dizinleri -->
     <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
 
-    <!-- ✅ CI ortamında self-contained, local'de framework-dependent -->
+    <!-- CI ortamında self-contained -->
     <WindowsAppSdkSelfContained Condition="'$(CI)' == 'true'">true</WindowsAppSdkSelfContained>
     <WindowsAppSdkSelfContained Condition="'$(CI)' != 'true'">false</WindowsAppSdkSelfContained>
 
     <WindowsAppSDKGeneratePackage>false</WindowsAppSDKGeneratePackage>
-
-    <!-- PRI Generation'ı kapat -->
-    <SkipPriGeneration>true</SkipPriGeneration>
-    <EnableMrtGeneration>false</EnableMrtGeneration>
-    <GeneratePriFile>false</GeneratePriFile>
-
-    <!-- Win2D uyarısını kapat -->
     <Win2DWarnNoPlatform>false</Win2DWarnNoPlatform>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <DefineConstants>TRACE</DefineConstants>
-  </PropertyGroup>
-
-  <!-- Çakışan Windows Runtime dosyalarını otomatik olarak exclude et -->
-  <Target Name="RemoveDuplicateWindowsRuntimeFiles" AfterTargets="ComputeFilesToPublish">
-    <ItemGroup>
-      <!-- CoreMessagingXP.dll çakışmalarını önle -->
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                           Condition="$([System.String]::new('%(ResolvedFileToPublish.Identity)').Contains('CoreMessagingXP.dll'))" />
-
-      <!-- dcompi.dll çakışmalarını önle -->
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                           Condition="$([System.String]::new('%(ResolvedFileToPublish.Identity)').Contains('dcompi.dll'))" />
-
-      <!-- Diğer sık çakışan runtime dosyaları -->
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                           Condition="$([System.String]::new('%(ResolvedFileToPublish.Identity)').Contains('vcruntime140.dll'))" />
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                           Condition="$([System.String]::new('%(ResolvedFileToPublish.Identity)').Contains('vcruntime140_1.dll'))" />
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                           Condition="$([System.String]::new('%(ResolvedFileToPublish.Identity)').Contains('msvcp140.dll'))" />
-    </ItemGroup>
-
-    <Message Text="Removed duplicate Windows Runtime files from publish output" Importance="high" />
+  <!-- PRI Generation task'larını TAMAMEN DEVRE DIŞI BIRAK -->
+  <Target Name="DisablePriGeneration" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <BuildDependsOn>$(BuildDependsOn.Replace('AddPriPayloadFilesToCopyToOutputDirectoryItems;', ''))</BuildDependsOn>
+      <BuildDependsOn>$(BuildDependsOn.Replace('PriGen;', ''))</BuildDependsOn>
+    </PropertyGroup>
   </Target>
+
+  <!-- MrtCore target'larını override et -->
+  <Target Name="AddPriPayloadFilesToCopyToOutputDirectoryItems" Condition="false" />
+  <Target Name="PriGen" Condition="false" />
+  <Target Name="ExpandPriContent" Condition="false" />
+
 </Project>
