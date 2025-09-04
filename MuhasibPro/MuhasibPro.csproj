@@ -8,14 +8,14 @@
 	<Platforms>x64</Platforms>
 	<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <SelfContained>true</SelfContained>
-	<PublishProfile>win-$(Platform).pubxml</PublishProfile>
+	
 	<UseWinUI>true</UseWinUI>
 	<EnableMsixTooling>false</EnableMsixTooling>
 	<Nullable>annotations</Nullable>
 	<TrimMode>partial</TrimMode>
 	<ImplicitUsings>true</ImplicitUsings>
 	<LangVersion>Latest</LangVersion>
-	<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
 	<IsAotCompatible>False</IsAotCompatible>
 	<WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSdkIncludeProjectReferences>false</WindowsAppSdkIncludeProjectReferences>
@@ -40,13 +40,22 @@
  
 	<!-- Publish Properties -->
   <PropertyGroup>
-  
-	<PublishAot>false</PublishAot>
-	<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-	<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-	<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-	<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
-	<NeutralLanguage>tr-TR</NeutralLanguage>
+
+    <PublishAot>false</PublishAot>
+
+    <!-- Debug: Fast build, no optimizations -->
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+
+    <!-- Release + CI: Safer settings for compatibility -->
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' AND '$(CI)' == 'true'">False</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Debug' AND '$(CI)' == 'true'">False</PublishTrimmed>
+
+    <!-- Release + Local: Full optimizations -->
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' AND '$(CI)' != 'true'">True</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Debug' AND '$(CI)' != 'true'">True</PublishTrimmed>
+
+    <NeutralLanguage>tr-TR</NeutralLanguage>
   
   </PropertyGroup>
 
@@ -78,9 +87,9 @@
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Package.appxmanifest">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    
+     
+    
   </ItemGroup>
   
   <ItemGroup>
@@ -93,8 +102,9 @@
 	package has not yet been restored.
   -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-	<ProjectCapability Include="Msix" />
+  <ProjectCapability Include="Msix" />
   </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
@@ -118,10 +128,10 @@
 
   <Target Name="RemoveFoldersWithMuiFiles" AfterTargets="Build">
     <ItemGroup>
-      <RemovingFiles Include="$(OutDir)*\*.mui" Exclude="$(OutDir)en-us\*.mui" />
-      <RemovingFiles Include="$(OutDir)*\*.mui" Exclude="$(OutDir)tr-TR\*.mui" />
+      <RemovingFiles Include="$(OutDir)*\*.mui" Exclude="$(OutDir)en-us\*.mui;$(OutDir)tr-TR\*.mui" />
       <RemovingFolders Include="@(RemovingFiles->'%(RootDir)%(Directory)')" />
     </ItemGroup>
-    <RemoveDir Directories="@(RemovingFolders)" />
+    <Message Text="Removing unwanted MUI files and folders..." Importance="normal" />
+    <RemoveDir Directories="@(RemovingFolders)" ContinueOnError="true" />
   </Target>
 </Project>

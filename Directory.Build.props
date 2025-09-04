@@ -2,6 +2,43 @@
   <PropertyGroup>
     <!-- Platform ve mimari ayarları -->
     <Platform>x64</Platform>
+    <Project>
+      <PropertyGroup>
+        <!-- Platform ve mimari ayarları -->
+        <Platform>x64</Platform>
+        <PlatformTarget>x64</PlatformTarget>
+        <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+
+        <AppxAutoInjectionPackageExtensions>false</AppxAutoInjectionPackageExtensions>
+        <AppxPackage>false</AppxPackage>
+        <WindowsPackageType>None</WindowsPackageType>
+
+        <!-- Çıkış dizinlerini platforma göre ayırma -->
+        <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
+        <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+
+        <!-- FIX: Doğru property adı ve CI conditional -->
+        <WindowsAppSdkSelfContained Condition="'$(CI)' == 'true'">true</WindowsAppSdkSelfContained>
+        <WindowsAppSdkSelfContained Condition="'$(CI)' != 'true'">false</WindowsAppSdkSelfContained>
+
+        <WindowsAppSDKGeneratePackage>false</WindowsAppSDKGeneratePackage>
+        <EnableMsixTooling>false</EnableMsixTooling>
+      </PropertyGroup>
+
+      <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>full</DebugType>
+        <Optimize>false</Optimize>
+        <DefineDebug>true</DefineDebug>
+      </PropertyGroup>
+
+      <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>pdbonly</DebugType>
+        <Optimize>true</Optimize>
+        <DefineDebug>false</DefineDebug>
+      </PropertyGroup>
+    </Project>
     <PlatformTarget>x64</PlatformTarget>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
 
@@ -13,33 +50,13 @@
     <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Platform)\$(Configuration)\</IntermediateOutputPath>
 
+    <!-- ✅ FIX: CI ortamında self-contained, local'de framework-dependent -->
+    <WindowsAppSdkSelfContained Condition="'$(CI)' == 'true'">true</WindowsAppSdkSelfContained>
+      <WindowsAppSdkSelfContained Condition="'$(CI)' != 'true'">false</WindowsAppSdkSelfContained>
+
     <WindowsAppSDKGeneratePackage>false</WindowsAppSDKGeneratePackage>
     <EnableMsixTooling>false</EnableMsixTooling>
   </PropertyGroup>
 
-  <!-- ✅ CI/Publish durumunda self-contained, aksi halde framework-dependent -->
-  <PropertyGroup Condition="'$(CI)' == 'true' OR '$(PublishDir)' != ''">
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <SelfContained>true</SelfContained>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(CI)' != 'true' AND '$(PublishDir)' == ''">
-    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
-    <SelfContained>false</SelfContained>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <DefineDebug>true</DefineDebug>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <DefineDebug>false</DefineDebug>
-  </PropertyGroup>
+  <!-- Diğer configuration ayarları aynı kalacak -->
 </Project>
