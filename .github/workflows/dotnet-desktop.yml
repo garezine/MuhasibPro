@@ -132,6 +132,61 @@ jobs:
             /verbosity:minimal `
             /nologo
 
+      # ↓↓↓ BURAYA EKLEYİN ↓↓↓
+      - name: Test 1 - Framework Dependent Build (Basit)
+        run: |
+          Write-Host "🧪 TEST 1: Framework-dependent build"
+          $publishPath = "test-publish-fd"
+          
+          # Temizlik
+          if (Test-Path $publishPath) {
+            Remove-Item $publishPath -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
+          
+          # Framework-dependent publish (Windows Runtime'ı sistem'den alsın)
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            --configuration Release `
+            --output $publishPath `
+            --runtime win-x64 `
+            --self-contained false `
+            -p:Platform=x64 `
+            -p:WindowsAppSdkSelfContained=false `
+            -p:SkipPriGeneration=true `
+            -p:EnableMsixTooling=false `
+            -p:WindowsPackageType=None `
+            --verbosity normal
+            
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ Framework-dependent publish failed"
+            exit 1
+          }
+          
+          # Hızlı kontrol
+          $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+          if (Test-Path $mainExe) {
+            Write-Host "✅ Framework-dependent EXE created: $($(Get-Item $mainExe).Length / 1MB) MB"
+            
+            # Eksik DLL'leri kontrol et
+            $criticalFiles = @(
+              "Microsoft.Windows.System.Power.dll",
+              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
+            )
+            
+            foreach ($file in $criticalFiles) {
+              $filePath = Join-Path $publishPath $file
+              if (Test-Path $filePath) {
+                Write-Host "✅ $file - Found"
+              } else {
+                Write-Host "⚠️ $file - Not in publish (expected for framework-dependent)"
+              }
+            }
+          } else {
+            Write-Host "❌ Framework-dependent EXE not found"
+            exit 1
+          }
+
+
       - name: Publish with MSBuild (recommended for WinUI 3)
         run: |
           Write-Host "📤 MSBuild ile publishing..."          
