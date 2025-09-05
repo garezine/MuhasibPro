@@ -149,7 +149,7 @@ jobs:
             if ($infraContent -notmatch "SkipPriGeneration") {
               Write-Host "Adding PRI generation disable properties to Infrastructure project..."
               
-              $priDisableProps = @"
+              $priDisableProps=@"
               <PropertyGroup>
                 <SkipPriGeneration>true</SkipPriGeneration>
                 <EnableMrtGeneration>false</EnableMrtGeneration>
@@ -159,8 +159,7 @@ jobs:
                 <EnableMsixTooling>false</EnableMsixTooling>
                 <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
                 <WindowsPackageType>None</WindowsPackageType>
-              </PropertyGroup>
-            "@
+              </PropertyGroup>"@
               
               # </Project> tag'ından önce ekle
               $infraContent = $infraContent -replace "</Project>", "$priDisableProps`n</Project>"
