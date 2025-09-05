@@ -134,59 +134,59 @@ jobs:
 
       - name: AGGRESSIVE PRI Fix - Override All Projects
         run: |
-          Write-Host "🔧 AGGRESSIVE: Completely disabling PRI generation for ALL projects..."
+         Write-Host "🔧 AGGRESSIVE: Completely disabling PRI generation for ALL projects..."
           
-          # 1. Solution seviyesinde Directory.Build.props oluştur (her projeyi etkiler)
-          $solutionProps = @"
-            <Project>
-              <PropertyGroup>
-                <!-- Global PRI generation disable -->
-                <SkipPriGeneration>true</SkipPriGeneration>
-                <EnableMrtGeneration>false</EnableMrtGeneration>
-                <GeneratePriFile>false</GeneratePriFile>
-                <UsePriGeneration>false</UsePriGeneration>
-                <PriGenEnabled>false</PriGenEnabled>
-                <EnableMsixTooling>false</EnableMsixTooling>
-                <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-                <WindowsPackageType>None</WindowsPackageType>
-                <WindowsAppSdkSelfContained>false</WindowsAppSdkSelfContained>
-                <CI>true</CI>
-              </PropertyGroup>
-  
-              <!-- Disable PRI-related targets globally -->
-              <Target Name="AddPriPayloadFilesToCopyToOutputDirectoryItems" Condition="false" />
-              <Target Name="PriGen" Condition="false" />
-              <Target Name="ExpandPriContent" Condition="false" />
-              <Target Name="GeneratePriConfigXml" Condition="false" />
-              <Target Name="MrtCoreCreateResourceIndex" Condition="false" />
-            </Project>
-                "@
+         # 1. Solution seviyesinde Directory.Build.props oluştur (her projeyi etkiler)
+         $solutionProps=
+         @"
+         <Project>
+            <PropertyGroup>
+                  <!-- Global PRI generation disable -->
+             <SkipPriGeneration>true</SkipPriGeneration>
+             <EnableMrtGeneration>false</EnableMrtGeneration>
+             <GeneratePriFile>false</GeneratePriFile>
+             <UsePriGeneration>false</UsePriGeneration>
+             <PriGenEnabled>false</PriGenEnabled>
+             <EnableMsixTooling>false</EnableMsixTooling>
+             <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+             <WindowsPackageType>None</WindowsPackageType>
+             <WindowsAppSdkSelfContained>false</WindowsAppSdkSelfContained>
+             <CI>true</CI>
+             </PropertyGroup>
+                <!-- Disable PRI-related targets globally -->
+             <Target Name="AddPriPayloadFilesToCopyToOutputDirectoryItems" Condition="false" />
+             <Target Name="PriGen" Condition="false" />
+             <Target Name="ExpandPriContent" Condition="false" />
+             <Target Name="GeneratePriConfigXml" Condition="false" />
+             <Target Name="MrtCoreCreateResourceIndex" Condition="false" />
+             </Project>
+         "@
+         $solutionProps | Out-File -FilePath "Directory.Build.props" -Encoding UTF8 -Force
+         Write-Host "✅ Created solution-wide Directory.Build.props"
           
-          $solutionProps | Out-File -FilePath "Directory.Build.props" -Encoding UTF8 -Force
-          Write-Host "✅ Created solution-wide Directory.Build.props"
+         # 2. Her .csproj dosyasını bul ve düzenle
+         $allProjects = Get-ChildItem -Recurse -Filter "*.csproj"
           
-          # 2. Her .csproj dosyasını bul ve düzenle
-          $allProjects = Get-ChildItem -Recurse -Filter "*.csproj"
-          
-          foreach ($proj in $allProjects) {
-            Write-Host "📝 Editing project: $($proj.Name)"
+         foreach ($proj in $allProjects) {
+         Write-Host "📝 Editing project: $($proj.Name)"
             
-            $content = Get-Content $proj.FullName -Raw
+         $content = Get-Content $proj.FullName -Raw
             
-            # WindowsAppSDK paket referansını bul ve koşullu yap
-            if ($content -match '<PackageReference Include="Microsoft\.WindowsAppSDK"') {
-              Write-Host "  Found WindowsAppSDK reference in $($proj.Name)"
+         # WindowsAppSDK paket referansını bul ve koşullu yap
+         if ($content -match '<PackageReference Include="Microsoft\.WindowsAppSDK"') {
+         Write-Host "  Found WindowsAppSDK reference in $($proj.Name)"
               
-              # PRI properties ekle (eğer yoksa)
-              if ($content -notmatch "SkipPriGeneration") {
-                $newProps = @"
-              <PropertyGroup>
-                <SkipPriGeneration>true</SkipPriGeneration>
-                <EnableMrtGeneration>false</EnableMrtGeneration>
-                <WindowsPackageType>None</WindowsPackageType>
-                <EnableMsixTooling>false</EnableMsixTooling>
-              </PropertyGroup>
-            "@
+         # PRI properties ekle (eğer yoksa)
+         if ($content -notmatch "SkipPriGeneration") {
+         $newProps =
+         @"
+         <PropertyGroup>
+         <SkipPriGeneration>true</SkipPriGeneration>
+         <EnableMrtGeneration>false</EnableMrtGeneration>
+         <WindowsPackageType>None</WindowsPackageType>
+         <EnableMsixTooling>false</EnableMsixTooling>
+         </PropertyGroup>
+         "@
                 $content = $content -replace "(<Project[^>]*>)", "`$1`n$newProps"
                 $content | Set-Content $proj.FullName -Encoding UTF8
                 Write-Host "  ✅ Added PRI disable props to $($proj.Name)"
