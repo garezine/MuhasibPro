@@ -149,7 +149,8 @@ jobs:
             if ($infraContent -notmatch "SkipPriGeneration") {
               Write-Host "Adding PRI generation disable properties to Infrastructure project..."
               
-              $priDisableProps=@"
+              $priDisableProps=
+              @"
               <PropertyGroup>
                 <SkipPriGeneration>true</SkipPriGeneration>
                 <EnableMrtGeneration>false</EnableMrtGeneration>
@@ -159,7 +160,8 @@ jobs:
                 <EnableMsixTooling>false</EnableMsixTooling>
                 <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
                 <WindowsPackageType>None</WindowsPackageType>
-              </PropertyGroup>"@
+              </PropertyGroup>
+              "@
               
               # </Project> tag'ından önce ekle
               $infraContent = $infraContent -replace "</Project>", "$priDisableProps`n</Project>"
@@ -184,7 +186,8 @@ jobs:
             if ($vmContent -notmatch "SkipPriGeneration") {
               Write-Host "Adding PRI generation disable properties to ViewModels project..."
               
-              $priDisableProps = @"
+              $priDisableProps =
+              @"
               <PropertyGroup>
                 <SkipPriGeneration>true</SkipPriGeneration>
                 <EnableMrtGeneration>false</EnableMrtGeneration>
@@ -195,7 +198,7 @@ jobs:
                 <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
                 <WindowsPackageType>None</WindowsPackageType>
               </PropertyGroup>
-            "@
+              "@
               
               $vmContent = $vmContent -replace "</Project>", "$priDisableProps`n</Project>"
               $vmContent | Set-Content $vmProjectPath -Encoding UTF8
