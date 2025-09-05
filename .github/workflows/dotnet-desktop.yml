@@ -330,9 +330,9 @@ jobs:
             }
           }
 
-      - name: Publish with MSBuild (recommended for WinUI 3)
+      - name: Publish with MSBuild (FIXED - Self-Contained)
         run: |
-          Write-Host "📤 MSBuild ile publishing..."          
+          Write-Host "📤 MSBuild ile self-contained publishing (FIXED VERSION)..."          
           $publishPath = "publish-win-x64"
           $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
       
@@ -342,7 +342,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # ✅ MSBuild ile publish
+          # ✅ MSBuild ile self-contained publish (WORKING VERSION)
           msbuild "${{ env.PROJECT_PATH }}" `
             /t:Publish `
             /p:Configuration=Release `
@@ -350,16 +350,45 @@ jobs:
             /p:RuntimeIdentifier=win-x64 `
             /p:SelfContained=true `
             /p:PublishDir="$absolutePublishPath" `
+            /p:WindowsAppSdkSelfContained=true `
             /p:SkipPriGeneration=true `
             /p:EnableMrtGeneration=false `
-            /p:WindowsPackageType=None `
-            /p:WindowsAppSdkSelfContained=true `
+            /p:GeneratePriFile=false `
+            /p:UsePriGeneration=false `
+            /p:PriGenEnabled=false `
             /p:EnableMsixTooling=false `
+            /p:GenerateAppxPackageOnBuild=false `
+            /p:WindowsPackageType=None `
+            /p:CI=true `
             /verbosity:normal `
             /nologo
       
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
+            Write-Host "❌ Self-contained publish failed with exit code: $LASTEXITCODE"
+            exit 1
+          }
+          
+          Write-Host "✅ Self-contained publish SUCCESS!"
+          
+          # Hızlı kontrol
+          $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+          if (Test-Path $mainExe) {
+            $exeSize = (Get-Item $mainExe).Length / 1MB
+            $fileCount = (Get-ChildItem $publishPath -File).Count
+            Write-Host "✅ Published EXE: $([math]::Round($exeSize, 2)) MB, $fileCount files"
+            
+            # Kritik DLL kontrolü
+            $criticalDlls = @("WinRT.Runtime.dll", "Microsoft.WindowsAppRuntime.dll")
+            foreach ($dll in $criticalDlls) {
+              if (Test-Path (Join-Path $publishPath $dll)) {
+                Write-Host "✅ $dll - Included"
+              } else {
+                Write-Host "❌ $dll - MISSING (critical error)"
+                exit 1
+              }
+            }
+          } else {
+            Write-Host "❌ Main executable not found"
             exit 1
           }
           
