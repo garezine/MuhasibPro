@@ -132,97 +132,80 @@ jobs:
             /verbosity:minimal `
             /nologo
 
-      - name: Fix Infrastructure Project PRI Issue
+      - name: AGGRESSIVE PRI Fix - Override All Projects
         run: |
-         Write-Host "🔧 Fixing Infrastructure project PRI generation..."
+          Write-Host "🔧 AGGRESSIVE: Completely disabling PRI generation for ALL projects..."
           
-         # Infrastructure projesi için de PRI'ı kapat
-         $infraProjectPath = "MuhasibPro.Infrastructure\MuhasibPro.Infrastructure.csproj"
+          # 1. Solution seviyesinde Directory.Build.props oluştur (her projeyi etkiler)
+          $solutionProps = @"
+            <Project>
+              <PropertyGroup>
+                <!-- Global PRI generation disable -->
+                <SkipPriGeneration>true</SkipPriGeneration>
+                <EnableMrtGeneration>false</EnableMrtGeneration>
+                <GeneratePriFile>false</GeneratePriFile>
+                <UsePriGeneration>false</UsePriGeneration>
+                <PriGenEnabled>false</PriGenEnabled>
+                <EnableMsixTooling>false</EnableMsixTooling>
+                <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+                <WindowsPackageType>None</WindowsPackageType>
+                <WindowsAppSdkSelfContained>false</WindowsAppSdkSelfContained>
+                <CI>true</CI>
+              </PropertyGroup>
+  
+              <!-- Disable PRI-related targets globally -->
+              <Target Name="AddPriPayloadFilesToCopyToOutputDirectoryItems" Condition="false" />
+              <Target Name="PriGen" Condition="false" />
+              <Target Name="ExpandPriContent" Condition="false" />
+              <Target Name="GeneratePriConfigXml" Condition="false" />
+              <Target Name="MrtCoreCreateResourceIndex" Condition="false" />
+            </Project>
+                "@
           
-         if (Test-Path $infraProjectPath) {
-         Write-Host "Found Infrastructure project: $infraProjectPath"
-            
-         # Infrastructure proje dosyasını oku
-         $infraContent = Get-Content $infraProjectPath -Raw
-            
-         # PRI generation kapatma ayarlarını ekle (eğer yoksa)
-         if ($infraContent -notmatch "SkipPriGeneration") {
-         Write-Host "Adding PRI generation disable properties to Infrastructure project..."
-              
-         $priDisableProps=
-         @"
-         <PropertyGroup>
-         <SkipPriGeneration>true</SkipPriGeneration>
-         <EnableMrtGeneration>false</EnableMrtGeneration>
-         <GeneratePriFile>false</GeneratePriFile>
-         <UsePriGeneration>false</UsePriGeneration>
-         <PriGenEnabled>false</PriGenEnabled>
-         <EnableMsixTooling>false</EnableMsixTooling>
-         <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-         <WindowsPackageType>None</WindowsPackageType>
-          </PropertyGroup>
-         "@
-              
-         # </Project> tag'ından önce ekle
-         $infraContent = $infraContent -replace "</Project>", "$priDisableProps`n</Project>"
-         $infraContent | Set-Content $infraProjectPath -Encoding UTF8
-              
-         Write-Host "✅ PRI disable properties added to Infrastructure project"
-         } else {
-         Write-Host "✅ Infrastructure project already has PRI disable properties"
-         }
-         } else {
-         Write-Host "⚠️ Infrastructure project not found at: $infraProjectPath"
-         }
+          $solutionProps | Out-File -FilePath "Directory.Build.props" -Encoding UTF8 -Force
+          Write-Host "✅ Created solution-wide Directory.Build.props"
           
-         # ViewModels projesi de kontrol et
-         $vmProjectPath = "MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj"
+          # 2. Her .csproj dosyasını bul ve düzenle
+          $allProjects = Get-ChildItem -Recurse -Filter "*.csproj"
           
-         if (Test-Path $vmProjectPath) {
-         Write-Host "Found ViewModels project: $vmProjectPath"
+          foreach ($proj in $allProjects) {
+            Write-Host "📝 Editing project: $($proj.Name)"
             
-         $vmContent = Get-Content $vmProjectPath -Raw
+            $content = Get-Content $proj.FullName -Raw
             
-         if ($vmContent -notmatch "SkipPriGeneration") {
-         Write-Host "Adding PRI generation disable properties to ViewModels project..."
+            # WindowsAppSDK paket referansını bul ve koşullu yap
+            if ($content -match '<PackageReference Include="Microsoft\.WindowsAppSDK"') {
+              Write-Host "  Found WindowsAppSDK reference in $($proj.Name)"
               
-         $priDisableProps =
-         @"
-         <PropertyGroup>
-         <SkipPriGeneration>true</SkipPriGeneration>
-         <EnableMrtGeneration>false</EnableMrtGeneration>
-         <GeneratePriFile>false</GeneratePriFile>
-         <UsePriGeneration>false</UsePriGeneration>
-         <PriGenEnabled>false</PriGenEnabled>
-         <EnableMsixTooling>false</EnableMsixTooling>
-         <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-         <WindowsPackageType>None</WindowsPackageType>
-         </PropertyGroup>
-         "@
-         
-         $vmContent = $vmContent -replace "</Project>", "$priDisableProps`n</Project>"
-         $vmContent | Set-Content $vmProjectPath -Encoding UTF8
-         
-         Write-Host "✅ PRI disable properties added to ViewModels project"
-         } else {
-         Write-Host "✅ ViewModels project already has PRI disable properties"
-         }
-         } else {
-         Write-Host "⚠️ ViewModels project not found at: $vmProjectPath"
-         }
+              # PRI properties ekle (eğer yoksa)
+              if ($content -notmatch "SkipPriGeneration") {
+                $newProps = @"
+              <PropertyGroup>
+                <SkipPriGeneration>true</SkipPriGeneration>
+                <EnableMrtGeneration>false</EnableMrtGeneration>
+                <WindowsPackageType>None</WindowsPackageType>
+                <EnableMsixTooling>false</EnableMsixTooling>
+              </PropertyGroup>
+            "@
+                $content = $content -replace "(<Project[^>]*>)", "`$1`n$newProps"
+                $content | Set-Content $proj.FullName -Encoding UTF8
+                Write-Host "  ✅ Added PRI disable props to $($proj.Name)"
+              }
+            }
+          }
 
-      - name: Test 1 - Framework Dependent Build (Basit) - RETRY
+      - name: Test Framework-Dependent Build (After Aggressive Fix)
         run: |
-          Write-Host "🧪 TEST 1 RETRY: Framework-dependent build after fixing Infrastructure"
+          Write-Host "🧪 Testing framework-dependent build after aggressive PRI fix..."
+          
           $publishPath = "test-publish-fd"
           
-          # Temizlik
           if (Test-Path $publishPath) {
             Remove-Item $publishPath -Recurse -Force
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
           
-          # Framework-dependent publish
+          # Framework-dependent dotnet publish
           dotnet publish "${{ env.PROJECT_PATH }}" `
             --configuration Release `
             --output $publishPath `
@@ -233,19 +216,48 @@ jobs:
             -p:SkipPriGeneration=true `
             -p:EnableMrtGeneration=false `
             -p:WindowsPackageType=None `
-            --verbosity normal
+            -p:CI=true `
+            --verbosity minimal
             
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "❌ Framework-dependent publish still failed"
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "🎉 SUCCESS! Framework-dependent build worked!"
+            
+            $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+            if (Test-Path $mainExe) {
+              $exeSize = (Get-Item $mainExe).Length / 1MB
+              Write-Host "✅ EXE created: $([math]::Round($exeSize, 2)) MB"
+              
+              # Dosya sayısını kontrol et
+              $fileCount = (Get-ChildItem $publishPath -Recurse -File).Count
+              Write-Host "📁 Total files in publish folder: $fileCount"
+              
+              # Kritik DLL'leri kontrol et
+              $windowsDlls = @(
+                "Microsoft.Windows.System.Power.dll",
+                "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
+              )
+              
+              foreach ($dll in $windowsDlls) {
+                if (Test-Path (Join-Path $publishPath $dll)) {
+                  Write-Host "✅ $dll - Found"
+                } else {
+                  Write-Host "⚠️ $dll - Missing (expected for framework-dependent)"
+                }
+              }
+              
+              Write-Host "👉 NEXT STEP: Test self-contained build to include missing DLLs"
+            }
+          } else {
+            Write-Host "❌ Framework-dependent build still failed"
+            Write-Host "Let's check what projects are still causing issues..."
+            
+            # Manuel olarak her projeyi tek tek dene
+            dotnet build "${{ env.SOLUTION_PATH }}" --verbosity detailed > build-log.txt 2>&1
+            
+            Write-Host "Build log (last 50 lines):"
+            Get-Content build-log.txt | Select-Object -Last 50 | ForEach-Object { Write-Host $_ }
+            
             exit 1
-          }
-          
-          Write-Host "✅ Framework-dependent publish SUCCESS!"
-          
-          # Hızlı kontrol
-          $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
-          if (Test-Path $mainExe) {
-            Write-Host "✅ Framework-dependent EXE: $($(Get-Item $mainExe).Length / 1MB) MB"
           }
 
 
