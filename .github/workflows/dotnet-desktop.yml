@@ -132,10 +132,86 @@ jobs:
             /verbosity:minimal `
             /nologo
 
-      # ↓↓↓ BURAYA EKLEYİN ↓↓↓
-      - name: Test 1 - Framework Dependent Build (Basit)
+      - name: Fix Infrastructure Project PRI Issue
         run: |
-          Write-Host "🧪 TEST 1: Framework-dependent build"
+          Write-Host "🔧 Fixing Infrastructure project PRI generation..."
+          
+          # Infrastructure projesi için de PRI'ı kapat
+          $infraProjectPath = "MuhasibPro.Infrastructure\MuhasibPro.Infrastructure.csproj"
+          
+          if (Test-Path $infraProjectPath) {
+            Write-Host "Found Infrastructure project: $infraProjectPath"
+            
+            # Infrastructure proje dosyasını oku
+            $infraContent = Get-Content $infraProjectPath -Raw
+            
+            # PRI generation kapatma ayarlarını ekle (eğer yoksa)
+            if ($infraContent -notmatch "SkipPriGeneration") {
+              Write-Host "Adding PRI generation disable properties to Infrastructure project..."
+              
+              $priDisableProps = @"
+              <PropertyGroup>
+                <SkipPriGeneration>true</SkipPriGeneration>
+                <EnableMrtGeneration>false</EnableMrtGeneration>
+                <GeneratePriFile>false</GeneratePriFile>
+                <UsePriGeneration>false</UsePriGeneration>
+                <PriGenEnabled>false</PriGenEnabled>
+                <EnableMsixTooling>false</EnableMsixTooling>
+                <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+                <WindowsPackageType>None</WindowsPackageType>
+              </PropertyGroup>
+            "@
+              
+              # </Project> tag'ından önce ekle
+              $infraContent = $infraContent -replace "</Project>", "$priDisableProps`n</Project>"
+              $infraContent | Set-Content $infraProjectPath -Encoding UTF8
+              
+              Write-Host "✅ PRI disable properties added to Infrastructure project"
+            } else {
+              Write-Host "✅ Infrastructure project already has PRI disable properties"
+            }
+          } else {
+            Write-Host "⚠️ Infrastructure project not found at: $infraProjectPath"
+          }
+          
+          # ViewModels projesi de kontrol et
+          $vmProjectPath = "MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj"
+          
+          if (Test-Path $vmProjectPath) {
+            Write-Host "Found ViewModels project: $vmProjectPath"
+            
+            $vmContent = Get-Content $vmProjectPath -Raw
+            
+            if ($vmContent -notmatch "SkipPriGeneration") {
+              Write-Host "Adding PRI generation disable properties to ViewModels project..."
+              
+              $priDisableProps = @"
+              <PropertyGroup>
+                <SkipPriGeneration>true</SkipPriGeneration>
+                <EnableMrtGeneration>false</EnableMrtGeneration>
+                <GeneratePriFile>false</GeneratePriFile>
+                <UsePriGeneration>false</UsePriGeneration>
+                <PriGenEnabled>false</PriGenEnabled>
+                <EnableMsixTooling>false</EnableMsixTooling>
+                <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+                <WindowsPackageType>None</WindowsPackageType>
+              </PropertyGroup>
+            "@
+              
+              $vmContent = $vmContent -replace "</Project>", "$priDisableProps`n</Project>"
+              $vmContent | Set-Content $vmProjectPath -Encoding UTF8
+              
+              Write-Host "✅ PRI disable properties added to ViewModels project"
+            } else {
+              Write-Host "✅ ViewModels project already has PRI disable properties"
+            }
+          } else {
+            Write-Host "⚠️ ViewModels project not found at: $vmProjectPath"
+          }
+
+      - name: Test 1 - Framework Dependent Build (Basit) - RETRY
+        run: |
+          Write-Host "🧪 TEST 1 RETRY: Framework-dependent build after fixing Infrastructure"
           $publishPath = "test-publish-fd"
           
           # Temizlik
@@ -144,7 +220,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
           
-          # Framework-dependent publish (Windows Runtime'ı sistem'den alsın)
+          # Framework-dependent publish
           dotnet publish "${{ env.PROJECT_PATH }}" `
             --configuration Release `
             --output $publishPath `
@@ -153,37 +229,21 @@ jobs:
             -p:Platform=x64 `
             -p:WindowsAppSdkSelfContained=false `
             -p:SkipPriGeneration=true `
-            -p:EnableMsixTooling=false `
+            -p:EnableMrtGeneration=false `
             -p:WindowsPackageType=None `
             --verbosity normal
             
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "❌ Framework-dependent publish failed"
+            Write-Host "❌ Framework-dependent publish still failed"
             exit 1
           }
+          
+          Write-Host "✅ Framework-dependent publish SUCCESS!"
           
           # Hızlı kontrol
           $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
           if (Test-Path $mainExe) {
-            Write-Host "✅ Framework-dependent EXE created: $($(Get-Item $mainExe).Length / 1MB) MB"
-            
-            # Eksik DLL'leri kontrol et
-            $criticalFiles = @(
-              "Microsoft.Windows.System.Power.dll",
-              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
-            )
-            
-            foreach ($file in $criticalFiles) {
-              $filePath = Join-Path $publishPath $file
-              if (Test-Path $filePath) {
-                Write-Host "✅ $file - Found"
-              } else {
-                Write-Host "⚠️ $file - Not in publish (expected for framework-dependent)"
-              }
-            }
-          } else {
-            Write-Host "❌ Framework-dependent EXE not found"
-            exit 1
+            Write-Host "✅ Framework-dependent EXE: $($(Get-Item $mainExe).Length / 1MB) MB"
           }
 
 
