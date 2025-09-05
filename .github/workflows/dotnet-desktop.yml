@@ -620,12 +620,84 @@ jobs:
               --releaseNotes "./RELEASE_NOTES.md" `
               --verbose   
 
-      - name: Create portable ZIP
+      - name: Create portable ZIP with diagnostic
         run: |
           $version = "${{ steps.version.outputs.version }}"
           $zipName = "${{ env.APP_NAME }}-v$version-portable-win-x64.zip"
           $zipPath = Join-Path "releases" $zipName
-          Compress-Archive -Path "publish-win-x64/*" -DestinationPath $zipPath -Force
+          
+          Write-Host "📦 Creating portable ZIP: $zipName"
+          
+          # ZIP öncesi dosya kontrolü
+          $publishPath = "publish-win-x64"
+          $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+          
+          if (Test-Path $mainExe) {
+            $exeSize = (Get-Item $mainExe).Length / 1MB
+            $fileCount = (Get-ChildItem $publishPath -File).Count
+            Write-Host "📊 Source folder: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files total"
+            
+            # Kritik dosyaların varlığını kontrol et
+            $criticalFiles = @(
+              "${{ env.APP_NAME }}.exe",
+              "${{ env.APP_NAME }}.dll", 
+              "WinRT.Runtime.dll",
+              "Microsoft.WindowsAppRuntime.dll",
+              "Microsoft.UI.Xaml.dll"
+            )
+            
+            Write-Host "🔍 Critical files check before ZIP:"
+            foreach ($file in $criticalFiles) {
+              $filePath = Join-Path $publishPath $file
+              if (Test-Path $filePath) {
+                $size = (Get-Item $filePath).Length / 1KB
+                Write-Host "✅ $file ($([math]::Round($size, 1)) KB)"
+              } else {
+                Write-Host "❌ $file - MISSING"
+              }
+            }
+            
+            # ZIP oluştur
+            Compress-Archive -Path "$publishPath\*" -DestinationPath $zipPath -Force
+            
+            if (Test-Path $zipPath) {
+              $zipSize = (Get-Item $zipPath).Length / 1MB
+              Write-Host "✅ Portable ZIP created: $([math]::Round($zipSize, 2)) MB"
+              
+              # Test için batch file oluştur (ZIP içine)
+              $testBat = @"
+              @echo off
+              echo Testing MuhasibPro executable...
+              echo.
+              echo Current directory: %CD%
+              echo.
+              echo Files in current directory:
+              dir /b *.exe
+              echo.
+              echo Running ${{ env.APP_NAME }}.exe...
+              echo If this fails, check the error message carefully.
+              echo.
+              "${{ env.APP_NAME }}.exe"
+              pause
+              "@
+              
+              $testBatPath = Join-Path $publishPath "test-app.bat"
+              $testBat | Out-File -FilePath $testBatPath -Encoding ASCII
+              
+              # ZIP'i güncelleyerek test.bat'ı ekle
+              Add-Type -AssemblyName System.IO.Compression.FileSystem
+              $zipArchive = [System.IO.Compression.ZipFile]::Open($zipPath, 'Update')
+              [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $testBatPath, "test-app.bat")
+              $zipArchive.Dispose()
+              
+              Write-Host "✅ Added test-app.bat to ZIP for manual testing"
+              
+            } else {
+              Write-Host "❌ Failed to create ZIP file"
+            }
+          } else {
+            Write-Host "❌ Source EXE not found: $mainExe"
+          }
 
       - name: Create Setup.exe (Traditional Installer)
         shell: pwsh
