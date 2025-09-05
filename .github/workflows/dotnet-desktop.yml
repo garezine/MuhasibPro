@@ -134,80 +134,82 @@ jobs:
 
       - name: Fix Infrastructure Project PRI Issue
         run: |
-          Write-Host "🔧 Fixing Infrastructure project PRI generation..."
+         Write-Host "🔧 Fixing Infrastructure project PRI generation..."
           
-          # Infrastructure projesi için de PRI'ı kapat
-          $infraProjectPath = "MuhasibPro.Infrastructure\MuhasibPro.Infrastructure.csproj"
+         # Infrastructure projesi için de PRI'ı kapat
+         $infraProjectPath = "MuhasibPro.Infrastructure\MuhasibPro.Infrastructure.csproj"
           
-          if (Test-Path $infraProjectPath) {
-            Write-Host "Found Infrastructure project: $infraProjectPath"
+         if (Test-Path $infraProjectPath) {
+         Write-Host "Found Infrastructure project: $infraProjectPath"
             
-            # Infrastructure proje dosyasını oku
-            $infraContent = Get-Content $infraProjectPath -Raw
+         # Infrastructure proje dosyasını oku
+         $infraContent = Get-Content $infraProjectPath -Raw
             
-            # PRI generation kapatma ayarlarını ekle (eğer yoksa)
-            if ($infraContent -notmatch "SkipPriGeneration") {
-              Write-Host "Adding PRI generation disable properties to Infrastructure project..."
+         # PRI generation kapatma ayarlarını ekle (eğer yoksa)
+         if ($infraContent -notmatch "SkipPriGeneration") {
+         Write-Host "Adding PRI generation disable properties to Infrastructure project..."
               
-              $priDisableProps = @"
-              <PropertyGroup>
-                <SkipPriGeneration>true</SkipPriGeneration>
-                <EnableMrtGeneration>false</EnableMrtGeneration>
-                <GeneratePriFile>false</GeneratePriFile>
-                <UsePriGeneration>false</UsePriGeneration>
-                <PriGenEnabled>false</PriGenEnabled>
-                <EnableMsixTooling>false</EnableMsixTooling>
-                <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-                <WindowsPackageType>None</WindowsPackageType>
-              </PropertyGroup>
-            "@
+         $priDisableProps=
+         @"
+         <PropertyGroup>
+         <SkipPriGeneration>true</SkipPriGeneration>
+         <EnableMrtGeneration>false</EnableMrtGeneration>
+         <GeneratePriFile>false</GeneratePriFile>
+         <UsePriGeneration>false</UsePriGeneration>
+         <PriGenEnabled>false</PriGenEnabled>
+         <EnableMsixTooling>false</EnableMsixTooling>
+         <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+         <WindowsPackageType>None</WindowsPackageType>
+          </PropertyGroup>
+         "@
               
-              # </Project> tag'ından önce ekle
-              $infraContent = $infraContent -replace "</Project>", "$priDisableProps`n</Project>"
-              $infraContent | Set-Content $infraProjectPath -Encoding UTF8
+         # </Project> tag'ından önce ekle
+         $infraContent = $infraContent -replace "</Project>", "$priDisableProps`n</Project>"
+         $infraContent | Set-Content $infraProjectPath -Encoding UTF8
               
-              Write-Host "✅ PRI disable properties added to Infrastructure project"
-            } else {
-              Write-Host "✅ Infrastructure project already has PRI disable properties"
-            }
-          } else {
-            Write-Host "⚠️ Infrastructure project not found at: $infraProjectPath"
-          }
+         Write-Host "✅ PRI disable properties added to Infrastructure project"
+         } else {
+         Write-Host "✅ Infrastructure project already has PRI disable properties"
+         }
+         } else {
+         Write-Host "⚠️ Infrastructure project not found at: $infraProjectPath"
+         }
           
-          # ViewModels projesi de kontrol et
-          $vmProjectPath = "MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj"
+         # ViewModels projesi de kontrol et
+         $vmProjectPath = "MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj"
           
-          if (Test-Path $vmProjectPath) {
-            Write-Host "Found ViewModels project: $vmProjectPath"
+         if (Test-Path $vmProjectPath) {
+         Write-Host "Found ViewModels project: $vmProjectPath"
             
-            $vmContent = Get-Content $vmProjectPath -Raw
+         $vmContent = Get-Content $vmProjectPath -Raw
             
-            if ($vmContent -notmatch "SkipPriGeneration") {
-              Write-Host "Adding PRI generation disable properties to ViewModels project..."
+         if ($vmContent -notmatch "SkipPriGeneration") {
+         Write-Host "Adding PRI generation disable properties to ViewModels project..."
               
-                          $priDisableProps = @"
-              <PropertyGroup>
-                <SkipPriGeneration>true</SkipPriGeneration>
-                <EnableMrtGeneration>false</EnableMrtGeneration>
-                <GeneratePriFile>false</GeneratePriFile>
-                <UsePriGeneration>false</UsePriGeneration>
-                <PriGenEnabled>false</PriGenEnabled>
-                <EnableMsixTooling>false</EnableMsixTooling>
-                <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-                <WindowsPackageType>None</WindowsPackageType>
-              </PropertyGroup>
-            "@
-              
-              $vmContent = $vmContent -replace "</Project>", "$priDisableProps`n</Project>"
-              $vmContent | Set-Content $vmProjectPath -Encoding UTF8
-              
-              Write-Host "✅ PRI disable properties added to ViewModels project"
-            } else {
-              Write-Host "✅ ViewModels project already has PRI disable properties"
-            }
-          } else {
-            Write-Host "⚠️ ViewModels project not found at: $vmProjectPath"
-          }
+         $priDisableProps =
+         @"
+         <PropertyGroup>
+         <SkipPriGeneration>true</SkipPriGeneration>
+         <EnableMrtGeneration>false</EnableMrtGeneration>
+         <GeneratePriFile>false</GeneratePriFile>
+         <UsePriGeneration>false</UsePriGeneration>
+         <PriGenEnabled>false</PriGenEnabled>
+         <EnableMsixTooling>false</EnableMsixTooling>
+         <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+         <WindowsPackageType>None</WindowsPackageType>
+         </PropertyGroup>
+         "@
+         
+         $vmContent = $vmContent -replace "</Project>", "$priDisableProps`n</Project>"
+         $vmContent | Set-Content $vmProjectPath -Encoding UTF8
+         
+         Write-Host "✅ PRI disable properties added to ViewModels project"
+         } else {
+         Write-Host "✅ ViewModels project already has PRI disable properties"
+         }
+         } else {
+         Write-Host "⚠️ ViewModels project not found at: $vmProjectPath"
+         }
 
       - name: Test 1 - Framework Dependent Build (Basit) - RETRY
         run: |
