@@ -224,6 +224,111 @@ jobs:
             }
           }
 
+      - name: Test Self-Contained Build with Windows Runtime
+        run: |
+          Write-Host "🔧 Testing self-contained build to include Windows Runtime DLLs..."
+          
+          $publishPath = "test-publish-selfcontained"
+          
+          if (Test-Path $publishPath) {
+            Remove-Item $publishPath -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
+          
+          # Self-contained MSBuild publish
+          Write-Host "📦 Publishing self-contained with MSBuild..."
+          
+          msbuild "${{ env.PROJECT_PATH }}" `
+            /t:Publish `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:SelfContained=true `
+            /p:PublishDir="$PWD\$publishPath" `
+            /p:WindowsAppSdkSelfContained=true `
+            /p:SkipPriGeneration=true `
+            /p:EnableMrtGeneration=false `
+            /p:GeneratePriFile=false `
+            /p:UsePriGeneration=false `
+            /p:PriGenEnabled=false `
+            /p:EnableMsixTooling=false `
+            /p:GenerateAppxPackageOnBuild=false `
+            /p:WindowsPackageType=None `
+            /p:CI=true `
+            /verbosity:minimal `
+            /nologo
+            
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Self-contained build SUCCESS!"
+            
+            $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+            if (Test-Path $mainExe) {
+              $exeSize = (Get-Item $mainExe).Length / 1MB
+              Write-Host "✅ Self-contained EXE: $([math]::Round($exeSize, 2)) MB"
+              
+              $fileCount = (Get-ChildItem $publishPath -File).Count
+              Write-Host "📁 Total files: $fileCount"
+              
+              # Windows Runtime DLL kontrolü
+              Write-Host "`n🔍 Checking for Windows Runtime DLLs:"
+              $winDlls = @(
+                "Microsoft.Windows.System.Power.dll",
+                "Microsoft.Windows.ApplicationModel.DynamicDependency.dll",
+                "WinRT.Runtime.dll",
+                "Microsoft.WindowsAppRuntime.dll"
+              )
+              
+              $foundDlls = 0
+              foreach ($dll in $winDlls) {
+                $dllPath = Join-Path $publishPath $dll
+                if (Test-Path $dllPath) {
+                  $dllSize = (Get-Item $dllPath).Length / 1KB
+                  Write-Host "✅ $dll ($([math]::Round($dllSize, 1)) KB)"
+                  $foundDlls++
+                } else {
+                  Write-Host "❌ $dll (missing)"
+                }
+              }
+              
+              if ($foundDlls -ge 2) {
+                Write-Host "`n🎉 Self-contained build includes Windows Runtime DLLs!"
+                Write-Host "👉 This should fix the original runtime issue"
+              } else {
+                Write-Host "`n⚠️ Still missing critical Windows Runtime DLLs"
+                Write-Host "📋 Need to check WindowsAppSDK deployment options"
+              }
+              
+            } else {
+              Write-Host "❌ Self-contained EXE not found after successful build"
+            }
+          } else {
+            Write-Host "❌ Self-contained build failed with exit code: $LASTEXITCODE"
+            Write-Host "Trying fallback dotnet publish self-contained..."
+            
+            # Fallback dotnet publish
+            dotnet publish "${{ env.PROJECT_PATH }}" `
+              -c Release `
+              -r win-x64 `
+              --self-contained true `
+              -o $publishPath `
+              -p:WindowsAppSdkSelfContained=true `
+              -p:SkipPriGeneration=true `
+              -p:EnableMsixTooling=false `
+              -p:WindowsPackageType=None `
+              --verbosity normal
+              
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ Dotnet self-contained publish worked!"
+              
+              # Quick check
+              $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+              if (Test-Path $mainExe) {
+                Write-Host "✅ Fallback EXE: $([math]::Round(((Get-Item $mainExe).Length / 1MB), 2)) MB"
+              }
+            } else {
+              Write-Host "❌ Both self-contained approaches failed"
+            }
+          }
 
       - name: Publish with MSBuild (recommended for WinUI 3)
         run: |
