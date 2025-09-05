@@ -132,132 +132,96 @@ jobs:
             /verbosity:minimal `
             /nologo
 
-      - name: AGGRESSIVE PRI Fix - Override All Projects
+      - name: Simple Solution - MSBuild Global Properties
         run: |
-         Write-Host "🔧 AGGRESSIVE: Completely disabling PRI generation for ALL projects..."
+          Write-Host "🔧 SIMPLE: Using MSBuild global properties instead of editing project files..."
           
-         # 1. Solution seviyesinde Directory.Build.props oluştur (her projeyi etkiler)
-         $solutionProps=
-         @"
-         <Project>
-            <PropertyGroup>
-                  <!-- Global PRI generation disable -->
-             <SkipPriGeneration>true</SkipPriGeneration>
-             <EnableMrtGeneration>false</EnableMrtGeneration>
-             <GeneratePriFile>false</GeneratePriFile>
-             <UsePriGeneration>false</UsePriGeneration>
-             <PriGenEnabled>false</PriGenEnabled>
-             <EnableMsixTooling>false</EnableMsixTooling>
-             <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
-             <WindowsPackageType>None</WindowsPackageType>
-             <WindowsAppSdkSelfContained>false</WindowsAppSdkSelfContained>
-             <CI>true</CI>
-             </PropertyGroup>
-                <!-- Disable PRI-related targets globally -->
-             <Target Name="AddPriPayloadFilesToCopyToOutputDirectoryItems" Condition="false" />
-             <Target Name="PriGen" Condition="false" />
-             <Target Name="ExpandPriContent" Condition="false" />
-             <Target Name="GeneratePriConfigXml" Condition="false" />
-             <Target Name="MrtCoreCreateResourceIndex" Condition="false" />
-             </Project>
-         "@
-         $solutionProps | Out-File -FilePath "Directory.Build.props" -Encoding UTF8 -Force
-         Write-Host "✅ Created solution-wide Directory.Build.props"
+          # Git'ten temiz dosyaları geri al (eğer değiştirildiyse)
+          git checkout HEAD -- . 2>$null || Write-Host "No git changes to reset"
           
-         # 2. Her .csproj dosyasını bul ve düzenle
-         $allProjects = Get-ChildItem -Recurse -Filter "*.csproj"
-          
-         foreach ($proj in $allProjects) {
-         Write-Host "📝 Editing project: $($proj.Name)"
-            
-         $content = Get-Content $proj.FullName -Raw
-            
-         # WindowsAppSDK paket referansını bul ve koşullu yap
-         if ($content -match '<PackageReference Include="Microsoft\.WindowsAppSDK"') {
-         Write-Host "  Found WindowsAppSDK reference in $($proj.Name)"
-              
-         # PRI properties ekle (eğer yoksa)
-         if ($content -notmatch "SkipPriGeneration") {
-         $newProps =
-         @"
-         <PropertyGroup>
-         <SkipPriGeneration>true</SkipPriGeneration>
-         <EnableMrtGeneration>false</EnableMrtGeneration>
-         <WindowsPackageType>None</WindowsPackageType>
-         <EnableMsixTooling>false</EnableMsixTooling>
-         </PropertyGroup>
-         "@
-                $content = $content -replace "(<Project[^>]*>)", "`$1`n$newProps"
-                $content | Set-Content $proj.FullName -Encoding UTF8
-                Write-Host "  ✅ Added PRI disable props to $($proj.Name)"
-              }
-            }
-          }
-
-      - name: Test Framework-Dependent Build (After Aggressive Fix)
-        run: |
-          Write-Host "🧪 Testing framework-dependent build after aggressive PRI fix..."
-          
-          $publishPath = "test-publish-fd"
+          $publishPath = "test-publish-simple"
           
           if (Test-Path $publishPath) {
             Remove-Item $publishPath -Recurse -Force
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
           
-          # Framework-dependent dotnet publish
-          dotnet publish "${{ env.PROJECT_PATH }}" `
-            --configuration Release `
-            --output $publishPath `
-            --runtime win-x64 `
-            --self-contained false `
-            -p:Platform=x64 `
-            -p:WindowsAppSdkSelfContained=false `
-            -p:SkipPriGeneration=true `
-            -p:EnableMrtGeneration=false `
-            -p:WindowsPackageType=None `
-            -p:CI=true `
-            --verbosity minimal
+          # MSBuild ile global properties kullanarak publish (proje dosyalarını değiştirmeden)
+          Write-Host "📦 Publishing with global MSBuild properties..."
+          
+          msbuild "${{ env.PROJECT_PATH }}" `
+            /t:Publish `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:SelfContained=false `
+            /p:PublishDir="$PWD\$publishPath" `
+            /p:SkipPriGeneration=true `
+            /p:EnableMrtGeneration=false `
+            /p:GeneratePriFile=false `
+            /p:UsePriGeneration=false `
+            /p:PriGenEnabled=false `
+            /p:EnableMsixTooling=false `
+            /p:GenerateAppxPackageOnBuild=false `
+            /p:WindowsPackageType=None `
+            /p:WindowsAppSdkSelfContained=false `
+            /p:CI=true `
+            /verbosity:minimal `
+            /nologo
             
           if ($LASTEXITCODE -eq 0) {
-            Write-Host "🎉 SUCCESS! Framework-dependent build worked!"
+            Write-Host "🎉 SUCCESS! Simple MSBuild approach worked!"
             
             $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
             if (Test-Path $mainExe) {
               $exeSize = (Get-Item $mainExe).Length / 1MB
-              Write-Host "✅ EXE created: $([math]::Round($exeSize, 2)) MB"
+              Write-Host "✅ Framework-dependent EXE: $([math]::Round($exeSize, 2)) MB"
               
-              # Dosya sayısını kontrol et
-              $fileCount = (Get-ChildItem $publishPath -Recurse -File).Count
-              Write-Host "📁 Total files in publish folder: $fileCount"
+              # Basit dosya listesi
+              $fileCount = (Get-ChildItem $publishPath -File).Count
+              Write-Host "📁 Files in publish: $fileCount"
               
-              # Kritik DLL'leri kontrol et
-              $windowsDlls = @(
-                "Microsoft.Windows.System.Power.dll",
-                "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
-              )
-              
-              foreach ($dll in $windowsDlls) {
+              # Windows Runtime DLL kontrolü
+              $winDlls = @("Microsoft.Windows.System.Power.dll", "Microsoft.Windows.ApplicationModel.DynamicDependency.dll")
+              $foundDlls = 0
+              foreach ($dll in $winDlls) {
                 if (Test-Path (Join-Path $publishPath $dll)) {
-                  Write-Host "✅ $dll - Found"
+                  Write-Host "✅ $dll"
+                  $foundDlls++
                 } else {
-                  Write-Host "⚠️ $dll - Missing (expected for framework-dependent)"
+                  Write-Host "❌ $dll (missing)"
                 }
               }
               
-              Write-Host "👉 NEXT STEP: Test self-contained build to include missing DLLs"
+              if ($foundDlls -eq 0) {
+                Write-Host "⚡ Framework-dependent build successful! Missing DLLs expected."
+                Write-Host "📋 NEXT: Try self-contained build to include Windows Runtime DLLs"
+              }
+              
+            } else {
+              Write-Host "❌ EXE not found after successful build - path issue"
             }
           } else {
-            Write-Host "❌ Framework-dependent build still failed"
-            Write-Host "Let's check what projects are still causing issues..."
+            Write-Host "❌ MSBuild failed with exit code: $LASTEXITCODE"
+            Write-Host "Let's try even simpler dotnet publish..."
             
-            # Manuel olarak her projeyi tek tek dene
-            dotnet build "${{ env.SOLUTION_PATH }}" --verbosity detailed > build-log.txt 2>&1
-            
-            Write-Host "Build log (last 50 lines):"
-            Get-Content build-log.txt | Select-Object -Last 50 | ForEach-Object { Write-Host $_ }
-            
-            exit 1
+            # Fallback: dotnet publish
+            dotnet publish "${{ env.PROJECT_PATH }}" `
+              -c Release `
+              -r win-x64 `
+              --self-contained false `
+              -o $publishPath `
+              -p:SkipPriGeneration=true `
+              -p:EnableMsixTooling=false `
+              -p:WindowsPackageType=None `
+              --verbosity normal
+              
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ Dotnet publish worked as fallback!"
+            } else {
+              Write-Host "❌ Both MSBuild and dotnet publish failed"
+              exit 1
+            }
           }
 
 
