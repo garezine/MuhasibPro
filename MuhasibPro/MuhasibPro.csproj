@@ -1,0 +1,137 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<OutputType>WinExe</OutputType>
+	<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+	<RootNamespace>MuhasibPro</RootNamespace>
+	<ApplicationManifest>app.manifest</ApplicationManifest>
+	<Platforms>x64</Platforms>
+	<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <SelfContained>true</SelfContained>
+   
+	<UseWinUI>true</UseWinUI>
+	<EnableMsixTooling>false</EnableMsixTooling>
+	<Nullable>annotations</Nullable>
+	<TrimMode>partial</TrimMode>
+	<ImplicitUsings>true</ImplicitUsings>
+	<LangVersion>Latest</LangVersion>
+  <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
+	<IsAotCompatible>False</IsAotCompatible>
+	<WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSdkIncludeProjectReferences>false</WindowsAppSdkIncludeProjectReferences>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <WindowsAppSDKDeploymentManager>true</WindowsAppSDKDeploymentManager>
+	<ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <!-- PRI ve Paketleme Ayarları -->
+    <SkipPriGeneration>true</SkipPriGeneration>
+    <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+    <AppxBundle>Never</AppxBundle>   
+	<Version>1.0.0</Version>
+    
+	<!--Remove git hash from assembly informational version in .NET >= 8, Example: false = 1.0.0, true = 1.0.0+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-->
+	<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SatelliteResourceLanguages>tr;en-US</SatelliteResourceLanguages>
+    <SupportedCultures>tr;en-US</SupportedCultures>
+  </PropertyGroup>
+  
+  
+ 
+	<!-- Publish Properties -->
+  <PropertyGroup>
+
+    <PublishAot>false</PublishAot>
+
+    <!-- Debug: Fast build, no optimizations -->
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+
+    <!-- Release + CI: Safer settings for compatibility -->
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' AND '$(CI)' == 'true'">False</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Debug' AND '$(CI)' == 'true'">False</PublishTrimmed>
+
+    <!-- Release + Local: Full optimizations -->
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' AND '$(CI)' != 'true'">True</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Debug' AND '$(CI)' != 'true'">True</PublishTrimmed>
+
+    <NeutralLanguage>tr-TR</NeutralLanguage>
+  
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="Assets\**\*">
+	  <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+   
+	</None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="appsettings.json" />
+    <None Remove="Assets\AppLogo.png" />
+    <None Remove="Assets\icon.ico" />
+    <None Remove="Assets\icon.png" />
+    <None Remove="Assets\Images\AppLogo.scale-150.png" />
+    <None Remove="Assets\Images\LoginBackground.jpg" />
+    <None Remove="Assets\LockScreenLogo.scale-200.png" />
+    <None Remove="Assets\SplashScreen.scale-200.png" />
+    <None Remove="Assets\Square150x150Logo.scale-200.png" />
+    <None Remove="Assets\Square44x44Logo.scale-200.png" />
+    <None Remove="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <None Remove="Assets\StoreLogo.png" />
+    <None Remove="Assets\Wide310x150Logo.scale-200.png" />
+    <None Remove="Assets\WindowIcon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    
+     
+    
+  </ItemGroup>
+  
+  <ItemGroup>
+	<Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!-- 
+	Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+	Tools extension to be activated for this project even if the Windows App SDK Nuget
+	package has not yet been restored.
+  -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+  <ProjectCapability Include="Msix" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
+   
+    <PackageReference Include="nucs.JsonSettings" Version="2.0.2" />
+    <PackageReference Include="nucs.JsonSettings.Autosave" Version="2.0.2" />
+    <PackageReference Include="WinUIEx" Version="2.7.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj" />
+  </ItemGroup>
+
+  <!-- 
+	Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
+	Explorer "Package and Publish" context menu entry to be enabled for this project even if 
+	the Windows App SDK Nuget package has not yet been restored.
+  -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+	<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <Target Name="RemoveFoldersWithMuiFiles" AfterTargets="Build">
+    <ItemGroup>
+      <RemovingFiles Include="$(OutDir)*\*.mui" Exclude="$(OutDir)en-us\*.mui;$(OutDir)tr-TR\*.mui" />
+      <RemovingFolders Include="@(RemovingFiles->'%(RootDir)%(Directory)')" />
+    </ItemGroup>
+    <Message Text="Removing unwanted MUI files and folders..." Importance="normal" />
+    <RemoveDir Directories="@(RemovingFolders)" ContinueOnError="true" />
+  </Target>
+</Project>
