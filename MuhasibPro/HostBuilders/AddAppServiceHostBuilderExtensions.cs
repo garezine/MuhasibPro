@@ -37,7 +37,7 @@ public static class AddAppServiceHostBuilderExtensions
             services.AddSingleton<IUpdateService, UpdateService>();
 
 
-            services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));
+           // services.Configure<LocalSettingsOptions>(context.Configuration.GetSection(nameof(LocalSettingsOptions)));
 
             services.AddScoped<IFirmaService, FirmaService>();
 
