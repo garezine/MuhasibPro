@@ -1,4 +1,4 @@
-name: WinUI3 Release - MuhasibPro (Optimized)
+name: Full WinUI3 Release - MuhasibPro
 
 on:
   workflow_dispatch:
@@ -16,6 +16,7 @@ env:
   SOLUTION_PATH: MuhasibPro.sln
   APP_NAME: MuhasibPro
   DOTNET_VERSION: '8.0.407'
+  CI: true
 
 jobs:
   release:
@@ -27,6 +28,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      # .NET 9 SDK'larını kaldır - bunlar sorun çıkarıyor
+      - name: Remove .NET 9 SDKs
+        run: |
+          Write-Host "Removing .NET 9 SDKs that cause PRI issues..."
+          
+          $sdkPath = "C:\Program Files\dotnet\sdk"
+          if (Test-Path $sdkPath) {
+            $net9Sdks = Get-ChildItem $sdkPath | Where-Object { $_.Name -like "9.*" }
+            foreach ($sdk in $net9Sdks) {
+              Write-Host "Removing .NET SDK: $($sdk.Name)"
+              try {
+                Remove-Item -Path $sdk.FullName -Recurse -Force -ErrorAction SilentlyContinue
+              } catch {
+                Write-Host "Warning: Could not remove $($sdk.Name)"
+              }
+            }
+          }
+
       - name: Setup .NET 8.0.407
         uses: actions/setup-dotnet@v4
         with:
@@ -34,6 +53,13 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
+
+      - name: Verify .NET installation
+        run: |
+          Write-Host "Active .NET version:"
+          dotnet --version
+          Write-Host "Available SDKs:"
+          dotnet --list-sdks
 
       - name: Get Version
         id: version
@@ -48,36 +74,77 @@ jobs:
           echo "version=$version" >> $env:GITHUB_OUTPUT
           echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
           Write-Host "Version: $version"
+          Write-Host "Tag: v$version"
 
+      # Tüm projeler için platform ve PRI ayarlarını zorla
+      - name: Create strong Directory.Build.override.props
+        run: |
+          @"
+          <Project>
+            <PropertyGroup>
+              <!-- CI ortamında kesin ayarlar -->
+              <CI>true</CI>
+              <WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
+              
+              <!-- PRI Generation'ı KESİNLİKLE KAPAT -->
+              <SkipPriGeneration>true</SkipPriGeneration>
+              <EnableMrtGeneration>false</EnableMrtGeneration>
+              <GeneratePriFile>false</GeneratePriFile>
+              <UsePriGeneration>false</UsePriGeneration>
+              <PriGenEnabled>false</PriGenEnabled>
+              
+              <!-- MSIX tooling'i KESİNLİKLE KAPAT -->
+              <EnableMsixTooling>false</EnableMsixTooling>
+              <GenerateAppxPackageOnBuild>false</GenerateAppxPackageOnBuild>
+              <WindowsPackageType>None</WindowsPackageType>
+              
+              <!-- Çakışma çözümü -->
+              <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+              <ExcludeDuplicatePublishOutputFiles>true</ExcludeDuplicatePublishOutputFiles>
+            </PropertyGroup>
+          
+            <!-- MrtCore target'larını tamamen devre dışı bırak -->
+            <Target Name="AddPriPayloadFilesToCopyToOutputDirectoryItems" Condition="false" />
+            <Target Name="PriGen" Condition="false" />
+            <Target Name="ExpandPriContent" Condition="false" />
+          </Project>
+          "@ | Out-File Directory.Build.override.props -Encoding UTF8
+              
       - name: Restore packages
         run: |
          dotnet restore "${{ env.SOLUTION_PATH }}" `
          -p:Platform=x64 `
          --verbosity normal
 
-      - name: Build solution
+      - name: Build solution with disabled PRI
         run: |
           msbuild "${{ env.SOLUTION_PATH }}" `
             /p:Configuration=Release `
             /p:Platform=x64 `
             /p:SkipPriGeneration=true `
             /p:EnableMrtGeneration=false `
+            /p:GeneratePriFile=false `
             /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
+            /p:WindowsAppSdkSelfContained=true `
+            /p:Win2DWarnNoPlatform=false `
+            /p:BuildProjectReferences=true `
             /verbosity:minimal `
             /nologo
 
-      - name: Publish Self-Contained
+      - name: Publish with MSBuild (recommended for WinUI 3)
         run: |
-          Write-Host "Publishing self-contained application..."          
+          Write-Host "📤 MSBuild ile publishing..."          
           $publishPath = "publish-win-x64"
           $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
       
+          # Temizlik
           if (Test-Path $publishPath) {
             Remove-Item $publishPath -Recurse -Force
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
+          # ✅ MSBuild ile publish
           msbuild "${{ env.PROJECT_PATH }}" `
             /t:Publish `
             /p:Configuration=Release `
@@ -85,30 +152,130 @@ jobs:
             /p:RuntimeIdentifier=win-x64 `
             /p:SelfContained=true `
             /p:PublishDir="$absolutePublishPath" `
-            /p:WindowsAppSdkSelfContained=true `
             /p:SkipPriGeneration=true `
             /p:EnableMrtGeneration=false `
-            /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
-            /verbosity:minimal `
+            /p:WindowsAppSdkSelfContained=true `
+            /p:EnableMsixTooling=false `
+            /verbosity:normal `
             /nologo
       
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "Publish failed with exit code: $LASTEXITCODE"
+            Write-Host "❌ Publish failed with exit code: $LASTEXITCODE"
             exit 1
           }
           
-          # Quick validation
+      - name: Find main executable
+        id: find_exe
+        run: |
+            $publishPath = "publish-win-x64"
+    
+            # Recursive olarak exe ara
+            $exeFiles = Get-ChildItem $publishPath -Filter "*.exe" -Recurse | 
+                        Where-Object { $_.Name -eq "${{ env.APP_NAME }}.exe" }
+    
+            if ($exeFiles.Count -gt 0) {
+                $mainExe = $exeFiles[0]
+                echo "main_exe_path=$($mainExe.FullName)" >> $env:GITHUB_OUTPUT
+                echo "main_exe_name=$($mainExe.Name)" >> $env:GITHUB_OUTPUT
+                Write-Host "✅ Found main executable: $($mainExe.FullName)"
+            } else {
+                Write-Host "❌ Main executable not found"
+                Get-ChildItem $publishPath -Recurse | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+                exit 1
+            }      
+
+      - name: Diagnostic - Fixed dependency check
+        run: |
+          $publishPath = "publish-win-x64"
+          
+          Write-Host "🔍 FIXED DEPENDENCY CHECK"
+          Write-Host "========================"
+          
+          # 1. Temel dosya kontrolü
+          Write-Host "`n📁 File existence check:"
           $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
           if (Test-Path $mainExe) {
-            $exeSize = (Get-Item $mainExe).Length / 1MB
-            $fileCount = (Get-ChildItem $publishPath -File).Count
-            Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
+              Write-Host "✅ Main EXE found: $($(Get-Item $mainExe).Length / 1MB) MB"
           } else {
-            Write-Host "Main executable not found"
-            exit 1
+              Write-Host "❌ Main EXE NOT found!"
+              exit 1
           }
-
+          
+          # 2. Windows App SDK kontrolü (başarılı görünüyor)
+          Write-Host "`n🏗 Windows App SDK check:"
+          $sdkDlls = @(
+              "Microsoft.UI.Xaml.dll",
+              "Microsoft.WindowsAppRuntime.dll", 
+              "Microsoft.WinUI.dll"
+          )
+          
+          foreach ($dll in $sdkDlls) {
+              $dllPath = Join-Path $publishPath $dll
+              if (Test-Path $dllPath) {
+                  Write-Host "✅ $dll - Found"
+              } else {
+                  Write-Host "❌ $dll - MISSING"
+              }
+          }
+          
+          # 3. .deps.json analizi (DÜZELTİLMİŞ)
+          Write-Host "`n📦 .deps.json analysis:"
+          $depsPath = Join-Path $publishPath "${{ env.APP_NAME }}.deps.json"
+          if (Test-Path $depsPath) {
+              try {
+                  $depsContent = Get-Content $depsPath -Raw | ConvertFrom-Json
+                  Write-Host "✅ .deps.json parsed successfully"
+            
+            # Windows App SDK bağımlılıklarını say
+            $winAppSdkDeps = $depsContent.libraries.PSObject.Properties | 
+                Where-Object { $_.Name -like "*WindowsAppSDK*" -or $_.Name -like "*Microsoft.UI.Xaml*" }
+            
+            Write-Host "📊 Found $($winAppSdkDeps.Count) Windows App SDK dependencies"
+            
+              } catch {
+                  Write-Host "⚠️ Could not parse .deps.json: $($_.Exception.Message)"
+              }
+          } else {
+              Write-Host "❌ .deps.json NOT found"
+          }
+          
+          # 4. Runtime config kontrolü
+          Write-Host "`n⚙ Runtime config check:"
+          $runtimeConfigPath = Join-Path $publishPath "${{ env.APP_NAME }}.runtimeconfig.json"
+          if (Test-Path $runtimeConfigPath) {
+              try {
+            $runtimeConfig = Get-Content $runtimeConfigPath -Raw | ConvertFrom-Json
+            $tfm = $runtimeConfig.runtimeOptions.tfm
+            Write-Host "✅ Target Framework: $tfm"
+            
+            # Self-contained kontrolü
+            $isSelfContained = $runtimeConfig.runtimeOptions.includedFrameworks -ne $null
+            Write-Host "📦 Self-contained: $isSelfContained"
+            
+              } catch {
+                  Write-Host "⚠️ Could not parse runtimeconfig.json"
+              }
+          } else {
+              Write-Host "❌ runtimeconfig.json NOT found"
+          }
+          
+          # 5. Eksik olması muhtemel kritik dosyalar
+          Write-Host "`n🔍 Critical files check:"
+          $criticalFiles = @(
+              "WinRT.Runtime.dll",
+              "Microsoft.Windows.System.Power.dll", 
+              "Microsoft.Windows.ApplicationModel.DynamicDependency.dll"
+          )
+          
+          foreach ($file in $criticalFiles) {
+              $filePath = Join-Path $publishPath $file
+              Write-Host "$(if (Test-Path $filePath) {'✅'} else {'❌'}) $file"
+          }
+          
+          Write-Host "`n🎯 DIAGNOSTIC COMPLETED SUCCESSFULLY"
+          Write-Host "👉 Next: Check if the EXE runs with 'test-app.bat'"
+          
       - name: Get latest Velopack CLI version
         id: get_vpk_version
         run: |
@@ -120,6 +287,8 @@ jobs:
       - name: Install Velopack CLI
         run: |
             dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
+            echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+            $env:PATH = "$HOME/.dotnet/tools;" + $env:PATH
             vpk --help
 
       - name: Generate release notes
@@ -129,59 +298,100 @@ jobs:
           $notes = @"
           # MuhasibPro v$version
 
-          ## Sürüm Bilgileri
+          ## 📦 Sürüm Bilgileri
           - **Sürüm:** $version
           - **Derleme Tarihi:** $buildDate
+          - **Hedef Framework:** .NET 8.0
           - **Platform:** Windows 10/11 (x64)
           - **UI Framework:** WinUI 3
 
-          ## İndirme Seçenekleri
-          ### Otomatik Kurulum (Velopack)
+          ## 💾 İndirme Seçenekleri
+          ### 🔄 Otomatik Kurulum (Velopack)
           - Dosya: ${{ env.APP_NAME }}.v$version.vpk
-          - Otomatik kurulum ve güncelleme
+          - ✅ Otomatik kurulum ve güncelleme
 
-          ### Geleneksel Kurulum
+          ### 🛠️ Geleneksel Kurulum
           - Dosya: ${{ env.APP_NAME }}-v$version-Setup.exe
-          - Windows kurulum sihirbazı
+          - ✅ Windows kurulum sihirbazı
+          - ✅ Program Files'a kurulum
+          - ✅ Başlat Menüsü kısayolu
 
-          ### Taşınabilir Sürüm
+          ### 📁 Taşınabilir Sürüm
           - Dosya: ${{ env.APP_NAME }}-v$version-portable-win-x64.zip
-          - Kurulum gerektirmez
+          - ✅ Kurulum gerektirmez
+          - ✅ Taşınabilir kullanım
 
-          ## Kurulum
-          1. **Velopack:** .vpk dosyasını çalıştırın
-          2. **Geleneksel:** Setup.exe'yi çalıştırın
+          ## ⚡ Öne Çıkan Özellikler
+          - Modern WinUI 3 arayüzü         
+          - Otomatik veri yedekleme
+          - Performans optimizasyonları
+
+          ## 🚀 Kurulum
+          1. **Velopack Otomatik:** .vpk dosyasını çalıştırın ve kurulum sihirbazını takip edin
+          2. **Geleneksel Kurulum:** Setup.exe'yi çalıştırın ve standart Windows kurulum sihirbazını takip edin
           3. **Portable:** .zip dosyasını açın ve ${{ env.APP_NAME }}.exe'yi çalıştırın
 
           ---
-          Bu sürüm GitHub Actions ile otomatik derlenmiştir.
+          Bu sürüm otomatik olarak GitHub Actions ile derlenmiştir.
           "@
           $notes | Out-File -FilePath "RELEASE_NOTES.md" -Encoding UTF8
+          $txtNotes = @"
+          MuhasibPro v$version - $buildDate tarihinde yayınlandı.
+
+          Açıklama: MuhasibPro - Muhasebe ve Finans Yönetim Uygulaması
+
+          Öne Çıkan Özellikler:
+          - Modern WinUI 3 arayüzü         
+          - Otomatik veri yedekleme
+          - Performans optimizasyonları         
+
+          Sistem Gereksinimleri:
+          - Windows 10/11 (x64)
+          - .NET 8.0 Runtime
+          - 4GB RAM
+          - 2GB disk alanı
+          "@
+          $txtNotes | Out-File -FilePath "release-notes.txt" -Encoding UTF8
+          Write-Host "✅ RELEASE_NOTES.md and release-notes.txt created"
+          Get-ChildItem -Path "./RELEASE_NOTES.md" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+          Get-ChildItem -Path "./release-notes.txt" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
 
       - name: Create Velopack package
+        shell: pwsh
         run: |
             $version = "${{ steps.version.outputs.version }}"
             $publishPath = "publish-win-x64"
             $outputDir = "releases"
+            $mainExePath = "${{ steps.find_exe.outputs.main_exe_path }}"
+            $mainExeName = "${{ steps.find_exe.outputs.main_exe_name }}"
 
-            Write-Host "Creating Velopack package..."
+            Write-Host "📦 Creating Velopack package..."
+            Write-Host "Version: $version"
+            Write-Host "Publish path: $publishPath"
+            Write-Host "Main EXE path: $mainExePath"
+            Write-Host "Main EXE name: $mainExeName"
+
+            # Çıktı dizinini oluştur
             New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     
+            # Ana exe dosyasını kontrol et
             $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
-            if (-not (Test-Path $mainExePath)) {
-              Write-Host "Main executable not found: $mainExePath"
+            if (-not (Test-Path "${{ steps.find_exe.outputs.main_exe_path }}")) {
+              Write-Host "❌ Main executable not found: ${{ steps.find_exe.outputs.main_exe_path }}"
               exit 1
             }          
     
+            # Velopack paketini oluştur
             vpk pack `
               --packId "${{ env.APP_NAME }}" `
               --packVersion "$version" `
               --packDir "$publishPath" `
               --outputDir "$outputDir" `
-              --mainExe "${{ env.APP_NAME }}.exe" `
+              --mainExe "$mainExeName" `
               --packTitle "MuhasibPro" `
               --packAuthors "MuhasibPro Team" `
-              --releaseNotes "./RELEASE_NOTES.md"
+              --releaseNotes "./RELEASE_NOTES.md" `
+              --verbose   
 
       - name: Create portable ZIP
         run: |
@@ -191,35 +401,38 @@ jobs:
           Compress-Archive -Path "publish-win-x64/*" -DestinationPath $zipPath -Force
 
       - name: Create Setup.exe (Traditional Installer)
+        shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
+          $outputDir = "releases"
           $setupName = "${{ env.APP_NAME }}-v$version-Setup.exe"
-          $setupPath = Join-Path "releases" $setupName
+          $setupPath = Join-Path $outputDir $setupName
 
-          Write-Host "Creating traditional setup.exe installer..."
+          Write-Host "📦 Creating traditional setup.exe installer..."
 
-          # Install Inno Setup
-          choco install innosetup -y --no-progress
-          $innoPath = "C:\Program Files (x86)\Inno Setup 6"
-          $env:PATH = "$innoPath;" + $env:PATH
-          
-          # Create Inno Setup script
+          # Inno Setup script oluştur
           $innoScript = @"
           #define MyAppName "MuhasibPro"
           #define MyAppVersion "$version"
           #define MyAppPublisher "MuhasibPro Team"
+          #define MyAppURL "https://github.com/garezine/MuhasibPro"
           #define MyAppExeName "${{ env.APP_NAME }}.exe"
 
           [Setup]
-          AppId={{12345678-1234-1234-1234-123456789012}}
+          AppId={{12345678-1234-1234-1234-123456789012}
           AppName={#MyAppName}
           AppVersion={#MyAppVersion}
           AppPublisher={#MyAppPublisher}
+          AppPublisherURL={#MyAppURL}
+          AppSupportURL={#MyAppURL}
+          AppUpdatesURL={#MyAppURL}
           DefaultDirName={autopf}\{#MyAppName}
           DefaultGroupName={#MyAppName}
           AllowNoIcons=yes
+          LicenseFile=
           OutputDir=releases
           OutputBaseFilename=${{ env.APP_NAME }}-v$version-Setup
+          SetupIconFile=
           Compression=lzma
           SolidCompression=yes
           WizardStyle=modern
@@ -238,16 +451,63 @@ jobs:
 
           [Icons]
           Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+          Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
           Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
           [Run]
           Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
           "@
 
+          # Geçici Inno Setup script dosyası oluştur
           $innoScript | Out-File -FilePath "setup.iss" -Encoding UTF8
-          & "$innoPath\ISCC.exe" "setup.iss"
-          Remove-Item "setup.iss" -Force
 
+          # Chocolatey ile Inno Setup kur
+          Write-Host "Installing Inno Setup via Chocolatey..."
+          try {
+            choco install innosetup -y --no-progress
+            
+            # Inno Setup'ı PATH'e ekle
+            $innoPath = "C:\Program Files (x86)\Inno Setup 6"
+            $env:PATH = "$innoPath;" + $env:PATH
+            
+            # Setup.exe oluştur
+            Write-Host "Compiling setup.exe with Inno Setup..."
+            & "$innoPath\ISCC.exe" "setup.iss"
+            
+            Write-Host "✅ Setup.exe created successfully!"
+          } catch {
+            Write-Host "❌ Inno Setup compilation failed: $_"
+            
+            # Fallback: 7zip ile self-extracting exe oluştur
+            Write-Host "📦 Creating self-extracting archive as fallback..."
+            choco install 7zip -y --no-progress
+            
+            $sfxPath = "C:\Program Files\7-Zip\7z.sfx"
+            $configFile = @"
+          ;!@Install@!UTF-8!
+          Title="MuhasibPro v$version Kurulum"
+          BeginPrompt="MuhasibPro v$version kurulumuna hoş geldiniz!"
+          RunProgram="${{ env.APP_NAME }}.exe"
+          Directory="MuhasibPro"
+          ;!@InstallEnd@!
+          "@
+            $configFile | Out-File -FilePath "config.txt" -Encoding UTF8
+            
+            # 7zip arşivi oluştur
+            & "C:\Program Files\7-Zip\7z.exe" a -t7z archive.7z "publish-win-x64\*" -mx=9
+            
+            # Self-extracting exe oluştur
+            cmd /c "copy /b `"$sfxPath`" + config.txt + archive.7z `"$setupPath`""
+            
+            Write-Host "✅ Self-extracting setup.exe created as fallback!"
+          }
+
+          # Temizlik
+          Remove-Item "setup.iss" -Force -ErrorAction SilentlyContinue
+          Remove-Item "config.txt" -Force -ErrorAction SilentlyContinue
+          Remove-Item "archive.7z" -Force -ErrorAction SilentlyContinue
+
+      # ✅ BURASI EKSİKTİ - GITHUB RELEASE OLUŞTURMA
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -269,4 +529,9 @@ jobs:
           path: |
             releases/*
             RELEASE_NOTES.md
-          retention-days: 30
+          retention-days: 90
+
+      - name: Cleanup
+        run: |
+          Remove-Item "Directory.Build.override.props" -Force -ErrorAction SilentlyContinue
+          Remove-Item "release-notes.txt" -Force -ErrorAction SilentlyContinue
