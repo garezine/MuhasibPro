@@ -19,7 +19,7 @@ public class UpdateService : IUpdateService
 
     public UpdateService()
     {
-        EnsureManager(_lastPrereleaseFlag);
+        EnsureManager(true);
     }
     private void EnsureManager(bool includePrereleases)
     {

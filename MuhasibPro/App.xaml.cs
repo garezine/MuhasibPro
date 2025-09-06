@@ -24,12 +24,13 @@ public partial class App : Application
         CultureInfo.DefaultThreadCurrentUICulture = culture;
         _host = CreateHostBuilder().Build();
         Ioc.Default.ConfigureServices(_host.Services);
-        VelopackApp.Build().SetAutoApplyOnStartup(true)
-            .OnFirstRun(v =>
-            { })
-            .OnRestarted(v =>
-            { })
-            .Run();
+        VelopackApp.Build().Run();
+        //VelopackApp.Build().SetAutoApplyOnStartup(true)
+        //    .OnFirstRun(v =>
+        //    { })
+        //    .OnRestarted(v =>
+        //    { })
+        //    .Run();
     }
 
     public static IHostBuilder CreateHostBuilder(string[] args = null)
