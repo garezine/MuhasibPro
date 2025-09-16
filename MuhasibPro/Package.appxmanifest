@@ -9,14 +9,14 @@
 
   <Identity
     Name="83df5518-e0b0-460f-bdd7-bb082d954b54"
-    Publisher="CN=OMER"
+    Publisher="CN=MuhasibProSoft"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="83df5518-e0b0-460f-bdd7-bb082d954b54" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>MuhasibPro</DisplayName>
-    <PublisherDisplayName>OMER</PublisherDisplayName>
+    <PublisherDisplayName>MuhasibProSoft</PublisherDisplayName>
     <Logo>Assets\Store\StoreLogo.png</Logo>
   </Properties>
 

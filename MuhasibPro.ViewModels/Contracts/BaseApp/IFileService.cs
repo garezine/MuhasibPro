@@ -1,4 +1,4 @@
-﻿namespace MuhasibPro.ViewModels.Contracts.Common;
+﻿namespace MuhasibPro.ViewModels.Contracts.BaseApp;
 
 public interface IFileService
 {

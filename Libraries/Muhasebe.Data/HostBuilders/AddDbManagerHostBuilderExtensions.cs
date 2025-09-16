@@ -2,7 +2,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Muhasebe.Data.Database.SistemDatabase;
 using Muhasebe.Data.DataContext;
+using Muhasebe.Data.DataContext.DesignTimeFactory;
+using Muhasebe.Data.Helper;
 
 namespace Muhasebe.Data.HostBuilders
 {
@@ -17,14 +20,19 @@ namespace Muhasebe.Data.HostBuilders
                     services.AddDbContext<AppSistemDbContext>(
                         option =>
                         {
-                            var sistemConnectionString = context.Configuration.GetConnectionString("SistemConnection");
-                            option.UseSqlite(sistemConnectionString); // Sistem DB'si her zaman SQLite
+                            var dbPath = ConfigurationHelper.Instance.GetDatabasePath();
+                            var fullDbPath = Path.Combine(dbPath, "Sistem.db");
+                            var connectionString = $"Data Source={fullDbPath};Mode=ReadWriteCreate;";
 
+                            option.UseSqlite(connectionString);
 #if DEBUG
-                            option.EnableSensitiveDataLogging(); // Sadece DEBUG modunda aktif olsun
+                            option.EnableSensitiveDataLogging();
+                            option.LogTo(message => System.Diagnostics.Debug.WriteLine(message));
 #endif
                         });
 
+                    services.AddScoped<ISistemDatabaseManager, SistemDatabaseManager>();
+                    
 
                     //    services.AddScoped<AppDbContext>(provider =>
                     //    {

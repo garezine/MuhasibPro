@@ -15,7 +15,7 @@ namespace Muhasebe.Data.HostBuilders
 {
     public static class AddRepositoryHostBuilderExtensions
     {
-        public static IHostBuilder AddRepository(this IHostBuilder host)
+        public static IHostBuilder AddRepositories(this IHostBuilder host)
         {
             host.ConfigureServices(services =>
             {

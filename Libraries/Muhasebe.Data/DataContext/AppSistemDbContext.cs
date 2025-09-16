@@ -32,15 +32,27 @@ namespace Muhasebe.Data.DataContext
             };
             var adminRol = new KullaniciRol
             {
-                Id = 1,
+                Id = 1,              
                 RolAdi = "Yönetici",
-                Aciklama = "Sistemin tüm özelliklerine erişim yetkisi."
+                Aciklama = "Sistemin tüm özelliklerine erişim yetkisi.",
+                KayitTarihi = yonetici.KayitTarihi,
+                KaydedenId = yonetici.KaydedenId,
             };
-            modelBuilder.Entity<Kullanici>().HasData(yonetici);
             modelBuilder.Entity<KullaniciRol>().HasData(adminRol);
+            modelBuilder.Entity<Kullanici>().HasData(yonetici);
         }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder) { SeedUser(modelBuilder); }
+        protected override void OnModelCreating(ModelBuilder modelBuilder) 
+        {
+            SeedUser(modelBuilder);
+            modelBuilder.Entity<Kullanici>(kullanici =>
+            {
+                kullanici.HasMany(k=> k.Hesaplar)
+                .WithOne(h=> h.Kullanici)
+                .HasForeignKey(h=> h.KullaniciId)
+                .OnDelete(DeleteBehavior.NoAction);
+            });
+        }
 
 
         public DbSet<SistemLog> SistemLogs { get; set; }
