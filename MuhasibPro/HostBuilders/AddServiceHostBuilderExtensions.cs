@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Business.Services.Concrete.Common;
-using Muhasebe.Data.Database.SistemDatabase;
 using MuhasibPro.Services.Common;
 using MuhasibPro.ViewModels.Contracts.Common;
 
@@ -14,7 +13,7 @@ namespace MuhasibPro.HostBuilders
         {
             host.ConfigureServices(services =>
             {
-                services.AddScoped<StartupSistemDatabase>();
+                
                 //Uygulama içi service
                 services.AddScoped<IUpdateService, UpdateService>();
                 services.AddScoped<IAuthenticationService, AuthenticationService>();

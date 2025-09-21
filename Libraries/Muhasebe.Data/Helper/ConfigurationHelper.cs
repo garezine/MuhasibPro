@@ -24,7 +24,7 @@ namespace Muhasebe.Data.Helper
         public string GetProjectPath()
         {
             // Development ortamında (Debug/Release klasörü varsa)
-            if(IsDebugEnvironment())
+            if (IsDebugEnvironment())
             {
                 return GetDevelopmentProjectPath();
             }
@@ -73,11 +73,11 @@ namespace Muhasebe.Data.Helper
             var directoryInfo = new DirectoryInfo(currentDirectory);
 
             // bin klasöründen üst dizinlere doğru çık
-            while(directoryInfo != null)
+            while (directoryInfo != null)
             {
                 // .csproj dosyası var mı kontrol et
                 var projectFiles = directoryInfo.GetFiles("*.csproj");
-                if(projectFiles.Length > 0)
+                if (projectFiles.Length > 0)
                 {
                     return directoryInfo.FullName;
                 }
@@ -87,12 +87,12 @@ namespace Muhasebe.Data.Helper
             // Alternatif yöntem
             var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
             var assemblyDir = Path.GetDirectoryName(assemblyLocation);
-            if(assemblyDir != null)
+            if (assemblyDir != null)
             {
                 var dir = new DirectoryInfo(assemblyDir);
-                while(dir != null)
+                while (dir != null)
                 {
-                    if(dir.GetFiles("*.csproj").Length > 0)
+                    if (dir.GetFiles("*.csproj").Length > 0)
                     {
                         return dir.FullName;
                     }
@@ -112,7 +112,7 @@ namespace Muhasebe.Data.Helper
             var basePath = GetProjectPath();
             var dbPath = Path.Combine(basePath, "Databases");
 
-            if(!Directory.Exists(dbPath))
+            if (!Directory.Exists(dbPath))
             {
                 Directory.CreateDirectory(dbPath);
                 Console.WriteLine($"Database klasörü oluşturuldu: {dbPath}");

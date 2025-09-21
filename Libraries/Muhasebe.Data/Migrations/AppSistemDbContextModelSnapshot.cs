@@ -331,6 +331,11 @@ namespace Muhasebe.Data.Migrations
                         .HasMaxLength(75)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FirmaKodu")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("GuncellemeTarihi")
                         .HasColumnType("TEXT");
 

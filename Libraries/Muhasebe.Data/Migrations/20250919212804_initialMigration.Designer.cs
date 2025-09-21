@@ -11,8 +11,8 @@ using Muhasebe.Data.DataContext;
 namespace Muhasebe.Data.Migrations
 {
     [DbContext(typeof(AppSistemDbContext))]
-    [Migration("20250915205744_InitialCreated")]
-    partial class InitialCreated
+    [Migration("20250919212804_initialMigration")]
+    partial class initialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -332,6 +332,11 @@ namespace Muhasebe.Data.Migrations
 
                     b.Property<string>("Eposta")
                         .HasMaxLength(75)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FirmaKodu")
+                        .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("GuncellemeTarihi")

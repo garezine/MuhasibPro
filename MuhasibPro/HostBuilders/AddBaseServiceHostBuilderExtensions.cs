@@ -7,7 +7,6 @@ using MuhasibPro.Services.Common;
 using MuhasibPro.Tools;
 using MuhasibPro.ViewModels.Contracts.BaseApp;
 using MuhasibPro.ViewModels.Contracts.Common;
-using MuhasibPro.ViewModels.Contracts.Muhasebe;
 
 namespace MuhasibPro.HostBuilders
 {
@@ -31,14 +30,14 @@ namespace MuhasibPro.HostBuilders
                 services.AddScoped<ISistemLogService, SistemLogService>();
                 services.AddScoped<IAppLogService, AppLogService>();
                 services.AddScoped<ILogService, LogService>();
-                
+
                 //Application services
                 services.AddScoped<IActivationService, ActivationService>();
                 services.AddScoped<ILocalSettingsService, LocalSettingsService>();
                 services.AddScoped<IThemeSelectorService, ThemeSelectorService>();
                 services.AddScoped<IWebViewService, WebViewService>();
-                
-                
+
+
 
                 //services.AddScoped<ITenantManagementService, TenantManagementService>();
 

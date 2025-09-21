@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Muhasebe.Data.Abstracts.Common;
+﻿using Muhasebe.Data.Abstracts.Common;
 using Muhasebe.Data.Abstracts.Sistem.Authentication;
 using Muhasebe.Data.Concrete.Common;
 using Muhasebe.Data.DataContext;

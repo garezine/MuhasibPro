@@ -3,6 +3,7 @@
     public enum DatabaseType
     {
         SqlServer,
-        SQLite
+        SQLite,
+        Diger
     }
 }

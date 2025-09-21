@@ -32,7 +32,7 @@ namespace Muhasebe.Data.DataContext
             };
             var adminRol = new KullaniciRol
             {
-                Id = 1,              
+                Id = 1,
                 RolAdi = "Yönetici",
                 Aciklama = "Sistemin tüm özelliklerine erişim yetkisi.",
                 KayitTarihi = yonetici.KayitTarihi,
@@ -42,14 +42,14 @@ namespace Muhasebe.Data.DataContext
             modelBuilder.Entity<Kullanici>().HasData(yonetici);
         }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder) 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             SeedUser(modelBuilder);
             modelBuilder.Entity<Kullanici>(kullanici =>
             {
-                kullanici.HasMany(k=> k.Hesaplar)
-                .WithOne(h=> h.Kullanici)
-                .HasForeignKey(h=> h.KullaniciId)
+                kullanici.HasMany(k => k.Hesaplar)
+                .WithOne(h => h.Kullanici)
+                .HasForeignKey(h => h.KullaniciId)
                 .OnDelete(DeleteBehavior.NoAction);
             });
         }

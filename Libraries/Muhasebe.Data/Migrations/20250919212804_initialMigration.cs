@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Muhasebe.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreated : Migration
+    public partial class initialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -112,6 +112,7 @@ namespace Muhasebe.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "INTEGER", nullable: false),
+                    FirmaKodu = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     KisaUnvani = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     TamUnvani = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     YetkiliKisi = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),

@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using Muhasebe.Data.Database.SistemDatabase;
 using Muhasebe.Data.Helper;
 
 namespace MuhasibPro.Configurations

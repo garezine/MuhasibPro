@@ -7,6 +7,9 @@ namespace Muhasebe.Domain.Entities.SistemEntity;
 [Table("Firmalar")]
 public class Firma : BaseEntity
 {
+    [Required]
+    [MaxLength(100)]
+    public string FirmaKodu { get; set; }
 
     [Required]
     [MaxLength(100)]

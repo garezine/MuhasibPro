@@ -125,6 +125,6 @@ namespace Muhasebe.Data.Concrete.Common
             return await _unitOfWork.CommitAsync().ConfigureAwait(false);
         }
 
-   
+
     }
 }
