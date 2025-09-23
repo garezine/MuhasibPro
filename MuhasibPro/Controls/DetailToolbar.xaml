@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MuhasibPro.Controls.DetailToolbar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MuhasibPro.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+   mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="42">
+
+    <CommandBar x:Name="commandBar" Height="42" DefaultLabelPosition="Right" Style="{StaticResource ToolBarStyle}" Background="Transparent">
+        <AppBarButton x:Name="buttonBack" Icon="Back" Label="Geri" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="back" />
+        <AppBarButton x:Name="buttonEdit" Icon="Edit" Label="Düzenle" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="edit" />
+        <AppBarButton x:Name="buttonDelete" Icon="Delete" Label="Sil" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="delete" />
+        <AppBarButton x:Name="buttonCancel" Icon="Cancel" Label="İptal" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="cancel" />
+        <AppBarButton x:Name="buttonSave" Icon="Save" Label="Kaydet" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="save" />
+    </CommandBar>
+</UserControl>

@@ -41,9 +41,21 @@
   <ItemGroup>
     <None Remove="Assets\AppIcon.ico" />
     <None Remove="Assets\AppIcon.png" />
+    <None Remove="Assets\AppLogo.png" />
+    <None Remove="Assets\Images\AppLogo.png" />
+    <None Remove="Assets\Images\AppLogo.scale-150.png" />
+    <None Remove="Assets\Images\LoginBackground.jpg" />
+    <None Remove="Assets\Store\LockScreenLogo.scale-200.png" />
+    <None Remove="Assets\Store\SplashScreen.scale-200.png" />
+    <None Remove="Assets\Store\Square150x150Logo.scale-200.png" />
+    <None Remove="Assets\Store\Square44x44Logo.scale-200.png" />
+    <None Remove="Assets\Store\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <None Remove="Assets\Store\StoreLogo.png" />
+    <None Remove="Assets\Store\Wide310x150Logo.scale-200.png" />
     <None Remove="Views\Shell\ShellView.xaml" />
     <None Remove="Views\Splash\ExtendedSplash.xaml" />
     <None Remove="Views\ViewWindow\DetailsWindow.xaml" />
+    <None Remove="Views\ViewWindow\ListWindow.xaml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="appsettings.json">
@@ -77,6 +89,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Collections\MuhasebeCollection\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\ViewWindow\ListWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\ViewWindow\DetailsWindow.xaml">

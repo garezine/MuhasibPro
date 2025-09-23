@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MuhasibPro.Controls.DataGrid"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:MuhasibPro.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    d:DesignHeight="400"
+    d:DesignWidth="800">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="6" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--Toolbar-->
+        <local:ListToolbar
+            ButtonClick="OnToolbarClick"
+            NewLabel="{x:Bind NewLabel, Mode=OneWay}"
+            Query="{x:Bind Query, Mode=TwoWay}"
+            QuerySubmitted="OnQuerySubmitted"
+            ToolbarMode="{x:Bind ToolbarMode, Mode=OneWay}" />
+
+        <!--Grid Content-->
+        <Grid Grid.Row="2">
+            <local:AdaptiveGridView
+                x:Name="gridview"
+                DesiredWidth="240"
+                DoubleTapped="OnDoubleTapped"
+                IsItemClickEnabled="True"
+                ItemClick="OnItemClick"
+                ItemContainerStyle="{StaticResource GridItemStyle}"
+                ItemHeight="220"
+                ItemsSource="{x:Bind ItemsSource, Mode=OneWay}"
+                ItemTemplate="{x:Bind ItemTemplate}"
+                SelectedItem="{x:Bind SelectedItem, Mode=TwoWay}"
+                SelectionChanged="OnSelectionChanged"
+                SelectionMode="{x:Bind SelectionMode, Mode=OneWay}"
+                StretchContentForSingleRow="False"
+                Visibility="{x:Bind IsDataAvailable, Mode=OneWay}" />
+
+            <TextBlock
+                Margin="6"
+                Text="{x:Bind DataUnavailableMessage, Mode=OneWay}"
+                Visibility="{x:Bind IsDataUnavailable, Mode=OneWay}" />
+        </Grid>
+    </Grid>
+</UserControl>
