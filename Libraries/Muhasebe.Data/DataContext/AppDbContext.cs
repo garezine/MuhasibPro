@@ -109,7 +109,8 @@ public class AppDbContext : DbContext, IAppDataSource
 
     }
 
-    #region Uygulama Tabloları    
+    #region Uygulama Tabloları 
+    public DbSet<MuhasebeVersiyon> MuhasebeVersiyonlar { get; set; }
     public DbSet<AppLog> AppLogs { get; set; }
     public DbSet<Ajanda> Ajandalar { get; set; }
 

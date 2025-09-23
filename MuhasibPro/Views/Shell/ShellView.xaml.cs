@@ -13,6 +13,6 @@ namespace MuhasibPro.Views.Shell
             InitializeComponent();
         }
         public string AppTitleBarText { get; set; }
-        
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Muhasebe.Domain.Helpers;
 
 namespace Muhasebe.Data.Helper
 {
@@ -110,7 +111,7 @@ namespace Muhasebe.Data.Helper
         public string GetDatabasePath()
         {
             var basePath = GetProjectPath();
-            var dbPath = Path.Combine(basePath, "Databases");
+            var dbPath = Path.Combine(basePath, AppMessage.VeritabaniBilgileri.SistemDbKlasorAdi);
 
             if (!Directory.Exists(dbPath))
             {

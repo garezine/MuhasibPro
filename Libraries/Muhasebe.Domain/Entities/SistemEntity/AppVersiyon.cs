@@ -7,6 +7,10 @@ namespace Muhasebe.Domain.Entities.SistemEntity
     public class AppVersiyon
     {
         [Key]
-        public string Versiyon { get; set; }
+        public string UygulamaVersiyon { get; set; }
+        public DateTime UygulamaSonGuncellemeTarihi { get; set; }
+        public string? OncekiUygulamaVersiyon { get; set; }
     }
+
 }
+

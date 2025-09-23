@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using MuhasibPro.Extensions;
-using MuhasibPro.ViewModels.Contracts.BaseApp;
+using MuhasibPro.ViewModels.Contracts.BaseAppServices;
 using MuhasibPro.ViewModels.ViewModels.Shell;
 using MuhasibPro.Views.Shell;
 using MuhasibPro.Views.ViewWindow;

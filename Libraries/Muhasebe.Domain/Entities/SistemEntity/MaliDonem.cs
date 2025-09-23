@@ -11,7 +11,7 @@ public class MaliDonem : BaseEntity
     public long FirmaId { get; set; }
 
     [Required]
-    public int MaliDonemler { get; set; }
+    public int MaliDonemYil { get; set; }
 
     public DonemDBSec DonemDBSec { get; set; }
     public Firma Firma { get; set; }

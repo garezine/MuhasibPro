@@ -1,6 +1,5 @@
 ﻿using Microsoft.UI.Xaml.Data;
 using Muhasebe.Business.Services.Abstracts.Common;
-using Muhasebe.Domain.Enum;
 using MuhasibPro.Extensions;
 using System.Collections.Specialized;
 
@@ -128,7 +127,7 @@ abstract public partial class VirtualCollection<T> : IItemsRangeInfo, INotifyCol
                 }
             }
         }
-    }    
+    }
 
     virtual public void Dispose()
     {

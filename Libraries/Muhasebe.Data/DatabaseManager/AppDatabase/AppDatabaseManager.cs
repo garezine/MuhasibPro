@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using Muhasebe.Data.DatabaseManager.Models;
 using Muhasebe.Data.DataContext;
 using Muhasebe.Data.Helper;
+using Muhasebe.Domain.Entities.DegerlerEntity;
+using Muhasebe.Domain.Helpers;
 
 namespace Muhasebe.Data.DatabaseManager.AppDatabase
 {
@@ -19,32 +21,44 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             _serviceProvider = serviceProvider;
             _logger = logger;
             _backupBasePath = Path.Combine(
-                ConfigurationHelper.Instance.GetProjectPath(),
+                ConfigurationHelper.Instance.GetDatabasePath(),
                 "Backups", "Muhasebe");
 
             Directory.CreateDirectory(_backupBasePath);
         }
 
-        public async Task<bool> InitializeDatabaseAsync(string firmaKodu, string maliDonem)
+        public async Task<bool> InitializeDatabaseAsync(string firmaKodu, int maliDonemYil)
         {
             try
             {
-                using var context = CreateAppDbContext(firmaKodu, maliDonem);
+                using var context = CreateAppDbContext(firmaKodu, maliDonemYil);
 
-                _logger.LogInformation("Initializing accounting database: {FirmaKodu}_{MaliYil}", firmaKodu, maliDonem);
+                _logger.LogInformation("Initializing accounting database: {FirmaKodu}_{MaliYil}", firmaKodu, maliDonemYil);
 
                 var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
 
                 if (pendingMigrations.Any())
                 {
                     _logger.LogInformation("Found {Count} pending migrations for {FirmaKodu}_{MaliYil}",
-                        pendingMigrations.Count(), firmaKodu, maliDonem);
+                        pendingMigrations.Count(), firmaKodu, maliDonemYil);
 
                     // Migration öncesi backup
-                    await CreateSafetyBackupAsync(firmaKodu, maliDonem);
+                    await CreateSafetyBackupAsync(firmaKodu, maliDonemYil);
 
-                    // Migration'ları uygula
-                    await context.Database.MigrateAsync();
+                    try
+                    {
+                        // Migration'ları uygula
+                        await context.Database.MigrateAsync();
+
+                        // Migration başarılı - versiyon bilgisini güncelle
+                        var migrationVersion = GetLatestMigrationVersion(await context.Database.GetAppliedMigrationsAsync());
+                        await UpdateMuhasebeVersionAsync(firmaKodu, maliDonemYil, migrationVersion);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Migration failed for {FirmaKodu}_{MaliYil}", firmaKodu, maliDonemYil);
+                        throw;
+                    }
                 }
 
                 var canConnect = await context.Database.CanConnectAsync();
@@ -55,16 +69,16 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Accounting database initialization failed for {FirmaKodu}_{MaliYil}",
-                    firmaKodu, maliDonem);
+                    firmaKodu, maliDonemYil);
                 return false;
             }
         }
 
-        public async Task<bool> CreateNewDatabaseAsync(string firmaKodu, string maliDonem)
+        public async Task<bool> CreateNewDatabaseAsync(string firmaKodu, int maliDonemYil)
         {
             try
             {
-                var databaseName = $"Muhasebe_{firmaKodu}_{maliDonem}";
+                var databaseName = AppMessage.VeritabaniBilgileri.MuhasebeVeritabaniAdi(firmaKodu, maliDonemYil);
                 var masterConnectionString = GetMasterConnectionString();
 
                 _logger.LogInformation("Creating new accounting database: {DatabaseName}", databaseName);
@@ -82,28 +96,28 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
                 await command.ExecuteNonQueryAsync();
 
                 // Yeni oluşturulan database'i initialize et
-                return await InitializeDatabaseAsync(firmaKodu, maliDonem);
+                return await InitializeDatabaseAsync(firmaKodu, maliDonemYil);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create accounting database for {FirmaKodu}_{MaliYil}",
-                    firmaKodu, maliDonem);
+                    firmaKodu, maliDonemYil);
                 return false;
             }
         }
 
-        public async Task<bool> CreateManualBackupAsync(string firmaKodu, string maliDonem)
+        public async Task<bool> CreateManualBackupAsync(string firmaKodu, int maliDonemYil)
         {
             try
             {
-                var databaseName = $"Muhasebe_{firmaKodu}_{maliDonem}";
-                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonem}");
+                var databaseName = AppMessage.VeritabaniBilgileri.MuhasebeVeritabaniAdi(firmaKodu, maliDonemYil);
+                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonemYil}");
                 Directory.CreateDirectory(backupDir);
 
-                var backupFileName = $"manual_{firmaKodu}_{maliDonem}_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
+                var backupFileName = $"manual_{firmaKodu}_{maliDonemYil}_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
                 var backupPath = Path.Combine(backupDir, backupFileName);
 
-                using var context = CreateAppDbContext(firmaKodu, maliDonem);
+                using var context = CreateAppDbContext(firmaKodu, maliDonemYil);
 
                 var sql = $@"
                     BACKUP DATABASE [{databaseName}] 
@@ -118,22 +132,22 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Manual accounting backup failed for {FirmaKodu}_{MaliYil}",
-                    firmaKodu, maliDonem);
+                    firmaKodu, maliDonemYil);
                 return false;
             }
         }
 
-        public async Task<DatabaseHealthInfo> GetHealthInfoAsync(string firmaKodu, string maliDonem)
+        public async Task<DatabaseHealthInfo> GetHealthInfoAsync(string firmaKodu, int maliDonemYil)
         {
             try
             {
-                using var context = CreateAppDbContext(firmaKodu, maliDonem);
+                using var context = CreateAppDbContext(firmaKodu, maliDonemYil);
 
                 var canConnect = await context.Database.CanConnectAsync();
                 var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
                 var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
 
-                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonem}");
+                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonemYil}");
                 var backupFiles = Directory.Exists(backupDir)
                     ? Directory.GetFiles(backupDir, "*.bak").Length
                     : 0;
@@ -144,7 +158,7 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
                     PendingMigrationsCount = pendingMigrations.Count(),
                     AppliedMigrationsCount = appliedMigrations.Count(),
                     BackupFilesCount = backupFiles,
-                    LastBackupDate = GetLastBackupDate(firmaKodu, maliDonem)
+                    LastBackupDate = GetLastBackupDate(firmaKodu, maliDonemYil)
                 };
             }
             catch (Exception ex)
@@ -153,11 +167,11 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             }
         }
 
-        public Task<List<BackupFileInfo>> GetBackupHistoryAsync(string firmaKodu, string maliDonem)
+        public Task<List<BackupFileInfo>> GetBackupHistoryAsync(string firmaKodu, int maliDonemYil)
         {
             try
             {
-                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonem}");
+                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonemYil}");
 
                 if (!Directory.Exists(backupDir))
                     return Task.FromResult(new List<BackupFileInfo>());
@@ -180,14 +194,14 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to get backup history for {FirmaKodu}_{MaliYil}",
-                    firmaKodu, maliDonem);
+                    firmaKodu, maliDonemYil);
                 return Task.FromResult(new List<BackupFileInfo>());
             }
         }
 
-        private AppDbContext CreateAppDbContext(string firmaKodu, string maliDonem)
+        private AppDbContext CreateAppDbContext(string firmaKodu, int maliDonemYil)
         {
-            var databaseName = $"Muhasebe_{firmaKodu}_{maliDonem}";
+            var databaseName = AppMessage.VeritabaniBilgileri.MuhasebeVeritabaniAdi(firmaKodu, maliDonemYil);
             var connectionString = $"Data Source=localhost;Integrated Security=true;TrustServerCertificate=true;Initial Catalog={databaseName};";
 
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -202,18 +216,18 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             return "Data Source=localhost;Integrated Security=true;TrustServerCertificate=true;Initial Catalog=master;";
         }
 
-        private async Task CreateSafetyBackupAsync(string firmaKodu, string maliDonem)
+        private async Task CreateSafetyBackupAsync(string firmaKodu, int maliDonemYil)
         {
-            var databaseName = $"Muhasebe_{firmaKodu}_{maliDonem}";
-            var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonem}");
+            var databaseName = AppMessage.VeritabaniBilgileri.MuhasebeVeritabaniAdi(firmaKodu, maliDonemYil);
+            var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonemYil}");
             Directory.CreateDirectory(backupDir);
 
-            var backupFileName = $"safety_{firmaKodu}_{maliDonem}_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
+            var backupFileName = $"safety_{firmaKodu}_{maliDonemYil}_{DateTime.Now:yyyyMMdd_HHmmss}.bak";
             var backupPath = Path.Combine(backupDir, backupFileName);
 
             try
             {
-                using var context = CreateAppDbContext(firmaKodu, maliDonem);
+                using var context = CreateAppDbContext(firmaKodu, maliDonemYil);
 
                 var sql = $@"
                     BACKUP DATABASE [{databaseName}] 
@@ -229,11 +243,11 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             }
         }
 
-        private DateTime? GetLastBackupDate(string firmaKodu, string maliDonem)
+        private DateTime? GetLastBackupDate(string firmaKodu, int maliDonemYil)
         {
             try
             {
-                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonem}");
+                var backupDir = Path.Combine(_backupBasePath, $"{firmaKodu}_{maliDonemYil}");
 
                 if (!Directory.Exists(backupDir))
                     return null;
@@ -264,6 +278,75 @@ namespace Muhasebe.Data.DatabaseManager.AppDatabase
             }
 
             return $"{number:n1}{suffixes[counter]}";
+        }
+        public async Task<MuhasebeVersiyon> GetCurrentMuhasebeVersionAsync(string firmaKodu, int maliDonemYil)
+        {
+            try
+            {
+                using var context = CreateAppDbContext(firmaKodu, maliDonemYil);
+                return await context.MuhasebeVersiyonlar
+                    .Where(v => v.FirmaKodu == firmaKodu && v.MaliDonemYil == maliDonemYil)
+                    .OrderByDescending(v => v.MuhasebeDBSonGuncellemeTarihi)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get muhasebe version for {FirmaKodu}_{MaliYil}", firmaKodu, maliDonemYil);
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateMuhasebeVersionAsync(string firmaKodu, int maliDonemYil, string newVersion)
+        {
+            try
+            {
+                using var context = CreateAppDbContext(firmaKodu, maliDonemYil);
+
+                var currentVersion = await context.MuhasebeVersiyonlar
+                    .Where(v => v.FirmaKodu == firmaKodu && v.MaliDonemYil == maliDonemYil)
+                    .FirstOrDefaultAsync();
+
+                if (currentVersion == null)
+                {
+                    // İlk kurulum
+                    var initialVersion = new MuhasebeVersiyon
+                    {
+                        FirmaKodu = firmaKodu,
+                        MaliDonemYil = maliDonemYil,
+                        MuhasebeDBVersiyon = newVersion,
+                        MuhasebeDBSonGuncellemeTarihi = DateTime.Now,
+                        OncekiMuhasebeDbVersiyon = null
+                    };
+                    context.MuhasebeVersiyonlar.Add(initialVersion);
+                }
+                else
+                {
+                    // Güncelleme
+                    currentVersion.OncekiMuhasebeDbVersiyon = currentVersion.MuhasebeDBVersiyon;
+                    currentVersion.MuhasebeDBVersiyon = newVersion;
+                    currentVersion.MuhasebeDBSonGuncellemeTarihi = DateTime.Now;
+                }
+
+                await context.SaveChangesAsync();
+                _logger.LogInformation("Muhasebe version updated to {Version} for {FirmaKodu}_{MaliYil}",
+                    newVersion, firmaKodu, maliDonemYil);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update muhasebe version for {FirmaKodu}_{MaliYil}", firmaKodu, maliDonemYil);
+                return false;
+            }
+        }
+        private string GetLatestMigrationVersion(IEnumerable<string> appliedMigrations)
+        {
+            var latest = appliedMigrations.LastOrDefault();
+            if (latest != null && latest.Length > 8) // Migration timestamp kısmını al
+            {
+                return latest.Substring(0, 14); // YYYYMMDDHHMMSS formatı
+            }
+            return "1.0.0";
         }
     }
 }

@@ -91,16 +91,16 @@
         #endregion
 
         #region Veritabanı Bilgileri
-        public static class Veritabani
+        public static class VeritabaniBilgileri
         {
-            public const string KlasorAdi = "Databases";
+            public const string SistemDbKlasorAdi = "Databases";
             public const string SistemDbAdi = "Sistem.db";
             public const string YedekKlasorAdi = "Backups";
             public const string GeciciKlasorAdi = "Temp";
 
-            public static string FirmaVeritabaniAdi(string firmaKodu)
+            public static string MuhasebeVeritabaniAdi(string firmaKodu, int maliDonemYil)
             {
-                return $"{firmaKodu}_Muhasebe.db";
+                return $"Muhasebe_{firmaKodu}_{maliDonemYil}";
             }
 
             public static string YedekDosyaAdi(string firmaKodu)

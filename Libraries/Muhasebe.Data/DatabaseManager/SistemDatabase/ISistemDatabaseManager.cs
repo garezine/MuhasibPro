@@ -1,4 +1,5 @@
 ﻿using Muhasebe.Data.DatabaseManager.Models;
+using Muhasebe.Domain.Entities.SistemEntity;
 
 namespace Muhasebe.Data.DatabaseManager.SistemDatabase
 {
@@ -10,5 +11,8 @@ namespace Muhasebe.Data.DatabaseManager.SistemDatabase
         Task<bool> IsFirstRunAsync();
         Task<DatabaseHealthInfo> GetHealthInfoAsync();
         Task<List<BackupFileInfo>> GetBackupHistoryAsync();
+        Task<bool> CheckSistemDatabaseConnectionAsync();
+        Task<AppVersiyon> GetCurrentAppVersionAsync();
+        Task<SistemDbVersiyon> GetCurrentSistemDbVersionAsync();
     }
 }

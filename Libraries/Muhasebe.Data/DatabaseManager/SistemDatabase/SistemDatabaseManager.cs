@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Muhasebe.Data.DatabaseManager.Models;
 using Muhasebe.Data.DataContext;
 using Muhasebe.Data.Helper;
+using Muhasebe.Domain.Entities.SistemEntity;
+using Muhasebe.Domain.Helpers;
 
 namespace Muhasebe.Data.DatabaseManager.SistemDatabase
 {
@@ -23,7 +26,7 @@ namespace Muhasebe.Data.DatabaseManager.SistemDatabase
             _logger = logger;
 
             var dbDirectory = ConfigurationHelper.Instance.GetDatabasePath();
-            _databasePath = Path.Combine(dbDirectory, "Sistem.db");
+            _databasePath = Path.Combine(dbDirectory, AppMessage.VeritabaniBilgileri.SistemDbAdi);
             _backupPath = Path.Combine(dbDirectory, "Backups", "Sistem");
 
             Directory.CreateDirectory(_backupPath);
@@ -258,5 +261,45 @@ namespace Muhasebe.Data.DatabaseManager.SistemDatabase
 
             return $"{number:n1}{suffixes[counter]}";
         }
+
+        public async Task<bool> CheckSistemDatabaseConnectionAsync()
+        {
+            var dbPath = Path.Combine(ConfigurationHelper.Instance.GetDatabasePath(), AppMessage.VeritabaniBilgileri.SistemDbAdi);
+            using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+            {
+                try
+                {
+                    await connection.OpenAsync(); // Bağlantıyı aç
+
+                    using (var command = connection.CreateCommand())
+                    {
+                        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1";
+                        var result = await command.ExecuteScalarAsync();
+                        return result != null;
+                    }
+                }
+                catch
+                {
+                    return false;
+                }
+                // using bloğu çıkışında connection otomatik kapanır
+            }
+        }
+        public async Task<AppVersiyon> GetCurrentAppVersionAsync()
+        {
+            return await _context.AppVersiyonlar
+                .OrderByDescending(v => v.UygulamaSonGuncellemeTarihi)
+                .AsNoTracking() // Performance için
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<SistemDbVersiyon> GetCurrentSistemDbVersionAsync()
+        {
+            return await _context.SistemDbVersiyonlar
+                .OrderByDescending(v => v.SistemDBSonGuncellemeTarihi)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+        }
+
     }
 }

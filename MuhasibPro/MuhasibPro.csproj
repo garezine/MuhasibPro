@@ -77,7 +77,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Collections\MuhasebeCollection\" />
-    <Folder Include="Services\Sistem\" />
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\ViewWindow\DetailsWindow.xaml">

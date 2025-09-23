@@ -10,7 +10,7 @@ namespace Muhasebe.Data.DataContext.DataSource
 
         public DbSet<Hesap> Hesaplar { get; set; }
 
-        public DbSet<Degerler> Degerler { get; set; }
+        public DbSet<SonSecilenKullaniciFirmaDonem> SonSecilenKullaniciFirmaDonemler { get; set; }
 
         public DbSet<DevirLog> DevirLogs { get; set; }
 
@@ -26,6 +26,7 @@ namespace Muhasebe.Data.DataContext.DataSource
 
         public DbSet<DbYedekAl> DbYedekAl { get; set; }
         public DbSet<AppVersiyon> AppVersiyonlar { get; set; }
+        public DbSet<SistemDbVersiyon> SistemDbVersiyonlar { get; set; }
 
         public DbSet<ModulSec> ModulSecim { get; set; }
         public DbSet<KullaniciRol> KullaniciRoller { get; set; }

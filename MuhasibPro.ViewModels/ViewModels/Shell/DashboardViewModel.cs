@@ -1,4 +1,4 @@
-﻿using MuhasibPro.ViewModels.Contracts.Common;
+﻿using MuhasibPro.ViewModels.Contracts.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels.Common;
 
 namespace MuhasibPro.ViewModels.ViewModels.Shell

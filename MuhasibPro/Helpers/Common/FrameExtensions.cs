@@ -1,6 +1,4 @@
-﻿using Microsoft.UI.Xaml.Controls;
-
-namespace MuhasibPro.Helpers.Common;
+﻿namespace MuhasibPro.Helpers.Common;
 
 public static class FrameExtensions
 {

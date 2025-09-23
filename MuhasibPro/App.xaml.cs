@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Muhasebe.Data.DatabaseManager.SistemDatabase;
 using Muhasebe.Data.HostBuilders;
 using MuhasibPro.HostBuilders;
+using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
+using System.Diagnostics;
 using Velopack;
 using WinUIEx;
 
@@ -55,6 +57,9 @@ namespace MuhasibPro
             try
             {
                 await InitializeSystemDatabaseAsync();
+                var sistemService = Ioc.Default.GetRequiredService<ISistemDatabaseService>();
+                var systemStatus = await sistemService.GetSystemStatusAsync();
+                Debug.WriteLine($"System Status: {systemStatus}");
                 MainWindow.Activate();
             }
             catch (Exception ex)
@@ -65,12 +70,10 @@ namespace MuhasibPro
         }
         private async Task InitializeSystemDatabaseAsync()
         {
-            var systemService = _host.Services.GetRequiredService<ISistemDatabaseManager>();
-            var success = await systemService.InitializeDatabaseAsync();
+            var systemService = _host.Services.GetRequiredService<ISistemDatabaseService>();
+            var success = await systemService.ApplyDatabaseUpdatesAsync();
 
             if (!success) throw new Exception("Sistem DB başlatılamadı!");
-
-
         }
         private void ShowStartupError(Exception ex)
         {

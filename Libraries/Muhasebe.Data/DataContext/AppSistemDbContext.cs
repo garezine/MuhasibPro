@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Muhasebe.Data.DataContext.DataSource;
+using Muhasebe.Data.Helper;
 using Muhasebe.Domain.Entities.DegerlerEntity;
 using Muhasebe.Domain.Entities.SistemEntity;
 
@@ -41,10 +42,27 @@ namespace Muhasebe.Data.DataContext
             modelBuilder.Entity<KullaniciRol>().HasData(adminRol);
             modelBuilder.Entity<Kullanici>().HasData(yonetici);
         }
+        private void SeedInitialVersion(ModelBuilder modelBuilder)
+        {
+            // SistemDbVersiyon için seed
+            var initialSistemDbVersion = new SistemDbVersiyon
+            {
+                UygulamaVersiyon = "1.0.0", // Base class property
+                UygulamaSonGuncellemeTarihi = new DateTime(2025, 09, 22),
+                OncekiUygulamaVersiyon = null,
+                SistemDBVersiyon = "1.0.0",
+                SistemDBSonGuncellemeTarihi = new DateTime(2025, 09, 22),
+                OncekiSistemDbVersiyon = null
+            };
+
+            
+            modelBuilder.Entity<SistemDbVersiyon>().HasData(initialSistemDbVersion);
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             SeedUser(modelBuilder);
+            SeedInitialVersion(modelBuilder);
             modelBuilder.Entity<Kullanici>(kullanici =>
             {
                 kullanici.HasMany(k => k.Hesaplar)
@@ -59,7 +77,7 @@ namespace Muhasebe.Data.DataContext
 
         public DbSet<Hesap> Hesaplar { get; set; }
 
-        public DbSet<Degerler> Degerler { get; set; }
+        public DbSet<SonSecilenKullaniciFirmaDonem> SonSecilenKullaniciFirmaDonemler { get; set; }
 
         public DbSet<DevirLog> DevirLogs { get; set; }
 
@@ -76,6 +94,7 @@ namespace Muhasebe.Data.DataContext
         public DbSet<DbYedekAl> DbYedekAl { get; set; }
 
         public DbSet<AppVersiyon> AppVersiyonlar { get; set; }
+        public DbSet<SistemDbVersiyon> SistemDbVersiyonlar { get; set; }
 
         public DbSet<ModulSec> ModulSecim { get; set; }
         public DbSet<KullaniciRol> KullaniciRoller { get; set; }

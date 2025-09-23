@@ -4,6 +4,6 @@
     {
         Bilgi,
         Dikkat,
-        Hata                     
+        Hata
     }
 }

@@ -1,5 +1,4 @@
-﻿using Muhasebe.Business.Models.DegerlerModel;
-using Muhasebe.Business.Models.SistemModel;
+﻿using Muhasebe.Business.Models.SistemModel;
 using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Domain.Entities.SistemEntity;
 using Muhasebe.Domain.Enum;
@@ -17,7 +16,7 @@ namespace MuhasibPro.Collections.AppCollection
             MustExploreDeepExceptions = mustExploreDeepExceptions;
         }
         private SistemLogModel _defaultItem = SistemLogModel.CreateEmpty();
-        
+
         public override SistemLogModel DefaultItem => _defaultItem;
 
         public async Task LoadAsync(DataRequest<SistemLog> dataRequest)

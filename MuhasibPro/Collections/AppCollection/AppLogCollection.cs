@@ -11,7 +11,7 @@ namespace MuhasibPro.Collections.AppCollection
     {
         private DataRequest<AppLog> _dataRequest = null;
         bool MustExploreDeepExceptions { get; set; }
-        public AppLogCollection(ILogService logService, bool mustExploreDeepExceptions=false) : base(logService)
+        public AppLogCollection(ILogService logService, bool mustExploreDeepExceptions = false) : base(logService)
         {
             MustExploreDeepExceptions = mustExploreDeepExceptions;
         }

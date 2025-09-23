@@ -1,7 +1,4 @@
-﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using Muhasebe.Data.Helper;
-
-namespace MuhasibPro.Configurations
+﻿namespace MuhasibPro.Configurations
 {
     public class Startup
     {
@@ -12,7 +9,7 @@ namespace MuhasibPro.Configurations
 
         private Startup()
         {
-        } 
-   
+        }
+
     }
 }

@@ -18,7 +18,10 @@ namespace Muhasebe.Data.HostBuilders
                 {
                     var dbPath = ConfigurationHelper.Instance.GetDatabasePath();
                     var connectionString = $"Data Source={Path.Combine(dbPath, "Sistem.db")};Mode=ReadWriteCreate;";
-                    options.UseSqlite(connectionString);
+                    options.UseSqlite(connectionString, sqliteOptions =>
+                    {
+                        sqliteOptions.CommandTimeout(30);
+                    });
                 });
 
                 services.AddScoped<ISistemDatabaseManager, SistemDatabaseManager>();

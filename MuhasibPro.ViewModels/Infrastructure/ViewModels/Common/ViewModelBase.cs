@@ -2,7 +2,7 @@
 using Muhasebe.Business.Common;
 using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Domain.Enum;
-using MuhasibPro.ViewModels.Contracts.Common;
+using MuhasibPro.ViewModels.Contracts.CommonServices;
 using MuhasibPro.ViewModels.Manager;
 using System.Diagnostics;
 
@@ -22,7 +22,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
             LogService = commonServices.LogService;
 
             // MessageService'e context'i kaydet (WinUI 3 için)
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
             {
                 MessageService.RegisterContext(ContextService.ContextId, ContextService);
             }
@@ -172,7 +172,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
         // WinUI 3 için async versiyonlar - UI thread safety
         public async Task StatusReadyAsync()
         {
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "StatusMessage", "Hazır");
             else
                 MessageService.Send(this, "StatusMessage", "Hazır");
@@ -180,7 +180,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
 
         public async Task StatusMessageAsync(string message)
         {
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "StatusMessage", message);
             else
                 MessageService.Send(this, "StatusMessage", message);
@@ -188,7 +188,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
 
         public async Task StatusErrorAsync(string message)
         {
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "StatusError", message);
             else
                 MessageService.Send(this, "StatusError", message);
@@ -197,7 +197,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
         public async Task EnableThisViewAsync(string message = null)
         {
             message = message ?? "Hazır";
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "EnableThisView", message);
             else
                 MessageService.Send(this, "EnableThisView", message);
@@ -205,7 +205,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
 
         public async Task DisableThisViewAsync(string message)
         {
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "DisableThisView", message);
             else
                 MessageService.Send(this, "DisableThisView", message);
@@ -214,7 +214,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
         public async Task EnableOtherViewsAsync(string message = null)
         {
             message = message ?? "Hazır";
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "EnableOtherViews", message);
             else
                 MessageService.Send(this, "EnableOtherViews", message);
@@ -222,7 +222,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
 
         public async Task DisableOtherViewsAsync(string message)
         {
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "DisableOtherViews", message);
             else
                 MessageService.Send(this, "DisableOtherViews", message);
@@ -231,7 +231,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
         public async Task EnableAllViewsAsync(string message = null)
         {
             message = message ?? "Hazır";
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "EnableAllViews", message);
             else
                 MessageService.Send(this, "EnableAllViews", message);
@@ -239,7 +239,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
 
         public async Task DisableAllViewsAsync(string message)
         {
-            if(MessageService is IMessageService msgService)
+            if (MessageService is IMessageService msgService)
                 await msgService.SendAsync(this, "DisableAllViews", message);
             else
                 MessageService.Send(this, "DisableAllViews", message);
