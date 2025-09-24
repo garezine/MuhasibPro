@@ -7,7 +7,7 @@ namespace Muhasebe.Domain.Entities.MuhasebeEntity.Kasa
     public class Kasalar : BaseEntity
     {
         [MaxLength(255)]
-        public string Aciklama { get; set; }
+        public string? Aciklama { get; set; }
 
         [Column(TypeName = "decimal (18,2)")]
         public decimal Bakiye { get; set; } = 0;

@@ -21,7 +21,7 @@ public sealed class Section : ContentControl
     {
         get
         {
-            return (object)GetValue(HeaderProperty);
+            return GetValue(HeaderProperty);
         }
         set
         {
@@ -125,7 +125,7 @@ public sealed class Section : ContentControl
     {
         get
         {
-            return (object)GetValue(FooterProperty);
+            return GetValue(FooterProperty);
         }
         set
         {

@@ -6,7 +6,7 @@ using MuhasibPro.ViewModels.Contracts.CommonServices;
 using MuhasibPro.ViewModels.Manager;
 using System.Diagnostics;
 
-namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
+namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 {
     public class ViewModelBase : ObservableObject
     {

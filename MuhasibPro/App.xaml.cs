@@ -2,9 +2,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Muhasebe.Data.DatabaseManager.SistemDatabase;
 using Muhasebe.Data.HostBuilders;
+using MuhasibPro.Helpers;
 using MuhasibPro.HostBuilders;
+using MuhasibPro.ViewModels.Contracts.BaseAppServices;
 using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
 using System.Diagnostics;
 using Velopack;
@@ -24,7 +25,7 @@ namespace MuhasibPro
             _host = CreateHostBuilder().Build();
             Ioc.Default.ConfigureServices(_host.Services);
 
-            VelopackApp.Build().SetAutoApplyOnStartup(true)
+            VelopackApp.Build()
                 .OnFirstRun(v =>
                 {
                     // Show welcome message or perform first-run actions
@@ -32,12 +33,14 @@ namespace MuhasibPro
                 .OnRestarted(v =>
                 {
 
-                });
+                })
+                .Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args = null)
         {
             return Host.CreateDefaultBuilder(args)
+                .UseContentRoot(AppContext.BaseDirectory)
                 .AddConfiguration()
                 .AddDatabaseManager()
                 .AddRepositories()
@@ -60,7 +63,12 @@ namespace MuhasibPro
                 var sistemService = Ioc.Default.GetRequiredService<ISistemDatabaseService>();
                 var systemStatus = await sistemService.GetSystemStatusAsync();
                 Debug.WriteLine($"System Status: {systemStatus}");
-                MainWindow.Activate();
+                var themeSelectorService = Ioc.Default.GetService<IThemeSelectorService>();
+                if (MainWindow.Content is FrameworkElement rootelement)
+                {
+                    rootelement.RequestedTheme = themeSelectorService.Theme;
+                }
+                await ActivateAsync(args);
             }
             catch (Exception ex)
             {
@@ -74,6 +82,13 @@ namespace MuhasibPro
             var success = await systemService.ApplyDatabaseUpdatesAsync();
 
             if (!success) throw new Exception("Sistem DB başlatılamadı!");
+        }
+        private async Task ActivateAsync(LaunchActivatedEventArgs args)
+        {
+            WindowHelper.SetMainWindow(MainWindow);
+
+            var activationService = Ioc.Default.GetService<IActivationService>();
+            await activationService.ActivateAsync(args);
         }
         private void ShowStartupError(Exception ex)
         {

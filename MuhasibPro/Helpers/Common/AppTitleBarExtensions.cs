@@ -54,7 +54,7 @@ namespace MuhasibPro.Helpers.Common
                     {
                         string title = GetTitle(element);
                         string prefix = GetPrefix(element); // Opsiyonel
-                        shell.AppTitleBarText = $"{prefix} {title}".Trim();
+                        shell.AppTitleBarText.Text = $"{prefix} {title}".Trim();
                     }
                 });
             }

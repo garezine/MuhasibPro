@@ -2,7 +2,7 @@
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure.ViewModels.Common;
+using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Collections.Concurrent;
 using WinRT.Interop;
 

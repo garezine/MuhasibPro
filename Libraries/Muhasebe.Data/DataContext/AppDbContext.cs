@@ -79,6 +79,20 @@ public class AppDbContext : DbContext, IAppDataSource
                 .HasForeignKey(ik => ik.IrsaliyeId)
                 .OnDelete(DeleteBehavior.Cascade); // Irsaliye silinirse Kalemler de silinir
         });
+
+        modelBuilder.Entity<MuhasebeVersiyon>()
+            .HasKey(mv => new { mv.FirmaKodu, mv.MaliDonemYil });
+
+        // İsteğe bağlı: Property configuration'ları
+        modelBuilder.Entity<MuhasebeVersiyon>()
+            .Property(mv => mv.FirmaKodu)
+            .HasMaxLength(20);
+
+        modelBuilder.Entity<MuhasebeVersiyon>()
+            .Property(mv => mv.MuhasebeDBVersiyon)
+            .HasMaxLength(50);
+
+        base.OnModelCreating(modelBuilder);
         #endregion
 
         #region SeedData

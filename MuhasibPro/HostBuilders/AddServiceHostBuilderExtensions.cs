@@ -4,7 +4,9 @@ using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Business.Services.Concrete.Common;
 using MuhasibPro.Services.CommonServices;
 using MuhasibPro.Services.SistemServices.DatabaseServices;
+using MuhasibPro.Services.SistemServices.FirmaMaliDonemService;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
+using MuhasibPro.ViewModels.Contracts.SistemServices;
 using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
 
 namespace MuhasibPro.HostBuilders
@@ -17,16 +19,11 @@ namespace MuhasibPro.HostBuilders
             {
 
                 //Uygulama içi service
-                services.AddScoped<ISistemDatabaseService, SistemDatabaseService>();
-                services.AddScoped<IAppDatabaseService, AppDatabaseService>();
-                services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
-                services.AddScoped<IUpdateService, UpdateService>();
-                services.AddScoped<IAuthenticationService, AuthenticationService>();
-
+               
 
                 //services.AddScoped<ITenantManagementService, TenantManagementService>();
 
-
+                services.AddScoped<IFirmaService,FirmaService>();
                 //services.AddScoped<ICalismaDonemService, CalismaDonemService>();
                 //services.AddScoped<ICalismaDonemDbService, CalismaDonemDbService>();
             });

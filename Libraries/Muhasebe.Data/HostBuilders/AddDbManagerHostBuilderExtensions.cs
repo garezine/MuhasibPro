@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Muhasebe.Data.DatabaseManager.AppDatabase;
@@ -22,6 +23,12 @@ namespace Muhasebe.Data.HostBuilders
                     {
                         sqliteOptions.CommandTimeout(30);
                     });
+                });
+                services.AddDbContext<AppDbContext>(options =>
+                {
+                    options.UseSqlServer(ConfigurationHelper.Instance.GetConfiguration().GetConnectionString("DefaultConnection"));
+                    // veya
+                    // options.UseSqlite("Data Source=muhasebe.db");
                 });
 
                 services.AddScoped<ISistemDatabaseManager, SistemDatabaseManager>();

@@ -114,7 +114,7 @@ public class FormAutoSuggestBox : Control, IFormControl
     {
         get
         {
-            return (object)GetValue(ItemsSourceProperty);
+            return GetValue(ItemsSourceProperty);
         }
         set
         {

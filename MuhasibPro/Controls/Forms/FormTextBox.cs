@@ -41,10 +41,10 @@ public class FormTextBox : TextBox, IFormControl
         DefaultStyleKey = typeof(FormTextBox);
         RegisterPropertyChangedCallback(TextProperty, OnTextChanged);
         BeforeTextChanging += OnBeforeTextChanging;
-        
+
         Loaded += OnLoaded;
     }
- 
+
 
     public FormVisualState VisualState { get; private set; }
 
@@ -114,7 +114,7 @@ public class FormTextBox : TextBox, IFormControl
         set { SetValue(ValidationMessageProperty, value); }
     }
 
-    public static readonly DependencyProperty ValidationMessageProperty = DependencyProperty.Register(nameof(ValidationMessage), typeof(string), typeof(FormTextBox), new PropertyMetadata(""));
+    public static readonly DependencyProperty ValidationMessageProperty = DependencyProperty.Register(nameof(ValidationMessage), typeof(string), typeof(FormTextBox), new PropertyMetadata(string.Empty));
     #endregion
 
     #region IsValid
@@ -187,7 +187,7 @@ public class FormTextBox : TextBox, IFormControl
         }
     }
 
-    
+
 
     #endregion
 
@@ -218,9 +218,9 @@ public class FormTextBox : TextBox, IFormControl
 
     private void ValidateInput()
     {
-        string value = Text?.Trim() ?? "";
+        string value = Text?.Trim() ?? string.Empty;
         bool isValid = true;
-        string message = "";
+        string message = string.Empty;
 
         // Zorunluluk kontrolü
         if (IsRequired && string.IsNullOrEmpty(value))
@@ -243,7 +243,7 @@ public class FormTextBox : TextBox, IFormControl
     private (bool isValid, string message) ValidateFormat(string value)
     {
         if (PredefinedFormat == PredefinedFormat.None)
-            return (true, "");
+            return (true, string.Empty);
 
         string cleanValue = GetCleanText(value);
 
@@ -256,7 +256,7 @@ public class FormTextBox : TextBox, IFormControl
             PredefinedFormat.CreditCard => ValidateCreditCard(cleanValue),
             PredefinedFormat.PostalCode => ValidatePostalCode(cleanValue),
             PredefinedFormat.Date => ValidateDate(cleanValue),
-            _ => (true, "")
+            _ => (true, string.Empty)
         };
     }
 
@@ -289,7 +289,7 @@ public class FormTextBox : TextBox, IFormControl
             }
         }
 
-        return (true, "");
+        return (true, string.Empty);
     }
 
     private (bool isValid, string message) ValidateTC(string digits)
@@ -303,7 +303,7 @@ public class FormTextBox : TextBox, IFormControl
         if (!IsValidTCAlgorithm(digits))
             return (false, "Geçersiz TC Kimlik No.");
 
-        return (true, "");
+        return (true, string.Empty);
     }
 
     private (bool isValid, string message) ValidateCurrency(string digits)
@@ -314,12 +314,12 @@ public class FormTextBox : TextBox, IFormControl
         if (amount < 0)
             return (false, "Tutar negatif olamaz.");
 
-        return (true, "");
+        return (true, string.Empty);
     }
 
     private (bool isValid, string message) ValidateIBAN(string value)
     {
-        string cleanIban = Regex.Replace(value.ToUpper(), @"[^A-Z0-9]", "");
+        string cleanIban = Regex.Replace(value.ToUpper(), @"[^A-Z0-9]", string.Empty);
 
         if (!cleanIban.StartsWith("TR"))
             return (false, "IBAN TR ile başlamalıdır.");
@@ -327,7 +327,7 @@ public class FormTextBox : TextBox, IFormControl
         if (cleanIban.Length != 26)
             return (false, "IBAN 26 karakter olmalıdır.");
 
-        return (true, "");
+        return (true, string.Empty);
     }
 
     private (bool isValid, string message) ValidateCreditCard(string digits)
@@ -335,7 +335,7 @@ public class FormTextBox : TextBox, IFormControl
         if (digits.Length < 13 || digits.Length > 19)
             return (false, "Kredi kartı numarası 13-19 haneli olmalıdır.");
 
-        return (true, "");
+        return (true, string.Empty);
     }
 
     private (bool isValid, string message) ValidatePostalCode(string digits)
@@ -346,7 +346,7 @@ public class FormTextBox : TextBox, IFormControl
         if (!int.TryParse(digits, out int code) || code < 1000 || code > 81999)
             return (false, "Geçerli bir posta kodu giriniz.");
 
-        return (true, "");
+        return (true, string.Empty);
     }
 
     private (bool isValid, string message) ValidateDate(string digits)
@@ -361,7 +361,7 @@ public class FormTextBox : TextBox, IFormControl
         if (!DateTime.TryParse($"{day}.{month}.{year}", out _))
             return (false, "Geçersiz tarih.");
 
-        return (true, "");
+        return (true, string.Empty);
     }
 
     private bool IsValidTCAlgorithm(string tc)
@@ -507,13 +507,13 @@ public class FormTextBox : TextBox, IFormControl
 
     private string GetCleanText(string text)
     {
-        if (string.IsNullOrEmpty(text)) return "";
-        return Regex.Replace(text, @"[^\d]", "");
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        return Regex.Replace(text, @"[^\d]", string.Empty);
     }
 
     private string FormatPhoneNumber(string digits)
     {
-        if (string.IsNullOrEmpty(digits)) return "";
+        if (string.IsNullOrEmpty(digits)) return string.Empty;
 
         return digits.Length switch
         {
@@ -540,9 +540,9 @@ public class FormTextBox : TextBox, IFormControl
 
     private string FormatIBAN(string digits)
     {
-        if (string.IsNullOrEmpty(digits)) return "";
+        if (string.IsNullOrEmpty(digits)) return string.Empty;
 
-        string formatted = "";
+        string formatted = string.Empty;
         for (int i = 0; i < digits.Length; i++)
         {
             if (i > 0 && i % 4 == 0)
@@ -558,9 +558,9 @@ public class FormTextBox : TextBox, IFormControl
 
     private string FormatCreditCard(string digits)
     {
-        if (string.IsNullOrEmpty(digits)) return "";
+        if (string.IsNullOrEmpty(digits)) return string.Empty;
 
-        string formatted = "";
+        string formatted = string.Empty;
         for (int i = 0; i < digits.Length && i < 16; i++)
         {
             if (i > 0 && i % 4 == 0)
@@ -572,7 +572,7 @@ public class FormTextBox : TextBox, IFormControl
 
     private string FormatDate(string digits)
     {
-        if (string.IsNullOrEmpty(digits)) return "";
+        if (string.IsNullOrEmpty(digits)) return string.Empty;
 
         return digits.Length switch
         {
@@ -601,15 +601,15 @@ public class FormTextBox : TextBox, IFormControl
             {
                 case TextDataType.Integer:
                     Int64.TryParse(Text, out Int64 n);
-                    Text = n == 0 ? "" : n.ToString();
+                    Text = n == 0 ? string.Empty : n.ToString();
                     break;
                 case TextDataType.Decimal:
                     Decimal.TryParse(Text, out decimal m);
-                    Text = m == 0 ? "" : m.ToString();
+                    Text = m == 0 ? string.Empty : m.ToString();
                     break;
                 case TextDataType.Double:
                     Double.TryParse(Text, out double d);
-                    Text = d == 0 ? "" : d.ToString();
+                    Text = d == 0 ? string.Empty : d.ToString();
                     break;
             }
         }

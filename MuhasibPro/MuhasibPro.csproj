@@ -52,8 +52,6 @@
     <None Remove="Assets\Store\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <None Remove="Assets\Store\StoreLogo.png" />
     <None Remove="Assets\Store\Wide310x150Logo.scale-200.png" />
-    <None Remove="Views\Shell\ShellView.xaml" />
-    <None Remove="Views\Splash\ExtendedSplash.xaml" />
     <None Remove="Views\ViewWindow\DetailsWindow.xaml" />
     <None Remove="Views\ViewWindow\ListWindow.xaml" />
   </ItemGroup>
@@ -74,6 +72,7 @@
     <ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.250402" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -82,6 +81,7 @@
     <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.250907003" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="3.0.0" />
     <PackageReference Include="WinUIEx" Version="2.8.0" />
   </ItemGroup>
   <ItemGroup>
@@ -97,16 +97,6 @@
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\ViewWindow\DetailsWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\Shell\ShellView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\Splash\ExtendedSplash.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

@@ -1,4 +1,4 @@
-﻿namespace MuhasibPro.ViewModels.Infrastructure.ViewModels.Common
+﻿namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 {
     public static class SingleInstanceViewModels
     {

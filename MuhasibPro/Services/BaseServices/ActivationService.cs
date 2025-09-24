@@ -2,7 +2,7 @@
 using Muhasebe.Business.Common;
 using MuhasibPro.ViewModels.Contracts.BaseAppServices;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.ViewModels.ViewModels.Dashboard;
 using MuhasibPro.Views.Splash;
 
 

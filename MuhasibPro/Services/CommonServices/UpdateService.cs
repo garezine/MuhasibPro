@@ -3,6 +3,7 @@ using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
 using MuhasibPro.ViewModels.Helpers;
 using System.Diagnostics;
 using Velopack;
+using Velopack.Locators;
 using Velopack.Sources;
 
 namespace MuhasibPro.Services.CommonServices;
@@ -21,10 +22,11 @@ public class UpdateService : IUpdateService
     public bool IsUpdatePendingRestart => _updateManager?.UpdatePendingRestart != null;
 
     public UpdateService(IDatabaseUpdateService databaseUpdateService)
-    {
-        EnsureManager(true);
+    { 
         _databaseUpdateService = databaseUpdateService;
+        EnsureManager(true);
     }
+
     private void EnsureManager(bool includePrereleases)
     {
         // includePrereleases değiştiyse manager'ı yeniden kur
@@ -33,17 +35,18 @@ public class UpdateService : IUpdateService
             var source = new GithubSource(
                 repoUrl: REPO_URL,
                 accessToken: _githubToken,
-                prerelease: includePrereleases
+                prerelease: includePrereleases                
             );
-            _updateManager = new UpdateManager(source);
+            _updateManager = new UpdateManager(source,locator:VelopackLocator.Current);
             _lastPrereleaseFlag = includePrereleases;
         }
     }
 
     private bool _lastPrereleaseFlag = false;
+
     public async Task<UpdateSettingsModel> GetSettingsAsync()
     {
-        if (_cachedSettings == null)
+        if(_cachedSettings == null)
         {
             _cachedSettings = await UpdateHelper.LoadAsync();
         }
@@ -63,7 +66,8 @@ public class UpdateService : IUpdateService
 
         try
         {
-            if (_updateManager == null) throw new InvalidOperationException("UpdateManager oluşturulamadı.");
+            if(_updateManager == null)
+                throw new InvalidOperationException("UpdateManager oluşturulamadı.");
             Debug.Write("Güncellemeler kontrol ediliyor...");
 
             _updateInfo = await _updateManager.CheckForUpdatesAsync();
@@ -73,15 +77,14 @@ public class UpdateService : IUpdateService
             settings.LastCheckDate = DateTime.Now;
             await SaveSettingsAsync(settings);
 
-            if (_updateInfo == null)
+            if(_updateInfo == null)
             {
                 Debug.Write("Güncelleme bulunamadı");
                 return null;
             }
             Debug.Write($"Güncelleme bulundu: {_updateInfo.TargetFullRelease}");
             return _updateInfo;
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             Debug.Write(ex, "Güncelleme kontrolü sırasında hata");
             throw;
@@ -91,16 +94,17 @@ public class UpdateService : IUpdateService
     public async Task<bool> DownloadUpdatesAsync(IProgress<int>? progress = null, CancellationToken ct = default)
 
     {
-        if (_updateManager == null) throw new InvalidOperationException("UpdateManager mevcut değil.");
-        if (_updateInfo?.TargetFullRelease == null) throw new InvalidOperationException("Önce CheckForUpdatesAsync çağrılmalı ve güncelleme bulunmalı.");
+        if(_updateManager == null)
+            throw new InvalidOperationException("UpdateManager mevcut değil.");
+        if(_updateInfo?.TargetFullRelease == null)
+            throw new InvalidOperationException("Önce CheckForUpdatesAsync çağrılmalı ve güncelleme bulunmalı.");
         try
         {
             Debug.WriteLine("Güncelleme indiriliyor...");
             await _updateManager.DownloadUpdatesAsync(_updateInfo, p => progress?.Report(p), ct);
             Debug.WriteLine("İndirme tamamlandı.");
             return true;
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             Debug.WriteLine($"İndirme hatası: {ex}");
             throw;
@@ -109,18 +113,19 @@ public class UpdateService : IUpdateService
 
     public void ApplyUpdatesAndRestart(params string[] restartArgs)
     {
-        if (_updateManager == null) throw new InvalidOperationException("UpdateManager mevcut değil.");
+        if(_updateManager == null)
+            throw new InvalidOperationException("UpdateManager mevcut değil.");
 
         // Önce pending varsa onu uygula, yoksa CheckForUpdates'tan gelen target'ı kullan
         var asset = _updateManager.UpdatePendingRestart ?? _updateInfo?.TargetFullRelease;
-        if (asset == null) throw new InvalidOperationException("Uygulanacak güncelleme bulunamadı.");
+        if(asset == null)
+            throw new InvalidOperationException("Uygulanacak güncelleme bulunamadı.");
 
         try
         {
             Debug.WriteLine("Güncelleme uygulanıyor ve uygulama yeniden başlatılıyor...");
             _updateManager.ApplyUpdatesAndRestart(asset, restartArgs);
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             Debug.WriteLine($"Uygulama sırasında hata: {ex}");
             throw;
@@ -142,13 +147,13 @@ public class UpdateService : IUpdateService
             // Bu metodu DatabaseUpdateService'e ekleyeceğiz
 
             return true;
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             Debug.WriteLine($"Database hazırlık hatası: {ex}");
             return false;
         }
     }
+
     public async Task<bool> PostUpdateDatabaseSyncAsync()
     {
         try
@@ -157,18 +162,18 @@ public class UpdateService : IUpdateService
 
             // Tüm veritabanlarını yeni versiyona göre güncelle
             return await _databaseUpdateService.UpdateAllDatabasesAsync();
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             Debug.WriteLine($"Post-update database sync hatası: {ex}");
             return false;
         }
     }
+
     public async void ApplyUpdatesAndRestartWithDatabaseSync(params string[] restartArgs)
     {
         // Önce database sync
         var dbSyncSuccess = await PostUpdateDatabaseSyncAsync();
-        if (!dbSyncSuccess)
+        if(!dbSyncSuccess)
         {
             Debug.WriteLine("UYARI: Database senkronizasyonu başarısız!");
             // Yine de güncellemeye devam et ama log'la
@@ -177,6 +182,5 @@ public class UpdateService : IUpdateService
         // Normal güncelleme işlemi
         ApplyUpdatesAndRestart(restartArgs);
     }
-
     #endregion
 }

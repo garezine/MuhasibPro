@@ -15,7 +15,7 @@ public sealed partial class FormField : UserControl
     }
 
     public static readonly DependencyProperty HeaderProperty =
-        DependencyProperty.Register("Header", typeof(string), typeof(FormField), new PropertyMetadata(""));
+        DependencyProperty.Register("Header", typeof(string), typeof(FormField), new PropertyMetadata(string.Empty));
     #endregion
 
     #region Text
@@ -26,7 +26,7 @@ public sealed partial class FormField : UserControl
     }
 
     public static readonly DependencyProperty TextProperty =
-        DependencyProperty.Register("Text", typeof(string), typeof(FormField), new PropertyMetadata(""));
+        DependencyProperty.Register("Text", typeof(string), typeof(FormField), new PropertyMetadata(string.Empty));
     #endregion
 
     #region PredefinedFormat
@@ -59,7 +59,7 @@ public sealed partial class FormField : UserControl
     }
 
     public static readonly DependencyProperty FormatProperty =
-        DependencyProperty.Register("Format", typeof(string), typeof(FormField), new PropertyMetadata(""));
+        DependencyProperty.Register("Format", typeof(string), typeof(FormField), new PropertyMetadata(string.Empty));
     #endregion
 
     #region IsRequired
@@ -114,7 +114,7 @@ public sealed partial class FormField : UserControl
     }
 
     public static readonly DependencyProperty PlaceholderTextProperty =
-        DependencyProperty.Register("PlaceholderText", typeof(string), typeof(FormField), new PropertyMetadata(""));
+        DependencyProperty.Register("PlaceholderText", typeof(string), typeof(FormField), new PropertyMetadata(string.Empty));
     #endregion
 
     #region HelpMessage
@@ -125,7 +125,7 @@ public sealed partial class FormField : UserControl
     }
 
     public static readonly DependencyProperty HelpMessageProperty =
-        DependencyProperty.Register("HelpMessage", typeof(string), typeof(FormField), new PropertyMetadata(""));
+        DependencyProperty.Register("HelpMessage", typeof(string), typeof(FormField), new PropertyMetadata(string.Empty));
     #endregion
 
     #region ShowValidationIcon

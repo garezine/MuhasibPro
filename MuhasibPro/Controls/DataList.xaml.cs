@@ -144,7 +144,7 @@ namespace MuhasibPro.Controls
         {
             get
             {
-                return (object)GetValue(SelectedItemProperty);
+                return GetValue(SelectedItemProperty);
             }
             set
             {

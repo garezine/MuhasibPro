@@ -1,5 +1,5 @@
 ﻿using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure.ViewModels.Common;
+using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 
 namespace MuhasibPro.Services.CommonServices
 {

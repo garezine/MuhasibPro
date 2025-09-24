@@ -67,7 +67,7 @@ namespace MuhasibPro.Controls
         #region DetailsContent
         public object DetailsContent
         {
-            get { return (object)GetValue(DetailsContentProperty); }
+            get { return GetValue(DetailsContentProperty); }
             set { SetValue(DetailsContentProperty, value); }
         }
 

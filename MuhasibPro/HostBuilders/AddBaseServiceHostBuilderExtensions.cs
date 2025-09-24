@@ -4,9 +4,11 @@ using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Business.Services.Concrete.Common;
 using MuhasibPro.Services.BaseServices;
 using MuhasibPro.Services.CommonServices;
+using MuhasibPro.Services.SistemServices.DatabaseServices;
 using MuhasibPro.Tools;
 using MuhasibPro.ViewModels.Contracts.BaseAppServices;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
+using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
 
 namespace MuhasibPro.HostBuilders
 {
@@ -37,13 +39,13 @@ namespace MuhasibPro.HostBuilders
                 services.AddScoped<IThemeSelectorService, ThemeSelectorService>();
                 services.AddScoped<IWebViewService, WebViewService>();
 
+                services.AddScoped<ISistemDatabaseService, SistemDatabaseService>();
+                services.AddScoped<IAppDatabaseService, AppDatabaseService>();
+                services.AddScoped<IDatabaseUpdateService, DatabaseUpdateService>();
+                services.AddScoped<IUpdateService, UpdateService>();
+                services.AddScoped<IAuthenticationService, AuthenticationService>();
 
 
-                //services.AddScoped<ITenantManagementService, TenantManagementService>();
-
-
-                //services.AddScoped<ICalismaDonemService, CalismaDonemService>();
-                //services.AddScoped<ICalismaDonemDbService, CalismaDonemDbService>();
             });
             return host;
         }
