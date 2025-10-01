@@ -60,6 +60,7 @@ jobs:
           msbuild "${{ env.SOLUTION_PATH }}" `
             /p:Configuration=Release `
             /p:Platform=x64 `
+            /p:PublishReadyToRun=false `
             /p:SkipPriGeneration=true `
             /p:EnableMrtGeneration=false `
             /p:EnableMsixTooling=false `
@@ -84,6 +85,7 @@ jobs:
             /p:Platform=x64 `
             /p:RuntimeIdentifier=win-x64 `
             /p:SelfContained=true `
+            /p:PublishReadyToRun=false `
             /p:PublishDir="$absolutePublishPath" `
             /p:WindowsAppSdkSelfContained=true `
             /p:SkipPriGeneration=true `
