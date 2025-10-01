@@ -7,7 +7,6 @@ using MuhasibPro.Helpers.Common;
 using MuhasibPro.Services.CommonServices;
 using MuhasibPro.ViewModels.Contracts.BaseAppServices;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using MuhasibPro.ViewModels.ViewModels.Settings;
 using MuhasibPro.ViewModels.ViewModels.Shell;
 using System.Windows.Input;

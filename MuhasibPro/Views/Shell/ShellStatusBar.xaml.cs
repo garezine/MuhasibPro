@@ -1,4 +1,4 @@
-﻿using MuhasibPro.ViewModels.Manager;
+﻿using MuhasibPro.ViewModels.Helpers;
 using System.ComponentModel;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -9,12 +9,12 @@ namespace MuhasibPro.Views.Shell;
 public sealed partial class ShellStatusBar : UserControl
 {
     private DispatcherTimer _timer;
-    private StatusBarManager _statusManager;
+    private StatusBarHelpers _statusManager;
 
     public ShellStatusBar()
     {
         InitializeComponent();
-        _statusManager = StatusBarManager.Instance;
+        _statusManager = StatusBarHelpers.Instance;
 
         // StatusBarManager'dan PropertyChanged olaylarını dinle
         _statusManager.PropertyChanged += OnStatusManagerPropertyChanged;
@@ -32,25 +32,25 @@ public sealed partial class ShellStatusBar : UserControl
         {
             switch (e.PropertyName)
             {
-                case nameof(StatusBarManager.StatusMessage):
+                case nameof(StatusBarHelpers.StatusMessage):
                     StatusMessage = _statusManager.StatusMessage;
                     break;
-                case nameof(StatusBarManager.UserName):
+                case nameof(StatusBarHelpers.UserName):
                     UserName = _statusManager.UserName;
                     break;
-                case nameof(StatusBarManager.DatabaseConnectionMessage):
+                case nameof(StatusBarHelpers.DatabaseConnectionMessage):
                     DatabaseConnectionMessage = _statusManager.DatabaseConnectionMessage;
                     break;
-                case nameof(StatusBarManager.IsError):
+                case nameof(StatusBarHelpers.IsError):
                     IsError = _statusManager.IsError;
                     break;
-                case nameof(StatusBarManager.IsSaveStatus):
+                case nameof(StatusBarHelpers.IsSaveStatus):
                     IsSaveStatus = _statusManager.IsSaveStatus;
                     break;
-                case nameof(StatusBarManager.IsStatusProgress):
+                case nameof(StatusBarHelpers.IsStatusProgress):
                     IsStatusProgress = _statusManager.IsStatusProgress;
                     break;
-                case nameof(StatusBarManager.IsDatabaseConnection):
+                case nameof(StatusBarHelpers.IsDatabaseConnection):
                     IsDatabaseConnection = _statusManager.IsDatabaseConnection;
                     break;
             }

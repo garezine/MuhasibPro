@@ -7,7 +7,7 @@
     xmlns:i="using:Microsoft.Xaml.Interactivity"
     xmlns:local="using:MuhasibPro.Views.Shell"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:models="using:MuhasibPro.ViewModels.Infrastructure.ViewModels"
+    xmlns:models="using:MuhasibPro.ViewModels.ViewModels.Shell"
     xmlns:userProfile="using:MuhasibPro.Views.Login"
     mc:Ignorable="d"
     Loaded="OnLoaded">

@@ -2,6 +2,7 @@
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
+using Windows.UI;
 
 namespace MuhasibPro.Controls;
 
@@ -12,6 +13,7 @@ public class FormAutoSuggestBox : Control, IFormControl
     private Border _borderElement;
     private AutoSuggestBox _autoSuggestBox = null;
     private Border _displayContent = null;
+    private TextBlock _errorTextBlock = null; // ← BUNU EKLEYİN
 
     private bool _isInitialized = false;
 
@@ -217,6 +219,7 @@ public class FormAutoSuggestBox : Control, IFormControl
         _borderElement = base.GetTemplateChild("BorderElement") as Border;
         _autoSuggestBox = base.GetTemplateChild("AutoSuggestBox") as AutoSuggestBox;
         _displayContent = base.GetTemplateChild("DisplayContent") as Border;
+        _errorTextBlock = base.GetTemplateChild("ErrorTextBlock") as TextBlock; // ← EKLEYİN
 
         _autoSuggestBox.TextChanged += (s, a) => TextChanged?.Invoke(s, a);
         _autoSuggestBox.SuggestionChosen += (s, a) => SuggestionChosen?.Invoke(s, a);
@@ -332,4 +335,90 @@ public class FormAutoSuggestBox : Control, IFormControl
 
     private readonly Brush TransparentBrush = new SolidColorBrush(Colors.Transparent);
     private readonly Brush OpaqueBrush = new SolidColorBrush(Colors.White);
+
+    #region Validation Properties
+
+    public string ErrorMessage
+    {
+        get { return (string)GetValue(ErrorMessageProperty); }
+        set { SetValue(ErrorMessageProperty, value); }
+    }
+
+    public static readonly DependencyProperty ErrorMessageProperty =
+        DependencyProperty.Register(
+            nameof(ErrorMessage),
+            typeof(string),
+            typeof(FormTextBox),
+            new PropertyMetadata(null, OnErrorMessageChanged));
+
+    public bool HasError
+    {
+        get { return (bool)GetValue(HasErrorProperty); }
+        set { SetValue(HasErrorProperty, value); }
+    }
+
+    public static readonly DependencyProperty HasErrorProperty =
+        DependencyProperty.Register(
+            nameof(HasError),
+            typeof(bool),
+            typeof(FormTextBox),
+            new PropertyMetadata(false, OnHasErrorChanged));
+
+    private static void OnErrorMessageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = d as FormAutoSuggestBox;
+        var errorMessage = e.NewValue as string;
+        control.HasError = !string.IsNullOrEmpty(errorMessage);
+        control.UpdateValidationState();
+    }
+
+    private static void OnHasErrorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = d as FormAutoSuggestBox;
+        control.UpdateValidationState();
+    }
+    public void ClearError()
+    {
+        ErrorMessage = null;
+        HasError = false;
+    }
+
+    public void SetError(string errorMessage)
+    {
+        ErrorMessage = errorMessage;
+        HasError = true;
+    }
+
+    private void UpdateValidationState()
+    {
+        if (_isInitialized && _borderElement != null)
+        {
+            if (HasError && !string.IsNullOrEmpty(ErrorMessage))
+            {
+                // Koyu temaya uygun kırmızı border
+                _borderElement.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 211, 47, 47));
+                _borderElement.BorderThickness = new Thickness(2);
+
+                // Hata mesajını göster
+                if (_errorTextBlock != null)
+                {
+                    _errorTextBlock.Text = ErrorMessage;
+                    _errorTextBlock.Visibility = Visibility.Visible;
+                }
+            }
+            else
+            {
+                // Normal border'a dön
+                _borderElement.BorderBrush = (Brush)GetValue(BorderBrushProperty);
+                _borderElement.BorderThickness = (Thickness)GetValue(BorderThicknessProperty);
+
+                // Hata mesajını gizle
+                if (_errorTextBlock != null)
+                {
+                    _errorTextBlock.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+        #endregion
+    }
 }

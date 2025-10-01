@@ -21,7 +21,9 @@ namespace MuhasibPro.Views.Shell
             this.InitializeComponent();
             InitializeNavigation();
             InitializeContext();
+            this.Loaded += OnLoaded;
         }
+        public INotificationService NotificationService => Ioc.Default.GetService<INotificationService>();
         public ShellViewModel ViewModel { get; private set; }
 
         private void InitializeNavigation()
@@ -64,5 +66,15 @@ namespace MuhasibPro.Views.Shell
         {
             //InitializeContext();
         }
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            NotificationService.Initialize(ValidationInfoBar);
+
+            if (ViewModel != null)
+            {
+                ViewModel.NotificationService = NotificationService;
+            }
+        }
+
     }
 }

@@ -3,7 +3,7 @@ using Muhasebe.Business.Common;
 using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Domain.Enum;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Manager;
+using MuhasibPro.ViewModels.Helpers;
 using System.Diagnostics;
 
 namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
@@ -14,22 +14,23 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 
         public ViewModelBase(ICommonServices commonServices)
         {
-            StatusBarManager.Initialize(DispatcherQueue.GetForCurrentThread());
+            StatusBarHelpers.Initialize(DispatcherQueue.GetForCurrentThread());
             ContextService = commonServices.ContextService;
             NavigationService = commonServices.NavigationService;
             MessageService = commonServices.MessageService;
             DialogService = commonServices.DialogService;
             LogService = commonServices.LogService;
+            NotificationService = commonServices.NotificationService;
 
             // MessageService'e context'i kaydet (WinUI 3 için)
             if (MessageService is IMessageService msgService)
             {
                 MessageService.RegisterContext(ContextService.ContextId, ContextService);
             }
-            StatusBar = StatusBarManager.Instance;
+            StatusBar = StatusBarHelpers.Instance;
         }
 
-        public StatusBarManager StatusBar { get; private set; }
+        public StatusBarHelpers StatusBar { get; private set; }
 
         public IContextService ContextService { get; }
 
@@ -40,6 +41,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
         public IDialogService DialogService { get; }
 
         public ILogService LogService { get; }
+        public INotificationService NotificationService { get; set; }
 
         public bool IsMainWindow => ContextService.IsMainView;
 

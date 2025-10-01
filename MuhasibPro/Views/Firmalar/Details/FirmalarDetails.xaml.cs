@@ -1,6 +1,4 @@
-﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using MuhasibPro.ViewModels.Common;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
+﻿using MuhasibPro.ViewModels.ViewModels.Firmalar;
 using MuhasibPro.Views.Firma;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -10,12 +8,12 @@ namespace MuhasibPro.Views.Firmalar.Details
 {
     public sealed partial class FirmalarDetails : UserControl
     {
-        public IValidationHelper ValidationHelper { get; } = Ioc.Default.GetService<IValidationHelper>();
+   
         public FirmalarDetails()
         {
-            InitializeComponent();
-
+            InitializeComponent();           
         }
+        
         #region ViewModel
         public FirmaDetailsViewModel ViewModel
         {
@@ -25,17 +23,7 @@ namespace MuhasibPro.Views.Firmalar.Details
 
         public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register(nameof(ViewModel), typeof(FirmaDetailsViewModel), typeof(FirmaCard), new PropertyMetadata(null));
 
-        #endregion
+        #endregion   
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
-        {
-            ValidationHelper.RegisterAllControls(this);
-        }
-
-        private void UserControl_Unloaded(object sender, RoutedEventArgs e)
-        {
-            ValidationHelper.ClearRegisteredControls();
-
-        }
     }
 }

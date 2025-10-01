@@ -2,9 +2,9 @@
 using FluentValidation;
 using Muhasebe.Business.Models.SistemModel;
 using Muhasebe.Business.Validations.SistemValidations;
-using MuhasibPro.ViewModels.Common;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
 using MuhasibPro.ViewModels.Contracts.SistemServices;
+using MuhasibPro.ViewModels.ViewModels.Common;
 using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.ViewModels.Firmalar;

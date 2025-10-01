@@ -2,7 +2,6 @@
 using Muhasebe.Domain.Entities.DegerlerEntity;
 using Muhasebe.Domain.Helpers;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
 using MuhasibPro.ViewModels.ViewModels.Firmalar;
 using MuhasibPro.ViewModels.ViewModels.Settings;

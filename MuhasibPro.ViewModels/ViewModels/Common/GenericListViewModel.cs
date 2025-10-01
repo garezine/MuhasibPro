@@ -1,18 +1,17 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Muhasebe.Business.Common;
-using MuhasibPro.Controls;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure;
+using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Windows.Input;
 
-namespace MuhasibPro.ViewModels.Common;
+namespace MuhasibPro.ViewModels.ViewModels.Common;
 public abstract partial class GenericListViewModel<TModel> : ViewModelBase where TModel : ObservableObject
 {
     protected GenericListViewModel(ICommonServices commonServices) : base(commonServices)
     {
     }
-    public override string Title => String.IsNullOrEmpty(Query) ? $" ({ItemsCount})" : $" ({ItemsCount} for \"{Query}\")";
+    public override string Title => string.IsNullOrEmpty(Query) ? $" ({ItemsCount})" : $" ({ItemsCount} for \"{Query}\")";
 
     private IList<TModel> _items = null;
     public IList<TModel> Items
@@ -28,7 +27,7 @@ public abstract partial class GenericListViewModel<TModel> : ViewModelBase where
         set => Set(ref _itemsCount, value);
     }
 
-    private TModel _selectedItem = default(TModel);
+    private TModel _selectedItem = default;
     public TModel SelectedItem
     {
         get => _selectedItem;

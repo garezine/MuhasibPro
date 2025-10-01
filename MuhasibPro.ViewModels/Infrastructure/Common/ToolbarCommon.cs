@@ -1,5 +1,4 @@
-﻿namespace MuhasibPro.Controls;
-public enum ToolbarButton
+﻿public enum ToolbarButton
 {
     Back,
     New,

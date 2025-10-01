@@ -10,14 +10,15 @@ public class CommonServices : ICommonServices
         INavigationService navigationService,
         IMessageService messageService,
         IDialogService dialogService,
-        ILogService logService)
+        ILogService logService,
+        INotificationService notificationService)
     {
         ContextService = contextService;
         NavigationService = navigationService;
         MessageService = messageService;
         DialogService = dialogService;
         LogService = logService;
-
+        NotificationService = notificationService;
     }
 
     public IContextService ContextService { get; }
@@ -29,4 +30,7 @@ public class CommonServices : ICommonServices
     public IDialogService DialogService { get; }
 
     public ILogService LogService { get; }
+    public INotificationService NotificationService { get; }
+
+
 }

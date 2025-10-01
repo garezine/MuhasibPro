@@ -10,44 +10,65 @@
     mc:Ignorable="d">
 
     <Grid>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="30" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid
-                x:Name="AppTitleBar"
-                Height="20"
-                Margin="0 5"
-                VerticalAlignment="Top"
-                Canvas.ZIndex="1"
-                IsHitTestVisible="True">
-                <TextBlock
-                    x:Name="AppTitleBarText"
-                    Margin="20,0,0,0"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    TextWrapping="NoWrap"
-                    x:FieldModifier="public" />                
-            </Grid>
-            <Grid Grid.Row="1">
-                
-                <Frame x:Name="frame" IsEnabled="{x:Bind ViewModel.IsEnabled, Mode=OneWay}">
-                    <Frame.ContentTransitions>
-                        <TransitionCollection>
-                            <NavigationThemeTransition />
-                        </TransitionCollection>
-                    </Frame.ContentTransitions>
-                </Frame>
-            </Grid>
-            <Grid Grid.Row="2">
-                <Rectangle Fill="{StaticResource Error}" Visibility="{x:Bind ViewModel.IsError,Mode=OneWay}" />
-                <local:ShellStatusBar                   
-                    />
-            </Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid
+            x:Name="AppTitleBar"
+            Height="20"
+            Margin="0 5"
+            VerticalAlignment="Top"
+            Canvas.ZIndex="1"
+            IsHitTestVisible="True">
+            <TextBlock
+                x:Name="AppTitleBarText"
+                Margin="20,0,0,0"
+                VerticalAlignment="Center"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                TextWrapping="NoWrap"
+                x:FieldModifier="public" />
         </Grid>
 
+        <!-- Frame Grid.Row="1" içinde -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!-- InfoBar için -->
+                <RowDefinition Height="*" />
+                <!-- Frame için -->
+            </Grid.RowDefinitions>
+
+            <!-- InfoBar kendi satırında -->
+            <InfoBar
+                x:Name="ValidationInfoBar"
+                Grid.Row="0"
+                Margin="6,6,6,0"
+                HorizontalAlignment="Stretch"
+                IsClosable="True"
+                IsOpen="False" />
+
+            <!-- Frame altta -->
+            <Frame
+                x:Name="frame"
+                Grid.Row="1"
+                IsEnabled="{x:Bind ViewModel.IsEnabled, Mode=OneWay}">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <NavigationThemeTransition />
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Rectangle Fill="{StaticResource Error}" Visibility="{x:Bind ViewModel.IsError,Mode=OneWay}" />
+            <local:ShellStatusBar />
+        </Grid>
+
+        <!-- Lock screen kısmı aynen kalabilir -->
         <Grid Grid.Row="2" Visibility="{x:Bind ViewModel.IsLocked, Mode=OneWay}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="3*" />

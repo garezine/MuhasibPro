@@ -2,11 +2,11 @@
 using Muhasebe.Business.Models.SistemModel;
 using Muhasebe.Domain.Entities.SistemEntity;
 using Muhasebe.Domain.Helpers;
-using MuhasibPro.ViewModels.Common;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
 using MuhasibPro.ViewModels.Contracts.SistemServices;
-using MuhasibPro.ViewModels.Infrastructure;
+using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
+using MuhasibPro.ViewModels.ViewModels.Common;
 using System.Linq.Expressions;
 using System.Windows.Input;
 

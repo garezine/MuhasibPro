@@ -26,7 +26,10 @@ namespace MuhasibPro.HostBuilders
                 services.AddScoped<INavigationService, NavigationService>();
                 services.AddScoped<IMessageService, MessageService>();
                 services.AddScoped<IDialogService, DialogService>();
-                services.AddScoped<ICommonServices, CommonServices>();
+
+                services.AddScoped<INotificationService, NotificationService>();
+
+                services.AddScoped<ICommonServices, CommonServices>();               
 
                 //LogServices
                 services.AddScoped<ISistemLogService, SistemLogService>();

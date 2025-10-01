@@ -1,6 +1,6 @@
 ﻿using Muhasebe.Business.Models.SistemModel;
-using MuhasibPro.ViewModels.Common;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
+using MuhasibPro.ViewModels.ViewModels.Common;
 
 namespace MuhasibPro.ViewModels.ViewModels.CalismaDonem
 {

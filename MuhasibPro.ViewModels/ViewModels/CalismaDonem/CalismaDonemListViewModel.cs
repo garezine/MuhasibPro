@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Muhasebe.Business.Models.SistemModel;
-using MuhasibPro.ViewModels.Common;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
+using MuhasibPro.ViewModels.ViewModels.Common;
 using System.Linq.Expressions;
 using System.Windows.Input;
 

@@ -1,4 +1,4 @@
-﻿namespace MuhasibPro.ViewModels.Infrastructure;
+﻿namespace MuhasibPro.ViewModels.Infrastructure.Common;
 
 public class IndexRange
 {

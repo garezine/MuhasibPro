@@ -9,4 +9,6 @@ public interface ICommonServices
     IMessageService MessageService { get; }
     IDialogService DialogService { get; }
     ILogService LogService { get; }
+    INotificationService NotificationService { get; }
+
 }

@@ -1,11 +1,11 @@
 ﻿using Microsoft.UI.Dispatching;
 using System.ComponentModel;
 
-namespace MuhasibPro.ViewModels.Manager
+namespace MuhasibPro.ViewModels.Helpers
 {
-    public class StatusBarManager : INotifyPropertyChanged
+    public class StatusBarHelpers : INotifyPropertyChanged
     {
-        private static StatusBarManager _instance;
+        private static StatusBarHelpers _instance;
         private static readonly object _lock = new object();
 
 
@@ -17,7 +17,7 @@ namespace MuhasibPro.ViewModels.Manager
         private bool _isStatusProgress;
         private bool _isDatabaseConnection;
 
-        public static StatusBarManager Instance
+        public static StatusBarHelpers Instance
         {
             get
             {
@@ -26,7 +26,7 @@ namespace MuhasibPro.ViewModels.Manager
                     lock (_lock)
                     {
                         if (_instance == null)
-                            _instance = new StatusBarManager();
+                            _instance = new StatusBarHelpers();
                     }
                 }
                 return _instance;
@@ -41,7 +41,7 @@ namespace MuhasibPro.ViewModels.Manager
             dispatcherQueue = queue ?? throw new ArgumentNullException(nameof(queue));
         }
 
-        private StatusBarManager()
+        private StatusBarHelpers()
         {
             // Fallback olarak mevcut thread'in dispatcher'ını al
             dispatcherQueue ??= DispatcherQueue.GetForCurrentThread();

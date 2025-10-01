@@ -1,5 +1,6 @@
 ﻿using Microsoft.UI;
 using Microsoft.UI.Xaml.Media;
+using Windows.UI;
 
 namespace MuhasibPro.Controls;
 
@@ -8,6 +9,7 @@ public class FormComboBox : ComboBox, IFormControl
     public event EventHandler<FormVisualState> VisualStateChanged;
 
     private Border _backgroundBorder = null;
+    private TextBlock _errorTextBlock = null; // ← BUNU EKLEYİN
 
     private bool _isInitialized = false;
 
@@ -47,7 +49,7 @@ public class FormComboBox : ComboBox, IFormControl
     protected override void OnApplyTemplate()
     {
         _backgroundBorder = base.GetTemplateChild("Background") as Border;
-
+        _errorTextBlock = base.GetTemplateChild("ErrorTextBlock") as TextBlock; // ← EKLEYİN
         _isInitialized = true;
 
         UpdateMode();
@@ -137,4 +139,91 @@ public class FormComboBox : ComboBox, IFormControl
 
     private readonly Brush TransparentBrush = new SolidColorBrush(Colors.Transparent);
     private readonly Brush OpaqueBrush = new SolidColorBrush(Colors.White);
+
+    #region Validation Properties
+
+    public string ErrorMessage
+    {
+        get { return (string)GetValue(ErrorMessageProperty); }
+        set { SetValue(ErrorMessageProperty, value); }
+    }
+
+    public static readonly DependencyProperty ErrorMessageProperty =
+        DependencyProperty.Register(
+            nameof(ErrorMessage),
+            typeof(string),
+            typeof(FormTextBox),
+            new PropertyMetadata(null, OnErrorMessageChanged));
+
+    public bool HasError
+    {
+        get { return (bool)GetValue(HasErrorProperty); }
+        set { SetValue(HasErrorProperty, value); }
+    }
+
+    public static readonly DependencyProperty HasErrorProperty =
+        DependencyProperty.Register(
+            nameof(HasError),
+            typeof(bool),
+            typeof(FormTextBox),
+            new PropertyMetadata(false, OnHasErrorChanged));
+
+    private static void OnErrorMessageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = d as FormComboBox;
+        var errorMessage = e.NewValue as string;
+        control.HasError = !string.IsNullOrEmpty(errorMessage);
+        control.UpdateValidationState();
+    }
+
+    private static void OnHasErrorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = d as FormComboBox;
+        control.UpdateValidationState();
+    }
+    public void ClearError()
+    {
+        ErrorMessage = null;
+        HasError = false;
+    }
+
+    public void SetError(string errorMessage)
+    {
+        ErrorMessage = errorMessage;
+        HasError = true;
+    }
+
+    private void UpdateValidationState()
+    {
+        if (_isInitialized && _backgroundBorder != null)
+        {
+            if (HasError && !string.IsNullOrEmpty(ErrorMessage))
+            {
+                // Koyu temaya uygun kırmızı border
+                _backgroundBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 211, 47, 47));
+                _backgroundBorder.BorderThickness = new Thickness(2);
+
+                // Hata mesajını göster
+                if (_errorTextBlock != null)
+                {
+                    _errorTextBlock.Text = ErrorMessage;
+                    _errorTextBlock.Visibility = Visibility.Visible;
+                }
+            }
+            else
+            {
+                // Normal border'a dön
+                _backgroundBorder.BorderBrush = (Brush)GetValue(BorderBrushProperty);
+                _backgroundBorder.BorderThickness = (Thickness)GetValue(BorderThicknessProperty);
+
+                // Hata mesajını gizle
+                if (_errorTextBlock != null)
+                {
+                    _errorTextBlock.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+        #endregion
+
+    }
 }

@@ -1,131 +1,80 @@
-﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using FluentValidation;
 using Muhasebe.Business.Common;
 using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure;
+using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
+
 using System.Windows.Input;
 
-namespace MuhasibPro.ViewModels.Common;
+namespace MuhasibPro.ViewModels.ViewModels.Common;
 
 public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TModel : ObservableObject, new()
 {
     protected GenericDetailsViewModel(ICommonServices commonServices) : base(commonServices)
-    {
-
+    {       
     }
-    private readonly IValidationHelper ValidationHelper = Ioc.Default.GetService<IValidationHelper>();
+
     public bool IsDataAvailable => _item != null;
+
     public bool IsDataUnavailable => !IsDataAvailable;
 
     public bool CanGoBack => !IsMainWindow && NavigationService.CanGoBack;
 
+
     private TModel _item = null;
+
     public TModel Item
     {
         get => _item;
         set
         {
-            if (Set(ref _item, value))
+            if(Set(ref _item, value))
             {
                 EditableItem = _item;
-                IsEnabled = (!_item?.IsEmpty) ?? false;
+                IsEnabled = !_item?.IsEmpty ?? false;
                 NotifyPropertyChanged(nameof(IsDataAvailable));
                 NotifyPropertyChanged(nameof(IsDataUnavailable));
-                NotifyPropertyChanged(nameof(Title));
+                NotifyPropertyChanged(nameof(Title));                
             }
         }
     }
 
     private TModel _editableItem = null;
-    public TModel EditableItem
-    {
-        get => _editableItem;
-        set => Set(ref _editableItem, value);
-    }
+
+    public TModel EditableItem { get => _editableItem; set => Set(ref _editableItem, value); }
 
     private bool _isEditMode = false;
-    public bool IsEditMode
-    {
-        get => _isEditMode;
-        set => Set(ref _isEditMode, value);
-    }
+
+    public bool IsEditMode { get => _isEditMode; set => Set(ref _isEditMode, value); }
 
     private bool _isEnabled = true;
-    public bool IsEnabled
-    {
-        get => _isEnabled;
-        set => Set(ref _isEnabled, value);
-    }
-    private bool _canSave = true;
 
-    public bool CanSave
-    {
-        get => _canSave;
-        set
-        {
-            if (_canSave != value)
-            {
-                _canSave = value;
-                Set(ref _canSave, value);
-                OnCanSaveChanged();
-            }
-        }
-    }
-    protected virtual bool OnSaveAttempt()
-    {
-        if (!ValidationHelper.AreAllControlsValid())
-        {
-            // İlk hatalı alana focus yap
-            ValidationHelper.FocusFirstInvalidControl();
+    public bool IsEnabled { get => _isEnabled; set => Set(ref _isEnabled, value); }
 
-            // Hata mesajlarını göster (isteğe bağlı)
-            var errors = ValidationHelper.GetValidationErrors();
-            if (errors.Any())
-            {
-                ShowValidationErrors(errors);
-            }
-
-            return false;
-        }
-
-        return true;
-    }
-    protected virtual void ShowValidationErrors(List<string> errors)
-    {
-        var message = "Lütfen aşağıdaki hataları düzeltin:\n\n" + string.Join("\n", errors);
-        ShowErrorMessage(message);
-    }
-    private void ShowErrorMessage(string message)
-    {
-        // ContentDialog, Notification, vs. kullanabilirsiniz
-        // Örnek: await ShowMessageDialogAsync("Hata", message);
-    }
-    protected virtual void OnCanSaveChanged()
-    {
-        ((RelayCommand)SaveCommand).NotifyCanExecuteChanged();
-    }
     public ICommand BackCommand => new RelayCommand(OnBack);
+
     virtual protected void OnBack()
     {
         StatusReady();
-        if (NavigationService.CanGoBack)
+        if(NavigationService.CanGoBack)
         {
             NavigationService.GoBack();
         }
     }
 
     public ICommand EditCommand => new RelayCommand(OnEdit);
+
     virtual protected void OnEdit()
     {
         StatusReady();
         BeginEdit();
         MessageService.Send(this, "BeginEdit", Item);
     }
+
     virtual public void BeginEdit()
     {
-        if (!IsEditMode)
+        if(!IsEditMode)
         {
             IsEditMode = true;
             // Create a copy for edit
@@ -136,22 +85,24 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
     }
 
     public ICommand CancelCommand => new RelayCommand(OnCancel);
+
     virtual protected void OnCancel()
     {
         StatusReady();
         CancelEdit();
         MessageService.Send(this, "CancelEdit", Item);
     }
+
     virtual public void CancelEdit()
     {
+        ValidationErrors = new(); // ← Hataları temizle
         if (ItemIsNew)
         {
             // We were creating a new item: cancel means exit
-            if (NavigationService.CanGoBack)
+            if(NavigationService.CanGoBack)
             {
                 NavigationService.GoBack();
-            }
-            else
+            } else
             {
                 NavigationService.CloseViewAsync();
             }
@@ -159,7 +110,7 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
         }
 
         // We were editing an existing item: just cancel edition
-        if (IsEditMode)
+        if(IsEditMode)
         {
             EditableItem = Item;
         }
@@ -167,30 +118,33 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
     }
 
     public ICommand SaveCommand => new RelayCommand(OnSave);
+
     virtual protected async void OnSave()
     {
         StatusReady();
-        if (!OnSaveAttempt())
-        {
-            return; // Validasyon hatası varsa kaydetme
-        }
-        var result = Validate(EditableItem);
-        if (result.IsOk)
+
+        var validationResult = ValidateModel(EditableItem);
+        ValidationErrors = validationResult.Errors;
+
+        if (validationResult.IsValid)
         {
             await SaveAsync();
         }
         else
         {
-            await DialogService.ShowMessageAsync(result.Message, $"{result.Description}");
+            var errorCount = validationResult.Errors.Sum(e => e.Value.Count);
+            NotificationService?.ShowError(
+                $"Doğrulama Hatası ({errorCount} adet)",
+                $"Lütfen hatalı alanları düzeltip tekrar deneyin");
         }
     }
+
     virtual public async Task SaveAsync()
     {
         IsEnabled = false;
         bool isNew = ItemIsNew;
         if (await SaveItemAsync(EditableItem))
         {
-            StatusBar.SetSaveStatus(true);
             Item.Merge(EditableItem);
             Item.NotifyChanges();
             NotifyPropertyChanged(nameof(Title));
@@ -199,58 +153,98 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
             if (isNew)
             {
                 MessageService.Send(this, "NewItemSaved", Item);
+                NotificationService?.ShowSuccess(
+                    "Başarılı",
+                    "Yeni kayıt başarıyla oluşturuldu.");
             }
             else
             {
                 MessageService.Send(this, "ItemChanged", Item);
+                NotificationService?.ShowSuccess(
+                    "Başarılı",
+                    "Değişiklikler başarıyla kaydedildi.");
             }
             IsEditMode = false;
 
             NotifyPropertyChanged(nameof(ItemIsNew));
         }
         IsEnabled = true;
-        StatusBar.SetSaveStatus(false);
     }
 
     public ICommand DeleteCommand => new RelayCommand(OnDelete);
+
     virtual protected async void OnDelete()
     {
         StatusReady();
-        if (await ConfirmDeleteAsync())
+        if(await ConfirmDeleteAsync())
         {
             await DeleteAsync();
         }
-
     }
+
     virtual public async Task DeleteAsync()
     {
         var model = Item;
-        if (model != null)
+        if(model != null)
         {
             IsEnabled = false;
-            if (await DeleteItemAsync(model))
+            if(await DeleteItemAsync(model))
             {
-                StatusBar.ShowProgress("İşlem yapılıyor...");
                 MessageService.Send(this, "ItemDeleted", model);
-            }
-            else
+            } else
             {
                 IsEnabled = true;
             }
         }
-        StatusBar.HideProgress();
     }
 
-    public virtual Result Validate(TModel model)
+    private Dictionary<string, List<string>> _validationErrors = new();
+    public Dictionary<string, List<string>> ValidationErrors
     {
+        get => _validationErrors;
+        set => Set(ref _validationErrors, value);
+    }
+    public virtual ValidationResult ValidateModel(TModel model)
+    {
+        var errors = new Dictionary<string, List<string>>();
+
         foreach (var constraint in GetValidationConstraints(model))
         {
             var result = constraint.Validate(model);
             if (!result.IsValid)
             {
-                return Result.Error("Doğrulama Hatası", string.Join("\n", result.Errors.Select(e => e.ErrorMessage)));
+                foreach (var error in result.Errors)
+                {
+                    var propertyName = error.PropertyName;
+
+                    if (!errors.ContainsKey(propertyName))
+                    {
+                        errors[propertyName] = new List<string>();
+                    }
+
+                    errors[propertyName].Add(error.ErrorMessage);
+                }
             }
         }
+
+        return new ValidationResult
+        {
+            IsValid = errors.Count == 0,
+            Errors = errors
+        };
+    }
+    public virtual Result Validate(TModel model)
+    {
+        var validationResult = ValidateModel(model);
+
+        if (!validationResult.IsValid)
+        {
+            var allErrors = string.Join("\n",
+                validationResult.Errors.SelectMany(e => e.Value));
+
+            return Result.Error("Doğrulama Hatası", allErrors);
+        }
+
         return Result.Ok();
     }
 
@@ -264,5 +258,7 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
     protected abstract Task<bool> DeleteItemAsync(TModel model);
 
     protected abstract Task<bool> ConfirmDeleteAsync();
+
+
 }
 

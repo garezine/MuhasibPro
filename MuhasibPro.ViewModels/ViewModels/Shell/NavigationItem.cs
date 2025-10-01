@@ -1,7 +1,7 @@
 ﻿using Muhasebe.Business.Common;
 using System.Collections.ObjectModel;
 
-namespace MuhasibPro.ViewModels.Infrastructure.ViewModels;
+namespace MuhasibPro.ViewModels.ViewModels.Shell;
 
 public class NavigationItem : ObservableObject
 {
