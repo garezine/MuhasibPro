@@ -21,7 +21,10 @@
     <IsAotCompatible>true</IsAotCompatible>
     <CsWinRTAotWarningLevel>0</CsWinRTAotWarningLevel>
     <WindowsPackageType>None</WindowsPackageType>
+	  <SatelliteResourceLanguages>tr-TR</SatelliteResourceLanguages>
+	  
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+	  
     <Version>1.0.0</Version>
     <!--Remove git hash from assembly informational version in .NET >= 8, Example: false = 1.0.0, true = 1.0.0+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
@@ -109,4 +112,15 @@
   <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
+	<Target Name="RemoveFoldersWithMuiFiles" AfterTargets="Build;Publish">
+		<ItemGroup>
+			<RemovingFiles Include="$(OutDir)*\*.mui" Exclude="$(OutDir)en-us\*.mui;$(OutDir)tr-TR\*.mui" />
+			<RemovingFolders Include="@(RemovingFiles->'%(RootDir)%(Directory)')" />
+			<!-- Publish dizini için de ekle -->
+			<PublishRemovingFiles Include="$(PublishDir)*\*.mui" Exclude="$(PublishDir)en-us\*.mui;$(PublishDir)tr-TR\*.mui" />
+			<PublishRemovingFolders Include="@(PublishRemovingFiles->'%(RootDir)%(Directory)')" />
+		</ItemGroup>
+		<Message Text="Removing unwanted MUI files and folders..." Importance="normal" />
+		<RemoveDir Directories="@(RemovingFolders);@(PublishRemovingFolders)" ContinueOnError="true" />
+	</Target>
 </Project>
