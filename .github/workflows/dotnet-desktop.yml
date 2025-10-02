@@ -86,12 +86,14 @@ jobs:
             /p:RuntimeIdentifier=win-x64 `
             /p:SelfContained=true `
             /p:PublishReadyToRun=false `
-            /p:PublishDir="$absolutePublishPath" `
+            /p:PublishDir="$absolutePublishPath\" `
             /p:WindowsAppSdkSelfContained=true `
             /p:SkipPriGeneration=true `
             /p:EnableMrtGeneration=false `
             /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
+            /p:ErrorOnDuplicatePublishOutputFiles=false `
+            /p:ProduceReferenceAssembly=false `
             /verbosity:minimal `
             /nologo
       
@@ -100,11 +102,29 @@ jobs:
             exit 1
           }
           
+          # Clean up duplicate files if any exist
+          Write-Host "Cleaning up potential duplicate files..."
+          $duplicatePatterns = @("*.pdb", "*.xml", "*.deps.json")
+          foreach ($pattern in $duplicatePatterns) {
+            $files = Get-ChildItem -Path $publishPath -Filter $pattern -Recurse -File
+            $grouped = $files | Group-Object -Property Name
+            foreach ($group in $grouped) {
+              if ($group.Count -gt 1) {
+                Write-Host "Found duplicate: $($group.Name)"
+                # Keep only the first occurrence
+                $group.Group | Select-Object -Skip 1 | ForEach-Object {
+                  Write-Host "  Removing: $($_.FullName)"
+                  Remove-Item $_.FullName -Force
+                }
+              }
+            }
+          }
+          
           # Quick validation
           $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
           if (Test-Path $mainExe) {
             $exeSize = (Get-Item $mainExe).Length / 1MB
-            $fileCount = (Get-ChildItem $publishPath -File).Count
+            $fileCount = (Get-ChildItem $publishPath -File -Recurse).Count
             Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
           } else {
             Write-Host "Main executable not found"
