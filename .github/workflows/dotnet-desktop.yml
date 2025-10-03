@@ -83,11 +83,11 @@ jobs:
           # WINUI 3 İÇİN DOĞRU AYARLAR
           dotnet publish "${{ env.PROJECT_PATH }}" `
             --configuration Release `
-            --runtime win-x64 `  # 🚨 DEĞİŞTİR: win-x64 -> win10-x64
-            --self-contained true `
+            --runtime win-x64 `  # 🚨 DEĞİŞTİR: win-x64 -> win10-x64            
             --output "$absolutePublishPath" `
             -p:PublishReadyToRun=false `
             -p:PublishSingleFile=false `
+            /p:SelfContained=true `
             -p:WindowsAppSdkSelfContained=true `
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:SkipPriGeneration=true `
