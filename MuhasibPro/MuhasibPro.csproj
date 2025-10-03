@@ -10,19 +10,20 @@
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
-	<SelfContained>true</SelfContained>
+	
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>annotations</Nullable>
     <TrimMode>partial</TrimMode>
-	  
+	<PublishReadyToRun>false</PublishReadyToRun>
+	<PublishSingleFile>false</PublishSingleFile>  
     <ImplicitUsings>true</ImplicitUsings>
     <LangVersion>Latest</LangVersion>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <IsAotCompatible>true</IsAotCompatible>
     <CsWinRTAotWarningLevel>0</CsWinRTAotWarningLevel>
     <WindowsPackageType>None</WindowsPackageType>
-	  <SatelliteResourceLanguages>tr-TR</SatelliteResourceLanguages>
+	<SatelliteResourceLanguages>tr-TR</SatelliteResourceLanguages>
 	  
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 	  
@@ -33,10 +34,7 @@
   <!-- Publish Properties -->
   <PropertyGroup>
     <PublishAot>False</PublishAot>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    
   </PropertyGroup>
   <ItemGroup>
     <None Include="Assets\**\*">
