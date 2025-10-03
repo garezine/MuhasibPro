@@ -2,13 +2,13 @@
 using Microsoft.Extensions.Hosting;
 using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Business.Services.Concrete.Common;
+using MuhasibPro.Contracts.BaseAppServices;
+using MuhasibPro.Contracts.CommonServices;
+using MuhasibPro.Contracts.SistemServices.DatabaseServices;
 using MuhasibPro.Services.BaseServices;
 using MuhasibPro.Services.CommonServices;
 using MuhasibPro.Services.SistemServices.DatabaseServices;
 using MuhasibPro.Tools;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
 
 namespace MuhasibPro.HostBuilders
 {

@@ -15,6 +15,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>annotations</Nullable>
     <TrimMode>partial</TrimMode>
+	  
     <ImplicitUsings>true</ImplicitUsings>
     <LangVersion>Latest</LangVersion>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
@@ -86,13 +87,14 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.6584" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.250916003" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="3.0.0" />
+    <PackageReference Include="Velopack" Version="0.0.1298" />
     <PackageReference Include="WinUIEx" Version="2.8.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj" />
+    <Folder Include="Collections\MuhasebeCollection\" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Collections\MuhasebeCollection\" />
+    <ProjectReference Include="..\Libraries\Muhasebe.Business\Muhasebe.Business.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\ViewWindow\ListWindow.xaml">

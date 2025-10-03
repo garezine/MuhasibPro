@@ -3,12 +3,12 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using Muhasebe.Business.Services.Abstracts.Common;
+using MuhasibPro.Contracts.BaseAppServices;
+using MuhasibPro.Contracts.CommonServices;
 using MuhasibPro.Helpers.Common;
 using MuhasibPro.Services.CommonServices;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Settings;
-using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.ViewModels.Settings;
+using MuhasibPro.ViewModels.Shell;
 using System.Windows.Input;
 using Windows.System;
 

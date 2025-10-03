@@ -1,5 +1,5 @@
 ﻿using Microsoft.UI.Dispatching;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
+using MuhasibPro.Contracts.CommonServices;
 
 namespace MuhasibPro.Services.CommonServices
 {

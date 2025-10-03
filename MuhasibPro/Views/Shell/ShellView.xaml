@@ -64,7 +64,7 @@
         </Grid>
 
         <Grid Grid.Row="2">
-            <Rectangle Fill="{StaticResource Error}" Visibility="{x:Bind ViewModel.IsError,Mode=OneWay}" />
+            
             <local:ShellStatusBar />
         </Grid>
 

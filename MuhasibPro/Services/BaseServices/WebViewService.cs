@@ -1,5 +1,5 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
+using MuhasibPro.Contracts.BaseAppServices;
 using System.Diagnostics.CodeAnalysis;
 
 

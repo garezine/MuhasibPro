@@ -1,12 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
+using MuhasibPro.Contracts.BaseAppServices;
 using MuhasibPro.Extensions;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.ViewModels.Shell;
 using MuhasibPro.Views.Shell;
 using MuhasibPro.Views.ViewWindow;
 using WinUIEx;
+using MuhasibPro.Helpers;
+using MuhasibPro.ViewModels.Shell;
 
-namespace MuhasibPro.Helpers
+namespace MuhasibPro.Infrastructure.Manager
 {
     public static class WindowManager
     {

@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using Muhasebe.Business.Common;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Dashboard;
+using MuhasibPro.Contracts.BaseAppServices;
+using MuhasibPro.Contracts.CommonServices;
+using MuhasibPro.ViewModels.Dashboard;
 using MuhasibPro.Views.Splash;
 
 

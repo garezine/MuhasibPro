@@ -1,5 +1,5 @@
 ﻿using Muhasebe.Business.Services.Abstracts.Common;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
+using MuhasibPro.Contracts.CommonServices;
 
 namespace MuhasibPro.Services.CommonServices;
 

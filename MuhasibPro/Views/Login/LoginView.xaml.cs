@@ -1,10 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
+using MuhasibPro.Contracts.CommonServices;
 using MuhasibPro.Extensions;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Login;
-using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.ViewModels.Login;
+using MuhasibPro.ViewModels.Shell;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.

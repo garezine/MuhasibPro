@@ -1,7 +1,6 @@
 ﻿using Muhasebe.Business.Services.Abstracts.Common;
+using MuhasibPro.Contracts.CommonServices;
 using MuhasibPro.Helpers;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Helpers;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;

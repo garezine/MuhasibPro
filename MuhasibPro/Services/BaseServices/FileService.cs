@@ -1,4 +1,4 @@
-﻿using MuhasibPro.ViewModels.Contracts.BaseAppServices;
+﻿using MuhasibPro.Contracts.BaseAppServices;
 using Newtonsoft.Json;
 using System.Text;
 

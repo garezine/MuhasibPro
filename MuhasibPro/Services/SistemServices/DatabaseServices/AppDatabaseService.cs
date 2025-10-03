@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Muhasebe.Data.DatabaseManager.AppDatabase;
-using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
+using MuhasibPro.Contracts.SistemServices.DatabaseServices;
 
 namespace MuhasibPro.Services.SistemServices.DatabaseServices
 {

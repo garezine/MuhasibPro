@@ -1,6 +1,6 @@
-﻿using MuhasibPro.Helpers;
+﻿using MuhasibPro.Contracts.BaseAppServices;
+using MuhasibPro.Helpers;
 using MuhasibPro.Helpers.Common;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
 
 namespace MuhasibPro.Services.BaseServices;
 

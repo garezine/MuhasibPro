@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
+using MuhasibPro.Contracts.BaseAppServices;
 using MuhasibPro.Helpers;
 using MuhasibPro.Helpers.Common;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
 using Windows.Storage;
 
 namespace MuhasibPro.Services.BaseServices;

@@ -1,6 +1,6 @@
-﻿using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
-using MuhasibPro.ViewModels.Helpers;
+﻿using MuhasibPro.Contracts.CommonServices;
+using MuhasibPro.Contracts.SistemServices.DatabaseServices;
+using MuhasibPro.Helpers;
 using System.Diagnostics;
 using Velopack;
 using Velopack.Locators;

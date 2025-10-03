@@ -13,8 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Muhasebe.Data", "Libraries\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Muhasebe.Business", "Libraries\Muhasebe.Business\Muhasebe.Business.csproj", "{85CFDC5C-B2C2-4CB7-B8A7-9D7634942802}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MuhasibPro.ViewModels", "MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj", "{9461BC25-E74F-45C9-9F8E-675B70DCE19F}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AE1F0D20-E385-4E7D-935A-35A08373A2DB}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -64,14 +62,6 @@ Global
 		{85CFDC5C-B2C2-4CB7-B8A7-9D7634942802}.Release|ARM64.Build.0 = Release|Any CPU
 		{85CFDC5C-B2C2-4CB7-B8A7-9D7634942802}.Release|x64.ActiveCfg = Release|Any CPU
 		{85CFDC5C-B2C2-4CB7-B8A7-9D7634942802}.Release|x64.Build.0 = Release|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Debug|ARM64.ActiveCfg = Debug|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Debug|ARM64.Build.0 = Debug|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Debug|x64.Build.0 = Debug|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Release|ARM64.ActiveCfg = Release|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Release|ARM64.Build.0 = Release|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Release|x64.ActiveCfg = Release|Any CPU
-		{9461BC25-E74F-45C9-9F8E-675B70DCE19F}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

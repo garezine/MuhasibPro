@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
+using MuhasibPro.Contracts.BaseAppServices;
+using MuhasibPro.Contracts.CommonServices;
 using MuhasibPro.Helpers;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
 
 namespace MuhasibPro.Services.CommonServices;
 

@@ -3,8 +3,8 @@ using Muhasebe.Business.Services.Abstracts.Common;
 using Muhasebe.Domain.Entities.SistemEntity;
 using Muhasebe.Domain.Enum;
 using Muhasebe.Domain.Helpers;
+using MuhasibPro.Contracts.SistemServices;
 using MuhasibPro.Infrastructure.VirtualCollection;
-using MuhasibPro.ViewModels.Contracts.SistemServices;
 
 namespace MuhasibPro.Collections.SistemCollection
 {

@@ -3,10 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Muhasebe.Data.HostBuilders;
+using MuhasibPro.Contracts.BaseAppServices;
+using MuhasibPro.Contracts.SistemServices.DatabaseServices;
 using MuhasibPro.Helpers;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.Contracts.SistemServices.DatabaseServices;
 using System.Diagnostics;
 using Velopack;
 using WinUIEx;
@@ -80,7 +80,7 @@ namespace MuhasibPro
         {
             var systemService = _host.Services.GetRequiredService<ISistemDatabaseService>();
             var success = await systemService.ApplyDatabaseUpdatesAsync();
-
+            
             if (!success) throw new Exception("Sistem DB başlatılamadı!");
         }
         private async Task ActivateAsync(LaunchActivatedEventArgs args)

@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Common;
+using MuhasibPro.Contracts.CommonServices;
+using MuhasibPro.ViewModels.Common;
 using System.Collections.Concurrent;
 using WinRT.Interop;
 

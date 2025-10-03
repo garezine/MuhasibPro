@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MuhasibPro.Contracts.SistemServices;
 using MuhasibPro.Services.SistemServices.FirmaMaliDonemService;
-using MuhasibPro.ViewModels.Contracts.SistemServices;
 
 namespace MuhasibPro.HostBuilders
 {
@@ -17,7 +17,7 @@ namespace MuhasibPro.HostBuilders
 
                 //services.AddScoped<ITenantManagementService, TenantManagementService>();
 
-                services.AddScoped<IFirmaService,FirmaService>();
+                services.AddScoped<IFirmaService, FirmaService>();
                 //services.AddScoped<ICalismaDonemService, CalismaDonemService>();
                 //services.AddScoped<ICalismaDonemDbService, CalismaDonemDbService>();
             });

@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using Muhasebe.Data.Helper;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.ViewModels.Settings;
+using MuhasibPro.Contracts.BaseAppServices;
+using MuhasibPro.ViewModels.Settings;
 
 namespace MuhasibPro.Views.Settings
 {

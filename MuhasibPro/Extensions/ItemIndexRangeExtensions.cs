@@ -1,6 +1,6 @@
 ﻿
 using Microsoft.UI.Xaml.Data;
-using MuhasibPro.ViewModels.Infrastructure.Common;
+using MuhasibPro.Infrastructure.Common;
 
 namespace MuhasibPro.Extensions;
 

@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using MuhasibPro.ViewModels.ViewModels.CalismaDonem;
-using MuhasibPro.ViewModels.ViewModels.Dashboard;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
-using MuhasibPro.ViewModels.ViewModels.Login;
-using MuhasibPro.ViewModels.ViewModels.Settings;
-using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.ViewModels.CalismaDonem;
+using MuhasibPro.ViewModels.Dashboard;
+using MuhasibPro.ViewModels.Firmalar;
+using MuhasibPro.ViewModels.Login;
+using MuhasibPro.ViewModels.Settings;
+using MuhasibPro.ViewModels.Shell;
 
 namespace MuhasibPro.HostBuilders;
 public static class AddAppViewModelHostBuilderExtensions

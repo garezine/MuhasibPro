@@ -7,9 +7,9 @@ using Muhasebe.Domain.Entities.SistemEntity;
 using Muhasebe.Domain.Helpers;
 using Muhasebe.Domain.Helpers.Responses;
 using MuhasibPro.Collections.SistemCollection;
+using MuhasibPro.Contracts.SistemServices;
 using MuhasibPro.Extensions;
 using MuhasibPro.Tools;
-using MuhasibPro.ViewModels.Contracts.SistemServices;
 
 namespace MuhasibPro.Services.SistemServices.FirmaMaliDonemService
 {

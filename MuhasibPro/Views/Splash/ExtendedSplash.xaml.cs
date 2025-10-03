@@ -3,9 +3,9 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Muhasebe.Business.Models.SistemModel;
 using Muhasebe.Data.Helper;
 using MuhasibPro.Configurations;
+using MuhasibPro.Contracts.BaseAppServices;
 using MuhasibPro.Services.BaseServices;
-using MuhasibPro.ViewModels.Contracts.BaseAppServices;
-using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.ViewModels.Shell;
 using MuhasibPro.Views.Login;
 
 namespace MuhasibPro.Views.Splash
@@ -18,7 +18,7 @@ namespace MuhasibPro.Views.Splash
 
         public ExtendedSplash()
         {
-            InitializeComponent();
+            InitializeComponent();            
             rootFrame = new Frame();
             App.MainWindow.IsTitleBarVisible = false;
             this.Loaded += OnPageLoaded;
@@ -120,8 +120,8 @@ namespace MuhasibPro.Views.Splash
                 StatusMessages.Enqueue("Yapılandırma yükleniyor...");
                 await Startup.Instance.ConfigureAsync();
                 await Task.Delay(400);
-                StatusMessages.Enqueue("Veritabanı kontrol ediliyor...");
-                //await Startup.Instance.EnsureSistemDbAsync();
+                StatusMessages.Enqueue("Veritabanı kontrol ediliyor...");                
+                await Startup.Instance.SistemDatabaseConnectionTest();
                 await Task.Delay(400);
                 StatusMessages.Enqueue("Servisler hazırlanıyor...");
                 await Task.Delay(400);

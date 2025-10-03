@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.UI.Xaml.Navigation;
-using MuhasibPro.ViewModels.ViewModels.Settings;
+using MuhasibPro.ViewModels.Settings;
 
 namespace MuhasibPro.Views.Settings
 {

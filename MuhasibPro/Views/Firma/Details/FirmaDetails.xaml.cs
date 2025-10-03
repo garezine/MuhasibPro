@@ -2,7 +2,8 @@
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
 
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
+
+using MuhasibPro.ViewModels.Firmalar;
 
 namespace MuhasibPro.Views.Firma;
 public sealed partial class FirmaDetails : UserControl

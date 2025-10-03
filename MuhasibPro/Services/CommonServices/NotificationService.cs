@@ -1,5 +1,5 @@
 ﻿using Microsoft.UI.Xaml.Media.Animation;
-using MuhasibPro.ViewModels.Contracts.CommonServices;
+using MuhasibPro.Contracts.CommonServices;
 
 namespace MuhasibPro.Services.CommonServices
 {

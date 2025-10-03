@@ -1,9 +1,12 @@
-﻿using MuhasibPro.Services.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Dashboard;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
-using MuhasibPro.ViewModels.ViewModels.Login;
-using MuhasibPro.ViewModels.ViewModels.Settings;
-using MuhasibPro.ViewModels.ViewModels.Shell;
+﻿using CommunityToolkit.Mvvm.DependencyInjection;
+using MuhasibPro.Contracts.SistemServices.DatabaseServices;
+using MuhasibPro.Helpers;
+using MuhasibPro.Services.CommonServices;
+using MuhasibPro.ViewModels.Dashboard;
+using MuhasibPro.ViewModels.Firmalar;
+using MuhasibPro.ViewModels.Login;
+using MuhasibPro.ViewModels.Settings;
+using MuhasibPro.ViewModels.Shell;
 using MuhasibPro.Views.Dashboard;
 using MuhasibPro.Views.Firma;
 using MuhasibPro.Views.Firmalar;
@@ -27,6 +30,7 @@ namespace MuhasibPro.Configurations
         public async Task ConfigureAsync()
         {
             ConfigureNavigation();
+            await SistemDatabaseConnectionTest();
             await Task.CompletedTask;
         }
         private void ConfigureNavigation()
@@ -41,6 +45,17 @@ namespace MuhasibPro.Configurations
 
             NavigationService.Register<FirmaDetailsViewModel, FirmaView>();
             NavigationService.Register<FirmalarViewModel, FirmalarView>();
+        }
+        public async Task<bool> SistemDatabaseConnectionTest()
+        {
+            var IsSistemDbConnection = Ioc.Default.GetService<ISistemDatabaseService>();            
+            var connection = await IsSistemDbConnection.IsSystemHealthyAsync();
+            if (connection)
+            {
+                StatusBarHelpers.Instance.DatabaseConnectionMessage = "Sistem Db bağlı";
+                StatusBarHelpers.Instance.IsDatabaseConnection = connection;
+            }
+            return connection;
         }
 
     }
