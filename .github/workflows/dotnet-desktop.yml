@@ -51,9 +51,9 @@ jobs:
 
       - name: Restore packages
         run: |
-         dotnet restore "${{ env.SOLUTION_PATH }}" `
-         -p:Platform=x64 `
-         --verbosity normal
+          dotnet restore "${{ env.SOLUTION_PATH }}" `
+          -p:Platform=x64 `
+          --verbosity normal
 
       - name: Build solution
         run: |
@@ -68,9 +68,10 @@ jobs:
             /verbosity:minimal `
             /nologo
 
-      - name: Publish Self-Contained
+      - name: Publish WinUI 3 Self-Contained
         run: |
-          Write-Host "Publishing self-contained application..."          
+          Write-Host "Publishing WinUI 3 self-contained application..."
+          
           $publishPath = "publish-win-x64"
           $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
       
@@ -79,45 +80,57 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          msbuild "${{ env.PROJECT_PATH }}" `
-            /t:Publish `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:RuntimeIdentifier=win-x64 `
-            /p:SelfContained=true `
-            /p:PublishReadyToRun=false `
-            /p:PublishDir="$absolutePublishPath\" `
-            /p:WindowsAppSdkSelfContained=true `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:EnableMsixTooling=false `
-            /p:WindowsPackageType=None `
-            /p:ErrorOnDuplicatePublishOutputFiles=false `
-            /p:ProduceReferenceAssembly=false `
-            /verbosity:minimal `
-            /nologo
+          # WINUI 3 İÇİN DOĞRU AYARLAR
+          dotnet publish "${{ env.PROJECT_PATH }}" `
+            --configuration Release `
+            --runtime win-x64 `  # 🚨 DEĞİŞTİR: win-x64 -> win10-x64
+            --self-contained true `
+            --output "$absolutePublishPath" `
+            -p:PublishReadyToRun=false `
+            -p:PublishSingleFile=false `
+            -p:WindowsAppSdkSelfContained=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:SkipPriGeneration=true `
+            -p:EnableMrtGeneration=false `
+            -p:EnableMsixTooling=false `
+            -p:WindowsPackageType=None `
+            -p:UseWinUI=true `
+            -p:TargetPlatformMinVersion=10.0.17763.0 `
+            -p:TargetFramework=net8.0-windows10.0.26100.0 `
+            --verbosity minimal
       
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Publish failed with exit code: $LASTEXITCODE"
             exit 1
           }
           
-          # Clean up duplicate files if any exist
-          Write-Host "Cleaning up potential duplicate files..."
-          $duplicatePatterns = @("*.pdb", "*.xml", "*.deps.json")
-          foreach ($pattern in $duplicatePatterns) {
-            $files = Get-ChildItem -Path $publishPath -Filter $pattern -Recurse -File
-            $grouped = $files | Group-Object -Property Name
-            foreach ($group in $grouped) {
-              if ($group.Count -gt 1) {
-                Write-Host "Found duplicate: $($group.Name)"
-                # Keep only the first occurrence
-                $group.Group | Select-Object -Skip 1 | ForEach-Object {
-                  Write-Host "  Removing: $($_.FullName)"
-                  Remove-Item $_.FullName -Force
-                }
-              }
+          # Gerekli dosyaların kontrolü
+          Write-Host "Checking required files..."
+          $requiredFiles = @(
+            "${{ env.APP_NAME }}.exe",
+            "Microsoft.WindowsAppSDK.dll",
+            "Microsoft.UI.Xaml.dll",
+            "WinRT.Runtime.dll"
+          )
+          
+          foreach ($file in $requiredFiles) {
+            $filePath = Join-Path $publishPath $file
+            if (Test-Path $filePath) {
+              Write-Host "✓ Found: $file"
+            } else {
+              Write-Host "✗ Missing: $file"
+              # Exit 1 yapma, sadece uyarı ver
             }
+          }
+          
+          # Runtime klasörü kontrolü
+          $runtimesPath = Join-Path $publishPath "runtimes"
+          if (Test-Path $runtimesPath) {
+            Write-Host "✓ Found runtimes folder"
+            $runtimeCount = (Get-ChildItem $runtimesPath -Directory).Count
+            Write-Host "  Runtime count: $runtimeCount"
+          } else {
+            Write-Host "✗ Missing runtimes folder"
           }
           
           # Quick validation
@@ -126,23 +139,44 @@ jobs:
             $exeSize = (Get-Item $mainExe).Length / 1MB
             $fileCount = (Get-ChildItem $publishPath -File -Recurse).Count
             Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
+            
+            # Test çalıştırma (sadece kontrol)
+            Write-Host "Testing executable..."
+            $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+            $processInfo.FileName = $mainExe
+            $processInfo.Arguments = "--help"
+            $processInfo.RedirectStandardError = $true
+            $processInfo.RedirectStandardOutput = $true
+            $processInfo.UseShellExecute = $false
+            $processInfo.CreateNoWindow = $true
+            
+            try {
+              $process = [System.Diagnostics.Process]::Start($processInfo)
+              Start-Sleep -Seconds 2
+              if (!$process.HasExited) {
+                $process.Kill()
+                Write-Host "✓ Executable test: Process started successfully"
+              }
+            } catch {
+              Write-Host "⚠ Executable test: Process start failed (may be normal for GUI apps)"
+            }
           } else {
-            Write-Host "Main executable not found"
+            Write-Host "❌ Main executable not found"
             exit 1
           }
 
       - name: Get latest Velopack CLI version
         id: get_vpk_version
         run: |
-            $response = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/vpk/index.json"
-            $latestVersion = $response.versions[-1]
-            echo "vpk_version=$latestVersion" >> $env:GITHUB_OUTPUT
-            Write-Host "Latest vpk version: $latestVersion"
+          $response = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/vpk/index.json"
+          $latestVersion = $response.versions[-1]
+          echo "vpk_version=$latestVersion" >> $env:GITHUB_OUTPUT
+          Write-Host "Latest vpk version: $latestVersion"
 
       - name: Install Velopack CLI
         run: |
-            dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
-            vpk --help
+          dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
+          vpk --help
 
       - name: Generate release notes
         run: |
@@ -156,6 +190,10 @@ jobs:
           - **Derleme Tarihi:** $buildDate
           - **Platform:** Windows 10/11 (x64)
           - **UI Framework:** WinUI 3
+          - **Runtime:** Self-Contained (.NET 8 + WinUI 3)
+
+          ## Önemli Not
+          Bu sürüm **self-contained** olarak derlenmiştir. .NET Runtime veya WinUI 3 Runtime kurulumu gerektirmez.
 
           ## İndirme Seçenekleri
           ### Otomatik Kurulum (Velopack)
@@ -182,28 +220,28 @@ jobs:
 
       - name: Create Velopack package
         run: |
-            $version = "${{ steps.version.outputs.version }}"
-            $publishPath = "publish-win-x64"
-            $outputDir = "releases"
+          $version = "${{ steps.version.outputs.version }}"
+          $publishPath = "publish-win-x64"
+          $outputDir = "releases"
 
-            Write-Host "Creating Velopack package..."
-            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          Write-Host "Creating Velopack package..."
+          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     
-            $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
-            if (-not (Test-Path $mainExePath)) {
-              Write-Host "Main executable not found: $mainExePath"
-              exit 1
-            }          
+          $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+          if (-not (Test-Path $mainExePath)) {
+            Write-Host "Main executable not found: $mainExePath"
+            exit 1
+          }          
     
-            vpk pack `
-              --packId "${{ env.APP_NAME }}" `
-              --packVersion "$version" `
-              --packDir "$publishPath" `
-              --outputDir "$outputDir" `
-              --mainExe "${{ env.APP_NAME }}.exe" `
-              --packTitle "MuhasibPro" `
-              --packAuthors "MuhasibPro Team" `
-              --releaseNotes "./RELEASE_NOTES.md"
+          vpk pack `
+            --packId "${{ env.APP_NAME }}" `
+            --packVersion "$version" `
+            --packDir "$publishPath" `
+            --outputDir "$outputDir" `
+            --mainExe "${{ env.APP_NAME }}.exe" `
+            --packTitle "MuhasibPro" `
+            --packAuthors "MuhasibPro Team" `
+            --releaseNotes "./RELEASE_NOTES.md"
 
       - name: Create portable ZIP
         run: |
