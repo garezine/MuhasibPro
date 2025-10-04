@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml.Controls;
 using Muhasebe.Data.DatabaseManager.SistemDatabase;
 using Muhasebe.Data.HostBuilders;
 using MuhasibPro.Contracts.BaseAppServices;
@@ -106,7 +105,7 @@ namespace MuhasibPro
                 {
                     // DATABASE HATASI - UYGULAMAYI KAPATMA, SADECE BİLDİR
                     await ShowNotificationAsync(
-                        "Veritabanı başlatılırken ufak sorunlar oluştu. " +
+                        "Veritabanı başlatılırken bazı sorunlar oluştu. " +
                         "Uygulama çalışmaya devam edecek ancak bazı özellikler kısıtlı olabilir.",
                         "Bilgi");
                 }
@@ -200,9 +199,10 @@ namespace MuhasibPro
                         if (MainWindow?.Content is FrameworkElement rootElement && themeSelectorService != null)
                         {
                             rootElement.RequestedTheme = themeSelectorService.Theme;
-                        }
+                        }                
                     });
                 }
+               
             }
             catch (Exception ex)
             {

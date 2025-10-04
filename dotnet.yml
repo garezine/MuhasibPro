@@ -1,0 +1,294 @@
+﻿name: WinUI3 Release - MuhasibPro (Fixed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 1.0.0)'
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+env:
+  PROJECT_PATH: MuhasibPro/MuhasibPro.csproj
+  SOLUTION_PATH: MuhasibPro.sln
+  APP_NAME: MuhasibPro
+  DOTNET_VERSION: '8.0.407'
+
+jobs:
+  release:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8.0.407
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Get Version
+        id: version
+        run: |
+          if ("${{ github.event.inputs.version }}" -ne "") {
+            $version = "${{ github.event.inputs.version }}"
+          } elseif ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}" -replace "^v", ""
+          } else {
+            $version = "1.0.0"
+          }
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $version"
+
+      - name: Restore packages
+        run: |
+         dotnet restore "${{ env.SOLUTION_PATH }}" `
+         -p:Platform=x64 `
+         --verbosity normal
+
+      - name: Build solution
+        run: |
+          msbuild "${{ env.SOLUTION_PATH }}" `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:WindowsPackageType=None `
+            /verbosity:minimal `
+            /nologo
+
+      - name: Publish Self-Contained
+        run: |
+          Write-Host "Publishing self-contained application..."          
+          $publishPath = "publish-win-x64"
+          $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
+      
+          if (Test-Path $publishPath) {
+            Remove-Item $publishPath -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
+      
+          # KRİTİK DEĞİŞİKLİK: PRI generation parametrelerini KALDIR
+          msbuild "${{ env.PROJECT_PATH }}" `
+            /t:Publish `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:SelfContained=true `
+            /p:PublishDir="$absolutePublishPath" `
+            /p:WindowsAppSdkSelfContained=true `
+            /p:WindowsPackageType=None `
+            /verbosity:minimal `
+            /nologo
+      
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Publish failed with exit code: $LASTEXITCODE"
+            exit 1
+          }
+          
+          # Validation
+          $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+          if (Test-Path $mainExe) {
+            $exeSize = (Get-Item $mainExe).Length / 1MB
+            $fileCount = (Get-ChildItem $publishPath -File).Count
+            Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
+            
+            # PRI dosyasının varlığını kontrol et
+            $priFile = Join-Path $publishPath "resources.pri"
+            if (Test-Path $priFile) {
+              Write-Host "✓ resources.pri found - Assets will load correctly"
+            } else {
+              Write-Host "⚠ WARNING: resources.pri NOT found - UI may not display!"
+            }
+          } else {
+            Write-Host "Main executable not found"
+            exit 1
+          }
+
+      - name: Get latest Velopack CLI version
+        id: get_vpk_version
+        run: |
+            $response = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/vpk/index.json"
+            $latestVersion = $response.versions[-1]
+            echo "vpk_version=$latestVersion" >> $env:GITHUB_OUTPUT
+            Write-Host "Latest vpk version: $latestVersion"
+
+      - name: Install Velopack CLI
+        run: |
+            dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
+            vpk --help
+
+      - name: Generate release notes
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $buildDate = Get-Date -Format "dd.MM.yyyy HH:mm"
+          $notes = @"
+          # MuhasibPro v$version
+
+          ## Sürüm Bilgileri
+          - **Sürüm:** $version
+          - **Derleme Tarihi:** $buildDate
+          - **Platform:** Windows 10/11 (x64)
+          - **UI Framework:** WinUI 3
+
+          ## İndirme Seçenekleri
+          ### Otomatik Kurulum (Velopack)
+          - Dosya: ${{ env.APP_NAME }}.v$version.vpk
+          - Otomatik kurulum ve güncelleme
+
+          ### Geleneksel Kurulum
+          - Dosya: ${{ env.APP_NAME }}-v$version-Setup.exe
+          - Windows kurulum sihirbazı
+
+          ### Taşınabilir Sürüm
+          - Dosya: ${{ env.APP_NAME }}-v$version-portable-win-x64.zip
+          - Kurulum gerektirmez
+
+          ## Kurulum
+          1. **Velopack:** .vpk dosyasını çalıştırın
+          2. **Geleneksel:** Setup.exe'yi çalıştırın
+          3. **Portable:** .zip dosyasını açın ve ${{ env.APP_NAME }}.exe'yi çalıştırın
+
+          ---
+          Bu sürüm GitHub Actions ile otomatik derlenmiştir.
+          "@
+          $notes | Out-File -FilePath "RELEASE_NOTES.md" -Encoding UTF8
+
+      - name: Create Velopack package
+        run: |
+            $version = "${{ steps.version.outputs.version }}"
+            $publishPath = "publish-win-x64"
+            $outputDir = "releases"
+
+            Write-Host "Creating Velopack package..."
+            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+    
+            # Kritik dosyaların kontrolü
+            $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+            $priPath = Join-Path $publishPath "resources.pri"
+            
+            if (-not (Test-Path $mainExePath)) {
+              Write-Host "❌ ERROR: Main executable not found: $mainExePath"
+              exit 1
+            }
+            
+            if (-not (Test-Path $priPath)) {
+              Write-Host "❌ ERROR: resources.pri not found! UI will not work!"
+              Write-Host "This indicates PRI generation failed during publish."
+              exit 1
+            }
+            
+            Write-Host "✓ Main executable found"
+            Write-Host "✓ resources.pri found - Velopack package will work correctly"
+    
+            vpk pack `
+              --packId "${{ env.APP_NAME }}" `
+              --packVersion "$version" `
+              --packDir "$publishPath" `
+              --outputDir "$outputDir" `
+              --mainExe "${{ env.APP_NAME }}.exe" `
+              --packTitle "MuhasibPro" `
+              --packAuthors "MuhasibPro Team" `
+              --releaseNotes "./RELEASE_NOTES.md"
+            
+            # Velopack çıktısını doğrula
+            $vpkFile = Join-Path $outputDir "${{ env.APP_NAME }}.v$version.vpk"
+            if (Test-Path $vpkFile) {
+              $vpkSize = (Get-Item $vpkFile).Length / 1MB
+              Write-Host "✓ Velopack package created: $([math]::Round($vpkSize, 2)) MB"
+            }
+
+      - name: Create portable ZIP
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $zipName = "${{ env.APP_NAME }}-v$version-portable-win-x64.zip"
+          $zipPath = Join-Path "releases" $zipName
+          Compress-Archive -Path "publish-win-x64/*" -DestinationPath $zipPath -Force
+
+      - name: Create Setup.exe (Traditional Installer)
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $setupName = "${{ env.APP_NAME }}-v$version-Setup.exe"
+          $setupPath = Join-Path "releases" $setupName
+
+          Write-Host "Creating traditional setup.exe installer..."
+
+          # Install Inno Setup
+          choco install innosetup -y --no-progress
+          $innoPath = "C:\Program Files (x86)\Inno Setup 6"
+          $env:PATH = "$innoPath;" + $env:PATH
+          
+          # Create Inno Setup script
+          $innoScript = @"
+          #define MyAppName "MuhasibPro"
+          #define MyAppVersion "$version"
+          #define MyAppPublisher "MuhasibPro Team"
+          #define MyAppExeName "${{ env.APP_NAME }}.exe"
+
+          [Setup]
+          AppId={{12345678-1234-1234-1234-123456789012}}
+          AppName={#MyAppName}
+          AppVersion={#MyAppVersion}
+          AppPublisher={#MyAppPublisher}
+          DefaultDirName={autopf}\{#MyAppName}
+          DefaultGroupName={#MyAppName}
+          AllowNoIcons=yes
+          OutputDir=releases
+          OutputBaseFilename=${{ env.APP_NAME }}-v$version-Setup
+          Compression=lzma
+          SolidCompression=yes
+          WizardStyle=modern
+          ArchitecturesAllowed=x64
+          ArchitecturesInstallIn64BitMode=x64
+
+          [Languages]
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+          Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
+
+          [Tasks]
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+          [Files]
+          Source: "publish-win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+          Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+          [Run]
+          Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+          "@
+
+          $innoScript | Out-File -FilePath "setup.iss" -Encoding UTF8
+          & "$innoPath\ISCC.exe" "setup.iss"
+          Remove-Item "setup.iss" -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          name: "MuhasibPro v${{ steps.version.outputs.version }}"
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            releases/*.vpk
+            releases/*.zip
+            releases/*Setup.exe
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: muhasibpro-v${{ steps.version.outputs.version }}-release
+          path: |
+            releases/*
+            RELEASE_NOTES.md
+          retention-days: 30
