@@ -1,4 +1,4 @@
-name: WinUI3 Release - MuhasibPro (VS2022 Exact Match)
+name: WinUI3 Release - MuhasibPro (Fixed .NET Version)
 
 on:
   workflow_dispatch:
@@ -32,34 +32,31 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Get Version
-        id: version
+      - name: Check .NET Version
         run: |
-          if ("${{ github.event.inputs.version }}" -ne "") {
-            $version = "${{ github.event.inputs.version }}"
-          } elseif ("${{ github.ref_type }}" -eq "tag") {
-            $version = "${{ github.ref_name }}" -replace "^v", ""
-          } else {
-            $version = "1.0.0"
+          dotnet --version
+          dotnet --list-sdks
+
+      - name: Clean obj and bin folders
+        run: |
+          Get-ChildItem -Path . -Recurse -Directory -Name | Where-Object { $_ -match "^(bin|obj)$" } | ForEach-Object { 
+            Write-Host "Cleaning $_"
+            Remove-Item -Path $_ -Recurse -Force -ErrorAction SilentlyContinue 
           }
-          echo "version=$version" >> $env:GITHUB_OUTPUT
-          echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
-          Write-Host "Version: $version"
 
-      - name: Restore packages
+      - name: Restore packages with exact framework
         run: |
-         dotnet restore "${{ env.SOLUTION_PATH }}" `
-         -p:Platform=x64 `
-         --verbosity normal
+          dotnet restore "${{ env.SOLUTION_PATH }}" `
+          -p:Platform=x64 `
+          -p:TargetFramework=net8.0-windows10.0.26100.0 `
+          --verbosity detailed
 
       - name: Build solution
         run: |
           msbuild "${{ env.SOLUTION_PATH }}" `
             /p:Configuration=Release `
             /p:Platform=x64 `
+            /p:TargetFramework=net8.0-windows10.0.26100.0 `
             /p:WindowsPackageType=None `
             /verbosity:minimal `
             /nologo
@@ -75,7 +72,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # VS2022 PUBLISH PROFİLİNİN TAM AYNISI - DÜZGÜN BACKTICK
+          # VS2022 PUBLISH PROFİLİNİN TAM AYNISI
           msbuild "${{ env.PROJECT_PATH }}" `
             /t:Publish `
             /p:Configuration=Release `
@@ -120,6 +117,8 @@ jobs:
               Write-Host "⚠ WARNING: No PRI file found"
             }
           }
+
+     
 
       - name: Verify Published Files
         run: |
