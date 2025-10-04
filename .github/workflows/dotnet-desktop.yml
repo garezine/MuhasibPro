@@ -1,4 +1,4 @@
-name: WinUI3 Release - MuhasibPro (Optimized)
+name: WinUI3 Release - MuhasibPro (Fixed)
 
 on:
   workflow_dispatch:
@@ -60,9 +60,6 @@ jobs:
           msbuild "${{ env.SOLUTION_PATH }}" `
             /p:Configuration=Release `
             /p:Platform=x64 `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
             /verbosity:minimal `
             /nologo
@@ -78,6 +75,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
+          # KRİTİK DEĞİŞİKLİK: PRI generation parametrelerini KALDIR
           msbuild "${{ env.PROJECT_PATH }}" `
             /t:Publish `
             /p:Configuration=Release `
@@ -86,9 +84,6 @@ jobs:
             /p:SelfContained=true `
             /p:PublishDir="$absolutePublishPath" `
             /p:WindowsAppSdkSelfContained=true `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
             /verbosity:minimal `
             /nologo
@@ -98,12 +93,20 @@ jobs:
             exit 1
           }
           
-          # Quick validation
+          # Validation
           $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
           if (Test-Path $mainExe) {
             $exeSize = (Get-Item $mainExe).Length / 1MB
             $fileCount = (Get-ChildItem $publishPath -File).Count
             Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
+            
+            # PRI dosyasının varlığını kontrol et
+            $priFile = Join-Path $publishPath "resources.pri"
+            if (Test-Path $priFile) {
+              Write-Host "✓ resources.pri found - Assets will load correctly"
+            } else {
+              Write-Host "⚠ WARNING: resources.pri NOT found - UI may not display!"
+            }
           } else {
             Write-Host "Main executable not found"
             exit 1
@@ -167,11 +170,23 @@ jobs:
             Write-Host "Creating Velopack package..."
             New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     
+            # Kritik dosyaların kontrolü
             $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+            $priPath = Join-Path $publishPath "resources.pri"
+            
             if (-not (Test-Path $mainExePath)) {
-              Write-Host "Main executable not found: $mainExePath"
+              Write-Host "❌ ERROR: Main executable not found: $mainExePath"
               exit 1
-            }          
+            }
+            
+            if (-not (Test-Path $priPath)) {
+              Write-Host "❌ ERROR: resources.pri not found! UI will not work!"
+              Write-Host "This indicates PRI generation failed during publish."
+              exit 1
+            }
+            
+            Write-Host "✓ Main executable found"
+            Write-Host "✓ resources.pri found - Velopack package will work correctly"
     
             vpk pack `
               --packId "${{ env.APP_NAME }}" `
@@ -182,6 +197,13 @@ jobs:
               --packTitle "MuhasibPro" `
               --packAuthors "MuhasibPro Team" `
               --releaseNotes "./RELEASE_NOTES.md"
+            
+            # Velopack çıktısını doğrula
+            $vpkFile = Join-Path $outputDir "${{ env.APP_NAME }}.v$version.vpk"
+            if (Test-Path $vpkFile) {
+              $vpkSize = (Get-Item $vpkFile).Length / 1MB
+              Write-Host "✓ Velopack package created: $([math]::Round($vpkSize, 2)) MB"
+            }
 
       - name: Create portable ZIP
         run: |
