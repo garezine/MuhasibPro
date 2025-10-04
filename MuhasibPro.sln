@@ -16,7 +16,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AE1F0D20-E385-4E7D-935A-35A08373A2DB}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
-		dotnet.yml = dotnet.yml
 	EndProjectSection
 EndProject
 Global
