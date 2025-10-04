@@ -75,7 +75,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # VS2022 PUBLISH PROFİLİNİN TAM AYNISI
+          # VS2022 PUBLISH PROFİLİNİN TAM AYNISI - DÜZGÜN BACKTICK
           msbuild "${{ env.PROJECT_PATH }}" `
             /t:Publish `
             /p:Configuration=Release `
@@ -86,10 +86,10 @@ jobs:
             /p:WindowsAppSdkSelfContained=true `
             /p:WindowsPackageType=None `
             /p:GenerateLibraryLayout=true `
-            /p:PublishReadyToRun=false `           # ✅ VS2022: false
-            /p:PublishSingleFile=false `           # ✅ VS2022: false  
-            /p:PublishTrimmed=false `              # ✅ VS2022: false
-            /p:TargetFramework=net8.0-windows10.0.26100.0 ` # ✅ VS2022: 26100.0
+            /p:PublishReadyToRun=false `
+            /p:PublishSingleFile=false `
+            /p:PublishTrimmed=false `
+            /p:TargetFramework=net8.0-windows10.0.26100.0 `
             /p:UseCurrentRuntimeIdentifier=true `
             /p:CopyOutputSymbolsToPublishDirectory=false `
             /verbosity:minimal `
