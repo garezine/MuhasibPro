@@ -94,32 +94,78 @@ jobs:
             exit 1
           }
           
-          # Validation
+          # Validation - Yeni PRI dosya adı kontrolü
           $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
           if (Test-Path $mainExe) {
             $exeSize = (Get-Item $mainExe).Length / 1MB
             $fileCount = (Get-ChildItem $publishPath -File).Count
             Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
             
-            # PRI dosyasının varlığını kontrol et
-            $priFile = Join-Path $publishPath "resources.pri"
-            if (Test-Path $priFile) {
-              Write-Host "✓ resources.pri found - Assets will load correctly"
+            # Eski ve yeni PRI dosya adlarını kontrol et
+            $oldPriFile = Join-Path $publishPath "resources.pri"
+            $newPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
+            
+            if (Test-Path $newPriFile) {
+              Write-Host "✓ ${{ env.APP_NAME }}.pri found (new SDK format) - Assets will load correctly"
+              
+              # Yeni dosyayı eski isimle kopyala (geriye uyumluluk için)
+              Copy-Item $newPriFile $oldPriFile -Force
+              Write-Host "✓ Copied ${{ env.APP_NAME }}.pri to resources.pri for compatibility"
+              
+            } elseif (Test-Path $oldPriFile) {
+              Write-Host "✓ resources.pri found (old format) - Assets will load correctly"
             } else {
-              Write-Host "⚠ WARNING: resources.pri NOT found - UI may not display!"
+              Write-Host "⚠ WARNING: No PRI file found - UI may not display!"
             }
           } else {
             Write-Host "Main executable not found"
             exit 1
           }
 
-      - name: Generate PRI file manually (if missing)
+      - name: Fix PRI file naming
         run: |
           $publishPath = "publish-win-x64"
-          $priFile = Join-Path $publishPath "resources.pri"
+          $oldPriFile = Join-Path $publishPath "resources.pri"
+          $newPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
           
-          if (-not (Test-Path $priFile)) {
-            Write-Host "PRI file not found, generating manually..."
+          Write-Host "Checking PRI files..."
+          
+          # Eğer sadece yeni format varsa, eski isimle de kopyala
+          if ((Test-Path $newPriFile) -and (-not (Test-Path $oldPriFile))) {
+            Write-Host "Creating resources.pri from ${{ env.APP_NAME }}.pri for compatibility"
+            Copy-Item $newPriFile $oldPriFile -Force
+          }
+          
+          # Eğer sadece eski format varsa, yeni isimle de kopyala
+          if ((Test-Path $oldPriFile) -and (-not (Test-Path $newPriFile))) {
+            Write-Host "Creating ${{ env.APP_NAME }}.pri from resources.pri for new SDK compatibility"
+            Copy-Item $oldPriFile $newPriFile -Force
+          }
+          
+          # Her iki dosyanın da varlığını kontrol et
+          if (Test-Path $oldPriFile) {
+            $oldSize = (Get-Item $oldPriFile).Length / 1KB
+            Write-Host "✓ resources.pri: $([math]::Round($oldSize, 2)) KB"
+          }
+          
+          if (Test-Path $newPriFile) {
+            $newSize = (Get-Item $newPriFile).Length / 1KB
+            Write-Host "✓ ${{ env.APP_NAME }}.pri: $([math]::Round($newSize, 2)) KB"
+          }
+          
+          if ((-not (Test-Path $oldPriFile)) -and (-not (Test-Path $newPriFile))) {
+            Write-Host "❌ ERROR: No PRI files found!"
+            exit 1
+          }
+
+      - name: Generate PRI file manually (if both missing)
+        run: |
+          $publishPath = "publish-win-x64"
+          $oldPriFile = Join-Path $publishPath "resources.pri"
+          $newPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
+          
+          if ((-not (Test-Path $oldPriFile)) -and (-not (Test-Path $newPriFile))) {
+            Write-Host "No PRI files found, generating manually..."
             
             # MakePri.exe yolunu bul
             $windowsKitsPath = "C:\Program Files (x86)\Windows Kits\10"
@@ -143,21 +189,25 @@ jobs:
               exit 1
             }
             
-            # PRI dosyası oluştur
-            & $makePriExe new /pr "$publishPath" /cf "$priConfigPath" /of "$priFile" /o
+            # Yeni format ile PRI dosyası oluştur
+            & $makePriExe new /pr "$publishPath" /cf "$priConfigPath" /of "$newPriFile" /o
             
-            if (Test-Path $priFile) {
-              $priSize = (Get-Item $priFile).Length / 1KB
-              Write-Host "✓ Successfully generated resources.pri ($([math]::Round($priSize, 2)) KB)"
+            if (Test-Path $newPriFile) {
+              $priSize = (Get-Item $newPriFile).Length / 1KB
+              Write-Host "✓ Successfully generated ${{ env.APP_NAME }}.pri ($([math]::Round($priSize, 2)) KB)"
+              
+              # Eski isimle de kopyala
+              Copy-Item $newPriFile $oldPriFile -Force
+              Write-Host "✓ Also created resources.pri for compatibility"
               
               # priconfig.xml'i temizle
               Remove-Item $priConfigPath -Force -ErrorAction SilentlyContinue
             } else {
-              Write-Host "❌ ERROR: Failed to generate resources.pri"
+              Write-Host "❌ ERROR: Failed to generate PRI files"
               exit 1
             }
           } else {
-            Write-Host "✓ resources.pri already exists, skipping manual generation"
+            Write-Host "✓ PRI files already exist, skipping manual generation"
           }
 
       - name: Get latest Velopack CLI version
@@ -220,21 +270,29 @@ jobs:
     
             # Kritik dosyaların kontrolü
             $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
-            $priPath = Join-Path $publishPath "resources.pri"
+            $oldPriPath = Join-Path $publishPath "resources.pri"
+            $newPriPath = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
             
             if (-not (Test-Path $mainExePath)) {
               Write-Host "❌ ERROR: Main executable not found: $mainExePath"
               exit 1
             }
             
-            if (-not (Test-Path $priPath)) {
-              Write-Host "❌ ERROR: resources.pri not found! UI will not work!"
+            # Her iki PRI dosyasından en az birinin olması gerekli
+            if ((-not (Test-Path $oldPriPath)) -and (-not (Test-Path $newPriPath))) {
+              Write-Host "❌ ERROR: No PRI files found! UI will not work!"
               Write-Host "This indicates PRI generation failed during publish."
               exit 1
             }
             
             Write-Host "✓ Main executable found"
-            Write-Host "✓ resources.pri found - Velopack package will work correctly"
+            if (Test-Path $newPriPath) {
+              Write-Host "✓ ${{ env.APP_NAME }}.pri found (new SDK format)"
+            }
+            if (Test-Path $oldPriPath) {
+              Write-Host "✓ resources.pri found (legacy format)"
+            }
+            Write-Host "✓ Velopack package will work correctly"
     
             vpk pack `
               --packId "${{ env.APP_NAME }}" `
