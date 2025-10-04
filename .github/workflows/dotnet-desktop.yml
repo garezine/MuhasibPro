@@ -87,9 +87,6 @@ jobs:
             /p:PublishDir="$absolutePublishPath" `
             /p:WindowsAppSdkSelfContained=true `
             /p:SkipPriGeneration=true `
-            /p:PublishReadyToRun=false `
-            /p:PublishTrimmed=false `
-            /p:PublishSingleFile=false `
             /p:EnableMrtGeneration=false `
             /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
