@@ -11,8 +11,8 @@ using Muhasebe.Data.DataContext;
 namespace Muhasebe.Data.Migrations
 {
     [DbContext(typeof(AppSistemDbContext))]
-    [Migration("20250922210522_SplitAppVersiyonToBaseAndSistemDbVersiyon")]
-    partial class SplitAppVersiyonToBaseAndSistemDbVersiyon
+    [Migration("20251004204247_initialMigration")]
+    partial class initialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

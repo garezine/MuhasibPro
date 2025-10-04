@@ -7,7 +7,7 @@ namespace Muhasebe.Domain.Entities.MuhasebeEntity.Stok
     public class BarkodYazdir
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]     
         public long BarkodId { get; set; }
 
         public string BarkodTipi { get; set; }
@@ -18,6 +18,6 @@ namespace Muhasebe.Domain.Entities.MuhasebeEntity.Stok
         [MaxLength(50)]
         public short SatirSayisi { get; set; }
 
-        public Barkod Barkod { get; set; }
+        public virtual Barkod Barkod { get; set; }
     }
 }

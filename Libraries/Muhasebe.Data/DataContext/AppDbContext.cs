@@ -117,8 +117,23 @@ public class AppDbContext : DbContext, IAppDataSource
         modelBuilder.Entity<VarsayilanDegerler>().HasNoKey();
         base.OnModelCreating(modelBuilder);
         #endregion
+        modelBuilder.Entity<Ayarlar>(entity =>
+        {
+            entity.Property(e => e.HatirlatmaUstLimit)
+                  .HasPrecision(18, 2); // veya HasPrecision(18, 6)
 
-
+            entity.Property(e => e.HatirlatmaAltLimit)
+                  .HasPrecision(18, 2); // veya HasPrecision(18, 6)
+        });
+        // 2. Foreign Key çakışması çözümü
+        modelBuilder.Entity<BarkodYazdir>(entity =>
+        {
+            // Mevcut ilişkiyi düzelt
+            entity.HasOne(b => b.Barkod)
+                  .WithMany()
+                  .HasForeignKey(b => b.BarkodId) // Doğru foreign key'i belirt
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
         base.OnModelCreating(modelBuilder);
 
     }
