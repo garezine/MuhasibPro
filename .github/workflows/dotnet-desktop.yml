@@ -75,7 +75,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # KRİTİK DEĞİŞİKLİK: PRI generation parametrelerini KALDIR
+          # PUBLISH - PRI generation enabled
           msbuild "${{ env.PROJECT_PATH }}" `
             /t:Publish `
             /p:Configuration=Release `
@@ -85,6 +85,7 @@ jobs:
             /p:PublishDir="$absolutePublishPath" `
             /p:WindowsAppSdkSelfContained=true `
             /p:WindowsPackageType=None `
+            /p:GenerateLibraryLayout=true `
             /verbosity:minimal `
             /nologo
       
@@ -110,6 +111,53 @@ jobs:
           } else {
             Write-Host "Main executable not found"
             exit 1
+          }
+
+      - name: Generate PRI file manually (if missing)
+        run: |
+          $publishPath = "publish-win-x64"
+          $priFile = Join-Path $publishPath "resources.pri"
+          
+          if (-not (Test-Path $priFile)) {
+            Write-Host "PRI file not found, generating manually..."
+            
+            # MakePri.exe yolunu bul
+            $windowsKitsPath = "C:\Program Files (x86)\Windows Kits\10"
+            $makePriPaths = Get-ChildItem -Path "$windowsKitsPath\bin" -Recurse -Filter "makepri.exe" -ErrorAction SilentlyContinue
+            
+            if ($makePriPaths.Count -eq 0) {
+              Write-Host "❌ ERROR: makepri.exe not found in Windows SDK"
+              exit 1
+            }
+            
+            # En yeni sürümü kullan
+            $makePriExe = ($makePriPaths | Sort-Object FullName -Descending | Select-Object -First 1).FullName
+            Write-Host "Using MakePri.exe: $makePriExe"
+            
+            # PRI config oluştur
+            $priConfigPath = Join-Path $publishPath "priconfig.xml"
+            & $makePriExe createconfig /cf "$priConfigPath" /dq en-US /pv 10.0.0 /o
+            
+            if (-not (Test-Path $priConfigPath)) {
+              Write-Host "❌ ERROR: Failed to create priconfig.xml"
+              exit 1
+            }
+            
+            # PRI dosyası oluştur
+            & $makePriExe new /pr "$publishPath" /cf "$priConfigPath" /of "$priFile" /o
+            
+            if (Test-Path $priFile) {
+              $priSize = (Get-Item $priFile).Length / 1KB
+              Write-Host "✓ Successfully generated resources.pri ($([math]::Round($priSize, 2)) KB)"
+              
+              # priconfig.xml'i temizle
+              Remove-Item $priConfigPath -Force -ErrorAction SilentlyContinue
+            } else {
+              Write-Host "❌ ERROR: Failed to generate resources.pri"
+              exit 1
+            }
+          } else {
+            Write-Host "✓ resources.pri already exists, skipping manual generation"
           }
 
       - name: Get latest Velopack CLI version
