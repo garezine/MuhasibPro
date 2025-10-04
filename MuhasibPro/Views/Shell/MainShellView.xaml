@@ -21,7 +21,7 @@
                 MenuItemsSource="{x:Bind Children}">
                 <NavigationViewItem.InfoBadge>
                     <InfoBadge
-                        Value="{Binding Badge, Mode=OneWay}"
+                        Value="{x:Bind Badge, Mode=OneWay}"
                         Style="{StaticResource AttentionValueInfoBadgeStyle}"
                         Visibility="{x:Bind Badge, Converter={StaticResource StringToVisibilityConverter}}" />
                 </NavigationViewItem.InfoBadge>

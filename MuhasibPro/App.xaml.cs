@@ -9,7 +9,6 @@ using MuhasibPro.Contracts.BaseAppServices;
 using MuhasibPro.Contracts.SistemServices.DatabaseServices;
 using MuhasibPro.Helpers;
 using MuhasibPro.HostBuilders;
-using NuGet.Versioning;
 using System.Diagnostics;
 using Velopack;
 using WinUIEx;
@@ -19,7 +18,7 @@ namespace MuhasibPro
     public partial class App : Application
     {
         private readonly IHost _host;
-        private int _isInitialized = 0; // Thread-safe flag (0 = false, 1 = true)
+        private bool _isInitialized = false;
         private DispatcherQueue _dispatcherQueue;
 
         public App()
@@ -35,34 +34,20 @@ namespace MuhasibPro
             _host = CreateHostBuilder().Build();
             Ioc.Default.ConfigureServices(_host.Services);
 
-            // Unhandled exception handler
+            // Unhandled exception handler - UYGULAMAYI KAPATMAYI ENGELLE
             this.UnhandledException += OnUnhandledException;
 
-            // Velopack - Non-blocking initialization
-            try
-            {
-                VelopackApp.Build()
-                    .OnFirstRun(OnVelopackFirstRun)
-                    .OnRestarted(OnVelopackRestarted)
-                    .Run();
-            }
-            catch (Exception ex)
-            {
-                // Velopack hatası uygulamayı durdurmamalı
-                Debug.WriteLine($"Velopack initialization failed: {ex.Message}");
-            }
-        }
-
-        private void OnVelopackFirstRun(SemanticVersion v)
-        {
-            Debug.WriteLine($"First run detected: v{v}");
-            // İlk çalıştırma işlemleri
-        }
-
-        private void OnVelopackRestarted(SemanticVersion v)
-        {
-            Debug.WriteLine($"Application restarted after update: v{v}");
-            // Güncelleme sonrası işlemler
+            // Velopack
+            VelopackApp.Build()
+                .OnFirstRun(v =>
+                {
+                    // Show welcome message or perform first-run actions
+                })
+                .OnRestarted(v =>
+                {
+                    // Restart actions
+                })
+                .Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args = null)
@@ -97,37 +82,21 @@ namespace MuhasibPro
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"OnLaunched error: {ex}");
-
-                // ASLA Exit() ÇAĞIRMA!
+                // 3. KRİTİK: ASLA Exit() ÇAĞIRMA!
                 await ShowStartupErrorAsync(ex, isFatal: false);
 
-                // HATA OLSA BİLE ARAYÜZÜ GÖSTER
-                try
-                {
-                    await ActivateAsync(args);
-                }
-                catch (Exception activateEx)
-                {
-                    Debug.WriteLine($"Activation fallback failed: {activateEx}");
-                    // Son çare: Pencereyi direkt göster
-                    MainWindow?.Activate();
-                }
+                // 4. HATA OLSA BİLE ARAYÜZÜ GÖSTERMEYE DEVAM ET
+                await ActivateAsync(args);
             }
         }
 
         private async Task InitializeApplicationAsync()
         {
-            // Thread-safe initialization check
-            if (Interlocked.CompareExchange(ref _isInitialized, 1, 0) != 0)
-            {
-                Debug.WriteLine("Application already initialized, skipping...");
-                return;
-            }
-
             try
             {
-                Debug.WriteLine("Starting application initialization...");
+                if (_isInitialized) return;
+
+                _isInitialized = true;
 
                 // 1. DATABASE INIT (BLOKLAMAYAN, GÜVENLİ VERSİYON)
                 var databaseSuccess = await InitializeSystemDatabaseAsync();
@@ -151,7 +120,8 @@ namespace MuhasibPro
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Application initialization error: {ex.Message}");
+                // 4. HATA YÖNETİMİ - UYGULAMAYI ASLA KAPATMA!
+                Debug.WriteLine($"Application initialization completed with warnings: {ex.Message}");
 
                 await ShowNotificationAsync(
                     "Uygulama başlatılırken bazı sorunlar oluştu, " +
@@ -170,6 +140,8 @@ namespace MuhasibPro
                 if (!success)
                 {
                     Debug.WriteLine("Database initialization completed with warnings");
+
+                    // FALLBACK: Database servisi kullanılamazsa direkt manager'ı dene
                     return await TryFallbackDatabaseInitializationAsync();
                 }
 
@@ -178,6 +150,8 @@ namespace MuhasibPro
             catch (Exception ex)
             {
                 Debug.WriteLine($"Database initialization failed: {ex.Message}");
+
+                // FALLBACK mekanizması
                 return await TryFallbackDatabaseInitializationAsync();
             }
         }
@@ -186,13 +160,14 @@ namespace MuhasibPro
         {
             try
             {
+                // Direkt database manager ile dene
                 var databaseManager = _host.Services.GetRequiredService<ISistemDatabaseManager>();
                 return await databaseManager.InitializeDatabaseAsync();
             }
             catch (Exception fallbackEx)
             {
                 Debug.WriteLine($"Fallback database initialization also failed: {fallbackEx.Message}");
-                return false;
+                return false; // Başarısız ama uygulama yine de çalışsın
             }
         }
 
@@ -207,6 +182,7 @@ namespace MuhasibPro
             catch (Exception ex)
             {
                 Debug.WriteLine($"System service check failed: {ex.Message}");
+                // Servis hatası uygulamayı durdurmamalı
             }
         }
 
@@ -214,33 +190,19 @@ namespace MuhasibPro
         {
             try
             {
-                if (_dispatcherQueue == null)
+                // DispatcherQueue ile UI thread'de çalış
+                if (_dispatcherQueue != null)
                 {
-                    Debug.WriteLine("DispatcherQueue not available for theme setting");
-                    return;
-                }
-
-                var tcs = new TaskCompletionSource<bool>();
-
-                _dispatcherQueue.TryEnqueue(() =>
-                {
-                    try
+                    _dispatcherQueue.TryEnqueue(() =>
                     {
                         var themeSelectorService = Ioc.Default.GetService<IThemeSelectorService>();
                         if (MainWindow?.Content is FrameworkElement rootElement && themeSelectorService != null)
                         {
                             rootElement.RequestedTheme = themeSelectorService.Theme;
                         }
-                        tcs.SetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Theme application failed: {ex.Message}");
-                        tcs.SetResult(false);
-                    }
-                });
+                    });
+                }
 
-                await tcs.Task;
             }
             catch (Exception ex)
             {
@@ -261,7 +223,7 @@ namespace MuhasibPro
                 }
                 else
                 {
-                    Debug.WriteLine("Activation service not found, activating window directly");
+                    // Activation service yoksa bile pencereyi göster
                     MainWindow?.Activate();
                 }
             }
@@ -276,45 +238,39 @@ namespace MuhasibPro
 
         private async Task ShowNotificationAsync(string message, string title = "Bilgi")
         {
-            if (_dispatcherQueue == null)
-            {
-                Debug.WriteLine($"Cannot show notification (no dispatcher): {message}");
-                return;
-            }
-
             try
             {
-                var tcs = new TaskCompletionSource<bool>();
-
-                _dispatcherQueue.TryEnqueue(async () =>
+                // UI thread'de çalıştır
+                if (_dispatcherQueue != null)
                 {
-                    try
-                    {
-                        if (MainWindow?.Content?.XamlRoot != null)
-                        {
-                            var dialog = new ContentDialog
-                            {
-                                Title = title,
-                                Content = message,
-                                PrimaryButtonText = "Tamam",
-                                XamlRoot = MainWindow.Content.XamlRoot
-                            };
-                            await dialog.ShowAsync();
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"Cannot show dialog (no XamlRoot): {message}");
-                        }
-                        tcs.SetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Notification dialog failed: {ex.Message}");
-                        tcs.SetResult(false);
-                    }
-                });
+                    var taskCompletionSource = new TaskCompletionSource<bool>();
 
-                await tcs.Task;
+                    _dispatcherQueue.TryEnqueue(async () =>
+                    {
+                        try
+                        {
+                            if (MainWindow?.Content?.XamlRoot != null)
+                            {
+                                var dialog = new ContentDialog
+                                {
+                                    Title = title,
+                                    Content = message,
+                                    PrimaryButtonText = "Tamam",
+                                    XamlRoot = MainWindow.Content.XamlRoot
+                                };
+                                await dialog.ShowAsync();
+                            }
+                            taskCompletionSource.SetResult(true);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Notification failed: {ex.Message}");
+                            taskCompletionSource.SetResult(false);
+                        }
+                    });
+
+                    await taskCompletionSource.Task;
+                }
             }
             catch (Exception ex)
             {
@@ -326,6 +282,7 @@ namespace MuhasibPro
         {
             Debug.WriteLine($"Startup error: {ex}");
 
+            // DEBUG modda detaylı hata göster, RELEASE'de basit mesaj
 #if DEBUG
             await ShowNotificationAsync(
                 $"Uygulama başlatılırken hata oluştu:\n{ex.Message}\n\n" +
@@ -341,10 +298,10 @@ namespace MuhasibPro
 
         private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
         {
-            // KRİTİK: Exception'ı handled olarak işaretle
+            // KRİTİK: Exception'ı handled olarak işaretle - uygulama çökmeyecek
             e.Handled = true;
 
-            Debug.WriteLine($"Unhandled exception caught and handled: {e.Exception}");
+            Debug.WriteLine($"Unhandled exception (handled): {e.Exception}");
 
             // UI thread'de hata göster
             if (_dispatcherQueue != null)
