@@ -24,7 +24,7 @@ namespace Muhasebe.Data.DataContext.DataSource
 
         public DbSet<DonemDBSec> DonemDBSecim { get; set; }
 
-        public DbSet<DbYedekAl> DbYedekAl { get; set; }
+        public DbSet<DbYedekAl> DbYedekAls { get; set; }
         public DbSet<AppVersiyon> AppVersiyonlar { get; set; }
         public DbSet<SistemDbVersiyon> SistemDbVersiyonlar { get; set; }
 

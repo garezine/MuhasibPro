@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Muhasebe.Domain.Entities.SistemEntity;
 
-[Table("DbYedekAl")]
+[Table("DbYedekAls")]
 public class DbYedekAl
 {
     [Key]

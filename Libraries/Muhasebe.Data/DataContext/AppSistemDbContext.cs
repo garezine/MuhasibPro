@@ -55,7 +55,7 @@ namespace Muhasebe.Data.DataContext
                 OncekiSistemDbVersiyon = null
             };
 
-            
+
             modelBuilder.Entity<SistemDbVersiyon>().HasData(initialSistemDbVersion);
         }
 
@@ -91,7 +91,7 @@ namespace Muhasebe.Data.DataContext
 
         public DbSet<DonemDBSec> DonemDBSecim { get; set; }
 
-        public DbSet<DbYedekAl> DbYedekAl { get; set; }
+        public DbSet<DbYedekAl> DbYedekAls { get; set; }
 
         public DbSet<AppVersiyon> AppVersiyonlar { get; set; }
         public DbSet<SistemDbVersiyon> SistemDbVersiyonlar { get; set; }

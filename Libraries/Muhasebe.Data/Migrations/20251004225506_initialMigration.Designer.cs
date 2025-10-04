@@ -11,7 +11,7 @@ using Muhasebe.Data.DataContext;
 namespace Muhasebe.Data.Migrations
 {
     [DbContext(typeof(AppSistemDbContext))]
-    [Migration("20251004204247_initialMigration")]
+    [Migration("20251004225506_initialMigration")]
     partial class initialMigration
     {
         /// <inheritdoc />
@@ -80,7 +80,7 @@ namespace Muhasebe.Data.Migrations
 
                     b.HasKey("UygulamaVersiyon");
 
-                    b.ToTable("AppVersiyon");
+                    b.ToTable("AppVersiyonlar");
 
                     b.UseTptMappingStrategy();
                 });
@@ -111,7 +111,7 @@ namespace Muhasebe.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DbYedekAl");
+                    b.ToTable("DbYedekAls");
                 });
 
             modelBuilder.Entity("Muhasebe.Domain.Entities.SistemEntity.DevirLog", b =>

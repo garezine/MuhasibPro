@@ -12,7 +12,7 @@ namespace Muhasebe.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "AppVersiyon",
+                name: "AppVersiyonlar",
                 columns: table => new
                 {
                     UygulamaVersiyon = table.Column<string>(type: "TEXT", nullable: false),
@@ -21,11 +21,11 @@ namespace Muhasebe.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AppVersiyon", x => x.UygulamaVersiyon);
+                    table.PrimaryKey("PK_AppVersiyonlar", x => x.UygulamaVersiyon);
                 });
 
             migrationBuilder.CreateTable(
-                name: "DbYedekAl",
+                name: "DbYedekAls",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "INTEGER", nullable: false),
@@ -38,7 +38,7 @@ namespace Muhasebe.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DbYedekAl", x => x.Id);
+                    table.PrimaryKey("PK_DbYedekAls", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -268,9 +268,9 @@ namespace Muhasebe.Data.Migrations
                 {
                     table.PrimaryKey("PK_SistemDbVersiyonlar", x => x.UygulamaVersiyon);
                     table.ForeignKey(
-                        name: "FK_SistemDbVersiyonlar_AppVersiyon_UygulamaVersiyon",
+                        name: "FK_SistemDbVersiyonlar_AppVersiyonlar_UygulamaVersiyon",
                         column: x => x.UygulamaVersiyon,
-                        principalTable: "AppVersiyon",
+                        principalTable: "AppVersiyonlar",
                         principalColumn: "UygulamaVersiyon",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -388,7 +388,7 @@ namespace Muhasebe.Data.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "AppVersiyon",
+                table: "AppVersiyonlar",
                 columns: new[] { "UygulamaVersiyon", "OncekiUygulamaVersiyon", "UygulamaSonGuncellemeTarihi" },
                 values: new object[] { "1.0.0", null, new DateTime(2025, 9, 22, 0, 0, 0, 0, DateTimeKind.Unspecified) });
 
@@ -433,7 +433,7 @@ namespace Muhasebe.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "DbYedekAl");
+                name: "DbYedekAls");
 
             migrationBuilder.DropTable(
                 name: "DevirLog");
@@ -466,7 +466,7 @@ namespace Muhasebe.Data.Migrations
                 name: "Kullanicilar");
 
             migrationBuilder.DropTable(
-                name: "AppVersiyon");
+                name: "AppVersiyonlar");
 
             migrationBuilder.DropTable(
                 name: "Firmalar");

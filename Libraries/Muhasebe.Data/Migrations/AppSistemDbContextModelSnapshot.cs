@@ -77,7 +77,7 @@ namespace Muhasebe.Data.Migrations
 
                     b.HasKey("UygulamaVersiyon");
 
-                    b.ToTable("AppVersiyon");
+                    b.ToTable("AppVersiyonlar");
 
                     b.UseTptMappingStrategy();
                 });
@@ -108,7 +108,7 @@ namespace Muhasebe.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DbYedekAl");
+                    b.ToTable("DbYedekAls");
                 });
 
             modelBuilder.Entity("Muhasebe.Domain.Entities.SistemEntity.DevirLog", b =>
