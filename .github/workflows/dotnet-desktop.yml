@@ -44,7 +44,6 @@ jobs:
       - name: Restore packages
         run: |
          dotnet restore "${{ env.SOLUTION_PATH }}" `
-         -p:Platform=x64 `
          --verbosity normal
 
 
