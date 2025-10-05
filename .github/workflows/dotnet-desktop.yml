@@ -190,7 +190,7 @@ jobs:
         run: |
           Write-Host "Installing Velopack CLI..."
           dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
-          vpk --version
+          Write-Host "✓ Velopack CLI installed: ${{ steps.get_vpk_version.outputs.vpk_version }}"
 
       - name: Generate Release Notes
         run: |
