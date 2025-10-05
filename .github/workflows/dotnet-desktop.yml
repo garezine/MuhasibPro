@@ -39,48 +39,14 @@ jobs:
 
       # MSBuild yolunu bul ve PATH'e ekle
       - name: Setup MSBuild
-        run: |
-          # Visual Studio kurulu yollarında MSBuild'i ara
-          $vsPaths = @(
-            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin",
-            "C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin", 
-            "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin",
-            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin",
-            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin",
-            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin"
-          )
-          
-          $msbuildPath = $null
-          foreach ($path in $vsPaths) {
-            if (Test-Path $path) {
-              $msbuildPath = $path
-              Write-Host "Found MSBuild at: $msbuildPath"
-              break
-            }
-          }
-          
-          if (-not $msbuildPath) {
-            # Fallback: dotnet msbuild kullan
-            Write-Host "MSBuild not found in standard paths, using dotnet msbuild"
-          } else {
-            # MSBuild yolunu PATH'e ekle
-            echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
-            echo "$msbuildPath" >> $env:GITHUB_PATH
-          }
+        uses: microsoft/setup-msbuild@v2      
 
-      - name: Clean obj and bin folders
+      - name: Restore packages
         run: |
-          Get-ChildItem -Path . -Recurse -Directory -Name | Where-Object { $_ -match "^(bin|obj)$" } | ForEach-Object { 
-            Write-Host "Cleaning $_"
-            Remove-Item -Path $_ -Recurse -Force -ErrorAction SilentlyContinue 
-          }
+         dotnet restore "${{ env.SOLUTION_PATH }}" `
+         -p:Platform=x64 `
+         --verbosity normal
 
-      - name: Restore packages with exact framework
-        run: |
-          dotnet restore "${{ env.SOLUTION_PATH }}" `
-          -p:Platform=x64 `
-          -p:TargetFramework=net8.0-windows10.0.26100.0 `
-          --verbosity detailed
 
       - name: Build solution
         run: |
