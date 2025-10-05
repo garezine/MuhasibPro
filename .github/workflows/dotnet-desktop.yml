@@ -50,27 +50,13 @@ jobs:
 
       - name: Build solution
         run: |
-          # MSBuild kullanımı için alternatif yöntemler
-          if (Test-Path env:MSBUILD_PATH) {
-            # PATH'e eklenmiş MSBuild'i kullan
-            msbuild "${{ env.SOLUTION_PATH }}" `
-              /p:Configuration=Release `
-              /p:Platform=x64 `
-              /p:TargetFramework=net8.0-windows10.0.26100.0 `
-              /p:WindowsPackageType=None `
-              /verbosity:minimal `
-              /nologo
-          } else {
-            # dotnet msbuild kullan
-            Write-Host "Using dotnet msbuild as fallback"
-            dotnet msbuild "${{ env.SOLUTION_PATH }}" `
-              /p:Configuration=Release `
-              /p:Platform=x64 `
-              /p:TargetFramework=net8.0-windows10.0.26100.0 `
-              /p:WindowsPackageType=None `
-              /verbosity:minimal `
-              /nologo
-          }
+         msbuild "${{ env.SOLUTION_PATH }}" `
+         /p:Configuration=Release `
+         /p:Platform=x64 `
+         /p:TargetFramework=net8.0-windows10.0.26100.0 `
+         /p:WindowsPackageType=None `
+         /verbosity:minimal `
+         /nologo
 
       - name: Publish with EXACT VS2022 Settings
         run: |
