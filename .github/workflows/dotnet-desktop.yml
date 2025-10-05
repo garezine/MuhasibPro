@@ -37,6 +37,37 @@ jobs:
           dotnet --version
           dotnet --list-sdks
 
+      # MSBuild yolunu bul ve PATH'e ekle
+      - name: Setup MSBuild
+        run: |
+          # Visual Studio kurulu yollarında MSBuild'i ara
+          $vsPaths = @(
+            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin",
+            "C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin", 
+            "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin",
+            "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin"
+          )
+          
+          $msbuildPath = $null
+          foreach ($path in $vsPaths) {
+            if (Test-Path $path) {
+              $msbuildPath = $path
+              Write-Host "Found MSBuild at: $msbuildPath"
+              break
+            }
+          }
+          
+          if (-not $msbuildPath) {
+            # Fallback: dotnet msbuild kullan
+            Write-Host "MSBuild not found in standard paths, using dotnet msbuild"
+          } else {
+            # MSBuild yolunu PATH'e ekle
+            echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
+            echo "$msbuildPath" >> $env:GITHUB_PATH
+          }
+
       - name: Clean obj and bin folders
         run: |
           Get-ChildItem -Path . -Recurse -Directory -Name | Where-Object { $_ -match "^(bin|obj)$" } | ForEach-Object { 
@@ -53,13 +84,27 @@ jobs:
 
       - name: Build solution
         run: |
-          msbuild "${{ env.SOLUTION_PATH }}" `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:TargetFramework=net8.0-windows10.0.26100.0 `
-            /p:WindowsPackageType=None `
-            /verbosity:minimal `
-            /nologo
+          # MSBuild kullanımı için alternatif yöntemler
+          if (Test-Path env:MSBUILD_PATH) {
+            # PATH'e eklenmiş MSBuild'i kullan
+            msbuild "${{ env.SOLUTION_PATH }}" `
+              /p:Configuration=Release `
+              /p:Platform=x64 `
+              /p:TargetFramework=net8.0-windows10.0.26100.0 `
+              /p:WindowsPackageType=None `
+              /verbosity:minimal `
+              /nologo
+          } else {
+            # dotnet msbuild kullan
+            Write-Host "Using dotnet msbuild as fallback"
+            dotnet msbuild "${{ env.SOLUTION_PATH }}" `
+              /p:Configuration=Release `
+              /p:Platform=x64 `
+              /p:TargetFramework=net8.0-windows10.0.26100.0 `
+              /p:WindowsPackageType=None `
+              /verbosity:minimal `
+              /nologo
+          }
 
       - name: Publish with EXACT VS2022 Settings
         run: |
@@ -72,25 +117,46 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
-          # VS2022 PUBLISH PROFİLİNİN TAM AYNISI
-          msbuild "${{ env.PROJECT_PATH }}" `
-            /t:Publish `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:RuntimeIdentifier=win-x64 `
-            /p:SelfContained=true `
-            /p:PublishDir="$absolutePublishPath" `
-            /p:WindowsAppSdkSelfContained=true `
-            /p:WindowsPackageType=None `
-            /p:GenerateLibraryLayout=true `
-            /p:PublishReadyToRun=false `
-            /p:PublishSingleFile=false `
-            /p:PublishTrimmed=false `
-            /p:TargetFramework=net8.0-windows10.0.26100.0 `
-            /p:UseCurrentRuntimeIdentifier=true `
-            /p:CopyOutputSymbolsToPublishDirectory=false `
-            /verbosity:minimal `
-            /nologo
+          # MSBuild veya dotnet msbuild kullan
+          if (Test-Path env:MSBUILD_PATH) {
+            msbuild "${{ env.PROJECT_PATH }}" `
+              /t:Publish `
+              /p:Configuration=Release `
+              /p:Platform=x64 `
+              /p:RuntimeIdentifier=win-x64 `
+              /p:SelfContained=true `
+              /p:PublishDir="$absolutePublishPath" `
+              /p:WindowsAppSdkSelfContained=true `
+              /p:WindowsPackageType=None `
+              /p:GenerateLibraryLayout=true `
+              /p:PublishReadyToRun=false `
+              /p:PublishSingleFile=false `
+              /p:PublishTrimmed=false `
+              /p:TargetFramework=net8.0-windows10.0.26100.0 `
+              /p:UseCurrentRuntimeIdentifier=true `
+              /p:CopyOutputSymbolsToPublishDirectory=false `
+              /verbosity:minimal `
+              /nologo
+          } else {
+            dotnet msbuild "${{ env.PROJECT_PATH }}" `
+              /t:Publish `
+              /p:Configuration=Release `
+              /p:Platform=x64 `
+              /p:RuntimeIdentifier=win-x64 `
+              /p:SelfContained=true `
+              /p:PublishDir="$absolutePublishPath" `
+              /p:WindowsAppSdkSelfContained=true `
+              /p:WindowsPackageType=None `
+              /p:GenerateLibraryLayout=true `
+              /p:PublishReadyToRun=false `
+              /p:PublishSingleFile=false `
+              /p:PublishTrimmed=false `
+              /p:TargetFramework=net8.0-windows10.0.26100.0 `
+              /p:UseCurrentRuntimeIdentifier=true `
+              /p:CopyOutputSymbolsToPublishDirectory=false `
+              /verbosity:minimal `
+              /nologo
+          }
       
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Publish failed with exit code: $LASTEXITCODE"
@@ -103,22 +169,35 @@ jobs:
             $exeSize = (Get-Item $mainExe).Length / 1MB
             $fileCount = (Get-ChildItem $publishPath -File).Count
             Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
-            
-            # PRI kontrolü
-            $oldPriFile = Join-Path $publishPath "resources.pri"
-            $newPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
-            
-            if (Test-Path $newPriFile) {
-              Write-Host "✓ ${{ env.APP_NAME }}.pri found"
-              Copy-Item $newPriFile $oldPriFile -Force
-            } elseif (Test-Path $oldPriFile) {
-              Write-Host "✓ resources.pri found"
-            } else {
-              Write-Host "⚠ WARNING: No PRI file found"
-            }
           }
 
-     
+      - name: Fix PRI file for Velopack compatibility
+        run: |
+          $publishPath = "publish-win-x64"
+          $appPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
+          $resourcesPriFile = Join-Path $publishPath "resources.pri"
+          
+          Write-Host "Fixing PRI file naming for Velopack compatibility..."
+          
+          # Yeni WinUI3 SDK'sı uygulamaAdi.pri oluşturur, Velopack resources.pri bekler
+          if (Test-Path $appPriFile) {
+            Write-Host "✓ ${{ env.APP_NAME }}.pri found (new WinUI3 SDK format)"
+            
+            # resources.pri dosyasını oluştur (kopyala)
+            Copy-Item $appPriFile $resourcesPriFile -Force
+            Write-Host "✓ Created resources.pri from ${{ env.APP_NAME }}.pri for Velopack"
+            
+            # Her iki dosyanın da var olduğunu doğrula
+            if (Test-Path $resourcesPriFile) {
+              Write-Host "✓ Both PRI files are ready: ${{ env.APP_NAME }}.pri and resources.pri"
+            }
+          } elseif (Test-Path $resourcesPriFile) {
+            Write-Host "✓ resources.pri found (legacy format)"
+          } else {
+            Write-Host "⚠ WARNING: No PRI file found in publish directory"
+            Write-Host "Available files:"
+            Get-ChildItem $publishPath -Name | Sort-Object
+          }
 
       - name: Verify Published Files
         run: |
@@ -132,36 +211,45 @@ jobs:
             $exeSize = (Get-Item $exePath).Length / 1MB
             Write-Host "Main EXE size: $([math]::Round($exeSize, 2)) MB"
           }
+          
+          # PRI dosyalarını kontrol et
+          $appPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
+          $resourcesPriFile = Join-Path $publishPath "resources.pri"
+          
+          if (Test-Path $appPriFile) {
+            $appPriSize = (Get-Item $appPriFile).Length / 1KB
+            Write-Host "${{ env.APP_NAME }}.pri size: $([math]::Round($appPriSize, 2)) KB"
+          }
+          
+          if (Test-Path $resourcesPriFile) {
+            $resourcesPriSize = (Get-Item $resourcesPriFile).Length / 1KB
+            Write-Host "resources.pri size: $([math]::Round($resourcesPriSize, 2)) KB"
+          }
 
-      # Aşağıdaki adımlar aynı kalacak...
-      - name: Fix PRI file naming
+      # Version bilgisini al
+      - name: Extract version from tag
+        id: version
         run: |
-          $publishPath = "publish-win-x64"
-          $oldPriFile = Join-Path $publishPath "resources.pri"
-          $newPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
-          
-          Write-Host "Checking PRI files..."
-          
-          if ((Test-Path $newPriFile) -and (-not (Test-Path $oldPriFile))) {
-            Write-Host "Creating resources.pri from ${{ env.APP_NAME }}.pri for compatibility"
-            Copy-Item $newPriFile $oldPriFile -Force
+          if ("${{ github.event.inputs.version }}" -ne "") {
+            $version = "${{ github.event.inputs.version }}"
+          } else {
+            $tag = "${{ github.ref }}"
+            $version = $tag -replace "refs/tags/v", ""
           }
-          
-          if ((Test-Path $oldPriFile) -and (-not (Test-Path $newPriFile))) {
-            Write-Host "Creating ${{ env.APP_NAME }}.pri from resources.pri for new SDK compatibility"
-            Copy-Item $oldPriFile $newPriFile -Force
-          }
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $version"
 
       - name: Get latest Velopack CLI version
         id: get_vpk_version
         run: |
-            $response = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/vpk/index.json"
-            $latestVersion = $response.versions[-1]
-            echo "vpk_version=$latestVersion" >> $env:GITHUB_OUTPUT
+          $response = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/vpk/index.json"
+          $latestVersion = $response.versions[-1]
+          echo "vpk_version=$latestVersion" >> $env:GITHUB_OUTPUT
 
       - name: Install Velopack CLI
         run: |
-            dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
+          dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
 
       - name: Generate release notes
         run: |
@@ -179,20 +267,32 @@ jobs:
 
       - name: Create Velopack package
         run: |
-            $version = "${{ steps.version.outputs.version }}"
-            $publishPath = "publish-win-x64"
-            $outputDir = "releases"
-            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          $version = "${{ steps.version.outputs.version }}"
+          $publishPath = "publish-win-x64"
+          $outputDir = "releases"
+          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          
+          # Velopack için resources.pri'nin var olduğunu tekrar kontrol et
+          $resourcesPriFile = Join-Path $publishPath "resources.pri"
+          if (-not (Test-Path $resourcesPriFile)) {
+            Write-Host "⚠ WARNING: resources.pri not found, checking for ${{ env.APP_NAME }}.pri"
+            $appPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
+            if (Test-Path $appPriFile) {
+              Write-Host "Creating resources.pri from ${{ env.APP_NAME }}.pri"
+              Copy-Item $appPriFile $resourcesPriFile -Force
+            }
+          }
     
-            vpk pack `
-              --packId "${{ env.APP_NAME }}" `
-              --packVersion "$version" `
-              --packDir "$publishPath" `
-              --outputDir "$outputDir" `
-              --mainExe "${{ env.APP_NAME }}.exe" `
-              --packTitle "MuhasibPro" `
-              --packAuthors "MuhasibPro Team" `
-              --releaseNotes "./RELEASE_NOTES.md"
+          Write-Host "Creating Velopack package..."
+          vpk pack `
+            --packId "${{ env.APP_NAME }}" `
+            --packVersion "$version" `
+            --packDir "$publishPath" `
+            --outputDir "$outputDir" `
+            --mainExe "${{ env.APP_NAME }}.exe" `
+            --packTitle "MuhasibPro" `
+            --packAuthors "MuhasibPro Team" `
+            --releaseNotes "./RELEASE_NOTES.md"
 
       - name: Create portable ZIP
         run: |
