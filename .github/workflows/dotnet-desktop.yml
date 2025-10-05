@@ -1,4 +1,4 @@
-name: WinUI3 Release - MuhasibPro (Optimized)
+name: WinUI3 Release - MuhasibPro (Fixed .NET Version)
 
 on:
   workflow_dispatch:
@@ -32,44 +32,38 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Get Version
-        id: version
+      - name: Check .NET Version
         run: |
-          if ("${{ github.event.inputs.version }}" -ne "") {
-            $version = "${{ github.event.inputs.version }}"
-          } elseif ("${{ github.ref_type }}" -eq "tag") {
-            $version = "${{ github.ref_name }}" -replace "^v", ""
-          } else {
-            $version = "1.0.0"
+          dotnet --version
+          dotnet --list-sdks
+
+      - name: Clean obj and bin folders
+        run: |
+          Get-ChildItem -Path . -Recurse -Directory -Name | Where-Object { $_ -match "^(bin|obj)$" } | ForEach-Object { 
+            Write-Host "Cleaning $_"
+            Remove-Item -Path $_ -Recurse -Force -ErrorAction SilentlyContinue 
           }
-          echo "version=$version" >> $env:GITHUB_OUTPUT
-          echo "tag_name=v$version" >> $env:GITHUB_OUTPUT
-          Write-Host "Version: $version"
 
-      - name: Restore packages
+      - name: Restore packages with exact framework
         run: |
-         dotnet restore "${{ env.SOLUTION_PATH }}" `
-         -p:Platform=x64 `
-         --verbosity normal
+          dotnet restore "${{ env.SOLUTION_PATH }}" `
+          -p:Platform=x64 `
+          -p:TargetFramework=net8.0-windows10.0.26100.0 `
+          --verbosity detailed
 
       - name: Build solution
         run: |
           msbuild "${{ env.SOLUTION_PATH }}" `
             /p:Configuration=Release `
             /p:Platform=x64 `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:EnableMsixTooling=false `
+            /p:TargetFramework=net8.0-windows10.0.26100.0 `
             /p:WindowsPackageType=None `
             /verbosity:minimal `
             /nologo
 
-      - name: Publish Self-Contained
+      - name: Publish with EXACT VS2022 Settings
         run: |
-          Write-Host "Publishing self-contained application..."          
+          Write-Host "Publishing with EXACT VS2022 settings..."          
           $publishPath = "publish-win-x64"
           $absolutePublishPath = Join-Path $env:GITHUB_WORKSPACE $publishPath
       
@@ -78,6 +72,7 @@ jobs:
           }
           New-Item -ItemType Directory -Path $publishPath -Force | Out-Null
       
+          # VS2022 PUBLISH PROFİLİNİN TAM AYNISI
           msbuild "${{ env.PROJECT_PATH }}" `
             /t:Publish `
             /p:Configuration=Release `
@@ -86,10 +81,14 @@ jobs:
             /p:SelfContained=true `
             /p:PublishDir="$absolutePublishPath" `
             /p:WindowsAppSdkSelfContained=true `
-            /p:SkipPriGeneration=true `
-            /p:EnableMrtGeneration=false `
-            /p:EnableMsixTooling=false `
             /p:WindowsPackageType=None `
+            /p:GenerateLibraryLayout=true `
+            /p:PublishReadyToRun=false `
+            /p:PublishSingleFile=false `
+            /p:PublishTrimmed=false `
+            /p:TargetFramework=net8.0-windows10.0.26100.0 `
+            /p:UseCurrentRuntimeIdentifier=true `
+            /p:CopyOutputSymbolsToPublishDirectory=false `
             /verbosity:minimal `
             /nologo
       
@@ -98,15 +97,59 @@ jobs:
             exit 1
           }
           
-          # Quick validation
+          # Validation
           $mainExe = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
           if (Test-Path $mainExe) {
             $exeSize = (Get-Item $mainExe).Length / 1MB
             $fileCount = (Get-ChildItem $publishPath -File).Count
             Write-Host "Published: $([math]::Round($exeSize, 2)) MB EXE, $fileCount files"
-          } else {
-            Write-Host "Main executable not found"
-            exit 1
+            
+            # PRI kontrolü
+            $oldPriFile = Join-Path $publishPath "resources.pri"
+            $newPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
+            
+            if (Test-Path $newPriFile) {
+              Write-Host "✓ ${{ env.APP_NAME }}.pri found"
+              Copy-Item $newPriFile $oldPriFile -Force
+            } elseif (Test-Path $oldPriFile) {
+              Write-Host "✓ resources.pri found"
+            } else {
+              Write-Host "⚠ WARNING: No PRI file found"
+            }
+          }
+
+     
+
+      - name: Verify Published Files
+        run: |
+          $publishPath = "publish-win-x64"
+          Write-Host "Published file structure:"
+          Get-ChildItem $publishPath -Recurse | Select-Object Name, Length | Format-Table -AutoSize
+          
+          # Kritik dosya boyutlarını kontrol et
+          $exePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
+          if (Test-Path $exePath) {
+            $exeSize = (Get-Item $exePath).Length / 1MB
+            Write-Host "Main EXE size: $([math]::Round($exeSize, 2)) MB"
+          }
+
+      # Aşağıdaki adımlar aynı kalacak...
+      - name: Fix PRI file naming
+        run: |
+          $publishPath = "publish-win-x64"
+          $oldPriFile = Join-Path $publishPath "resources.pri"
+          $newPriFile = Join-Path $publishPath "${{ env.APP_NAME }}.pri"
+          
+          Write-Host "Checking PRI files..."
+          
+          if ((Test-Path $newPriFile) -and (-not (Test-Path $oldPriFile))) {
+            Write-Host "Creating resources.pri from ${{ env.APP_NAME }}.pri for compatibility"
+            Copy-Item $newPriFile $oldPriFile -Force
+          }
+          
+          if ((Test-Path $oldPriFile) -and (-not (Test-Path $newPriFile))) {
+            Write-Host "Creating ${{ env.APP_NAME }}.pri from resources.pri for new SDK compatibility"
+            Copy-Item $oldPriFile $newPriFile -Force
           }
 
       - name: Get latest Velopack CLI version
@@ -115,12 +158,10 @@ jobs:
             $response = Invoke-RestMethod -Uri "https://api.nuget.org/v3-flatcontainer/vpk/index.json"
             $latestVersion = $response.versions[-1]
             echo "vpk_version=$latestVersion" >> $env:GITHUB_OUTPUT
-            Write-Host "Latest vpk version: $latestVersion"
 
       - name: Install Velopack CLI
         run: |
             dotnet tool install -g vpk --version ${{ steps.get_vpk_version.outputs.vpk_version }}
-            vpk --help
 
       - name: Generate release notes
         run: |
@@ -128,33 +169,11 @@ jobs:
           $buildDate = Get-Date -Format "dd.MM.yyyy HH:mm"
           $notes = @"
           # MuhasibPro v$version
-
           ## Sürüm Bilgileri
           - **Sürüm:** $version
           - **Derleme Tarihi:** $buildDate
           - **Platform:** Windows 10/11 (x64)
           - **UI Framework:** WinUI 3
-
-          ## İndirme Seçenekleri
-          ### Otomatik Kurulum (Velopack)
-          - Dosya: ${{ env.APP_NAME }}.v$version.vpk
-          - Otomatik kurulum ve güncelleme
-
-          ### Geleneksel Kurulum
-          - Dosya: ${{ env.APP_NAME }}-v$version-Setup.exe
-          - Windows kurulum sihirbazı
-
-          ### Taşınabilir Sürüm
-          - Dosya: ${{ env.APP_NAME }}-v$version-portable-win-x64.zip
-          - Kurulum gerektirmez
-
-          ## Kurulum
-          1. **Velopack:** .vpk dosyasını çalıştırın
-          2. **Geleneksel:** Setup.exe'yi çalıştırın
-          3. **Portable:** .zip dosyasını açın ve ${{ env.APP_NAME }}.exe'yi çalıştırın
-
-          ---
-          Bu sürüm GitHub Actions ile otomatik derlenmiştir.
           "@
           $notes | Out-File -FilePath "RELEASE_NOTES.md" -Encoding UTF8
 
@@ -163,15 +182,7 @@ jobs:
             $version = "${{ steps.version.outputs.version }}"
             $publishPath = "publish-win-x64"
             $outputDir = "releases"
-
-            Write-Host "Creating Velopack package..."
             New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-    
-            $mainExePath = Join-Path $publishPath "${{ env.APP_NAME }}.exe"
-            if (-not (Test-Path $mainExePath)) {
-              Write-Host "Main executable not found: $mainExePath"
-              exit 1
-            }          
     
             vpk pack `
               --packId "${{ env.APP_NAME }}" `
@@ -190,64 +201,6 @@ jobs:
           $zipPath = Join-Path "releases" $zipName
           Compress-Archive -Path "publish-win-x64/*" -DestinationPath $zipPath -Force
 
-      - name: Create Setup.exe (Traditional Installer)
-        run: |
-          $version = "${{ steps.version.outputs.version }}"
-          $setupName = "${{ env.APP_NAME }}-v$version-Setup.exe"
-          $setupPath = Join-Path "releases" $setupName
-
-          Write-Host "Creating traditional setup.exe installer..."
-
-          # Install Inno Setup
-          choco install innosetup -y --no-progress
-          $innoPath = "C:\Program Files (x86)\Inno Setup 6"
-          $env:PATH = "$innoPath;" + $env:PATH
-          
-          # Create Inno Setup script
-          $innoScript = @"
-          #define MyAppName "MuhasibPro"
-          #define MyAppVersion "$version"
-          #define MyAppPublisher "MuhasibPro Team"
-          #define MyAppExeName "${{ env.APP_NAME }}.exe"
-
-          [Setup]
-          AppId={{12345678-1234-1234-1234-123456789012}}
-          AppName={#MyAppName}
-          AppVersion={#MyAppVersion}
-          AppPublisher={#MyAppPublisher}
-          DefaultDirName={autopf}\{#MyAppName}
-          DefaultGroupName={#MyAppName}
-          AllowNoIcons=yes
-          OutputDir=releases
-          OutputBaseFilename=${{ env.APP_NAME }}-v$version-Setup
-          Compression=lzma
-          SolidCompression=yes
-          WizardStyle=modern
-          ArchitecturesAllowed=x64
-          ArchitecturesInstallIn64BitMode=x64
-
-          [Languages]
-          Name: "english"; MessagesFile: "compiler:Default.isl"
-          Name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
-
-          [Tasks]
-          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-
-          [Files]
-          Source: "publish-win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-          [Icons]
-          Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-          Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-
-          [Run]
-          Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
-          "@
-
-          $innoScript | Out-File -FilePath "setup.iss" -Encoding UTF8
-          & "$innoPath\ISCC.exe" "setup.iss"
-          Remove-Item "setup.iss" -Force
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -260,7 +213,6 @@ jobs:
           files: |
             releases/*.vpk
             releases/*.zip
-            releases/*Setup.exe
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
