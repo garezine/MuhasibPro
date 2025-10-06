@@ -286,7 +286,7 @@
 
     <Grid x:Name="SplashOverlay" Opacity="0">
         <Grid.Background>
-            <SolidColorBrush Color="{StaticResource LayerFillColorDefault}" />
+            <SolidColorBrush Color="{ThemeResource LayerFillColorDefault}" />
         </Grid.Background>
 
         <!-- ScrollViewer to handle overflow on small screens -->
@@ -321,12 +321,12 @@
                             HorizontalAlignment="Center"
                             FontSize="42"
                             FontWeight="SemiLight"
-                            Foreground="White"
+                            Foreground="{ThemeResource TextFillColorSecondary}"
                             Text="MuhasibPro" />
                         <TextBlock
                             HorizontalAlignment="Center"
                             FontSize="16"
-                            Foreground="#B0FFFFFF"
+                            Foreground="{ThemeResource TextFillColorDisabled}"
                             Text="Gelişmiş Muhasebe Çözümü" />
                     </StackPanel>
 
@@ -354,7 +354,7 @@
                                 VerticalAlignment="Center"
                                 FontFamily="Segoe MDL2 Assets"
                                 FontSize="40"
-                                Foreground="#30FFFFFF"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
                                 Glyph="&#xE77B;">
                                 <FontIcon.RenderTransform>
                                     <ScaleTransform x:Name="Folder1ScaleTransform" CenterX="20" CenterY="20" />
@@ -367,7 +367,7 @@
                                 VerticalAlignment="Center"
                                 FontFamily="Segoe MDL2 Assets"
                                 FontSize="40"
-                                Foreground="#30FFFFFF"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
                                 Glyph="&#xE762;">
                                 <FontIcon.RenderTransform>
                                     <ScaleTransform x:Name="Folder2ScaleTransform" CenterX="20" CenterY="20" />
@@ -380,7 +380,7 @@
                                 VerticalAlignment="Center"
                                 FontFamily="Segoe MDL2 Assets"
                                 FontSize="40"
-                                Foreground="#30FFFFFF"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
                                 Glyph="&#xEAFC;">
                                 <FontIcon.RenderTransform>
                                     <ScaleTransform x:Name="Folder3ScaleTransform" CenterX="20" CenterY="20" />
@@ -393,7 +393,7 @@
                                 VerticalAlignment="Center"
                                 FontFamily="Segoe MDL2 Assets"
                                 FontSize="40"
-                                Foreground="#30FFFFFF"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
                                 Glyph="&#xF182;">
                                 <FontIcon.RenderTransform>
                                     <ScaleTransform x:Name="Folder4ScaleTransform" CenterX="20" CenterY="20" />
@@ -406,7 +406,7 @@
                                 VerticalAlignment="Center"
                                 FontFamily="Segoe MDL2 Assets"
                                 FontSize="40"
-                                Foreground="#30FFFFFF"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
                                 Glyph="&#xE9F9;">
                                 <FontIcon.RenderTransform>
                                     <ScaleTransform x:Name="Folder5ScaleTransform" CenterX="20" CenterY="20" />
@@ -432,103 +432,103 @@
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="30"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="50"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="70"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="90"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="110"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="130"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="150"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="170"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="190"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="210"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="230"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="250"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="270"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="290"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="310"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                                 <Ellipse
                                     Canvas.Left="330"
                                     Canvas.Top="3"
                                     Width="6"
                                     Height="6"
-                                    Fill="{StaticResource ApplicationForegroundThemeBrush}" />
+                                    Fill="{ThemeResource AccentAAFillColorDisabled}" />
                             </Canvas>
                             <!-- Bottom layer dots -->
                             <Canvas>
@@ -540,97 +540,97 @@
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="45"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="65"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="85"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="105"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="125"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="145"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="165"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="185"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="205"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="225"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="245"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="265"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="285"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="305"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                                 <Ellipse
                                     Canvas.Left="325"
                                     Canvas.Top="14"
                                     Width="5"
                                     Height="5"
-                                    Fill="#B0FFFFFF" />
+                                    Fill="{ThemeResource ApplicationForegroundThemeBrush}" />
                             </Canvas>
                         </Canvas>
 
@@ -639,7 +639,7 @@
                             Margin="0,20,0,0"
                             HorizontalAlignment="Center"
                             FontSize="18"
-                            Foreground="White"
+                            Foreground="{ThemeResource TextFillColorSecondary}"
                             Opacity="0"
                             Text="Sistem başlatılıyor..." />
                     </StackPanel>
@@ -660,17 +660,17 @@
                             <TextBlock
                                 FontSize="12"
                                 FontWeight="Light"
-                                Foreground="#60FFFFFF"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
                                 Text="{x:Bind CopyrightText}" />
                         </StackPanel>
                         <StackPanel
                             Grid.Column="1"
                             HorizontalAlignment="Right"
                             VerticalAlignment="Bottom">
-                            <TextBlock
+                            <TextBlock                                
                                 FontSize="12"
-                                FontWeight="Light"
-                                Foreground="#60FFFFFF"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}"
                                 Text="{x:Bind Version}" />
                         </StackPanel>
                     </Grid>

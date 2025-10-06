@@ -19,8 +19,7 @@ namespace MuhasibPro.Views.Splash
         public ExtendedSplash()
         {
             InitializeComponent();            
-            rootFrame = new Frame();
-            App.MainWindow.IsTitleBarVisible = false;
+            rootFrame = new Frame();           
             this.Loaded += OnPageLoaded;
         }
         public string Version => ProcessInfoHelper.Version;

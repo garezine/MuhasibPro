@@ -92,8 +92,9 @@
 		<Folder Include="Collections\MuhasebeCollection\" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\Libraries\Muhasebe.Business\Muhasebe.Business.csproj" />
+		<ProjectReference Include="..\Libraries\Muhasebe.Business\Muhasebe.Business.csproj" />		
 	</ItemGroup>
+	
 	<ItemGroup>
 		<Content Update="Assets\Images\LoginBackground.jpg">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

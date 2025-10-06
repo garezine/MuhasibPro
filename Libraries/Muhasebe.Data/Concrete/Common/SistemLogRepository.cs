@@ -3,6 +3,7 @@ using Muhasebe.Data.Abstracts.Common;
 using Muhasebe.Data.DataContext;
 using Muhasebe.Domain.Entities.SistemEntity;
 using Muhasebe.Domain.Helpers;
+using Muhasebe.Domain.Helpers.IDGenerator;
 
 namespace Muhasebe.Data.Concrete.Common
 {
@@ -19,6 +20,7 @@ namespace Muhasebe.Data.Concrete.Common
 
         public async Task<int> CreateLogAsync(SistemLog appLog)
         {
+            appLog.Id = UIDModuleGenerator.GenerateModuleId(UIDModuleType.Sistem);
             appLog.KayitTarihi = DateTime.UtcNow;
             await base.AddAsync(appLog);
             return await CommitAsync().ConfigureAwait(false);

@@ -13,6 +13,7 @@ public interface IFormControl
     bool Focus(FocusState value);
 
     void SetVisualState(FormVisualState visualState);
+
     // Validation için yeni metodlar
     string ErrorMessage { get; set; }
     bool HasError { get; set; }

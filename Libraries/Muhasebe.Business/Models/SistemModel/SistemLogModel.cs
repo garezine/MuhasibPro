@@ -7,6 +7,7 @@ public class SistemLogModel : ObservableObject
 {
     public static SistemLogModel CreateEmpty() => new() { Id = -1, IsEmpty = true };
 
+
     public bool IsRead { get; set; }
     public string User { get; set; }
 

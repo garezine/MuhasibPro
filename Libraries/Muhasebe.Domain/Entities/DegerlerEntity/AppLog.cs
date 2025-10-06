@@ -6,6 +6,7 @@ namespace Muhasebe.Domain.Entities.DegerlerEntity
 {
     public class AppLog : BaseEntity
     {
+
         public bool IsRead { get; set; }
 
         [Required]

@@ -6,6 +6,7 @@ namespace Muhasebe.Domain.Entities.SistemEntity
 {
     public class SistemLog : BaseEntity
     {
+
         public bool IsRead { get; set; }
 
         [Required]

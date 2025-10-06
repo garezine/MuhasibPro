@@ -156,7 +156,7 @@ namespace MuhasibPro.Controls
                 return CanGoBack ? DetailToolbarMode.BackEditDelete : DetailToolbarMode.Default;
             }
         }
-
+        static DependencyExpression ToolbarModeExpression = DependencyExpressions.Register(nameof(ToolbarMode), nameof(IsEditMode), nameof(CanGoBack));
         private void OnToolbarClick(object sender, ToolbarButtonClickEventArgs e)
         {
             switch (e.ClickedButton)

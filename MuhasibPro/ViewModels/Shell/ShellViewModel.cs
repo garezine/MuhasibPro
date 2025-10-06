@@ -2,7 +2,6 @@
 using Muhasebe.Business.Services.Abstracts.Common;
 using MuhasibPro.Contracts.CommonServices;
 using MuhasibPro.Infrastructure.ViewModels;
-using MuhasibPro.Services.CommonServices;
 
 namespace MuhasibPro.ViewModels.Shell
 {

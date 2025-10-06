@@ -1,5 +1,6 @@
 ﻿using Muhasebe.Business.Models.SistemModel;
 using Muhasebe.Business.Services.Abstracts.Common;
+using Muhasebe.Business.Tools;
 using Muhasebe.Data.Abstracts.Common;
 using Muhasebe.Data.Abstracts.Sistem;
 using Muhasebe.Data.DataContext;
@@ -18,17 +19,23 @@ namespace MuhasibPro.Services.SistemServices.FirmaMaliDonemService
         private readonly IFirmaRepository _firmaRepository;
         private readonly IUnitOfWork<AppSistemDbContext> _unitOfWork;
         private readonly IAuthenticationService _authenticationService;
-        private static IBitmapTools _bitmapTools;
+        private readonly IBitmapTools _bitmapTools;
         public ILogService LogService { get; private set; }
-        public FirmaService(IFirmaRepository firmaRepository, ILogService logService, IUnitOfWork<AppSistemDbContext> unitOfWork, IAuthenticationService authenticationService)
-        {
-            _firmaRepository = firmaRepository;
-            LogService = logService;
-            _unitOfWork = unitOfWork;
-            _authenticationService = authenticationService;
-            _bitmapTools = new BitmapTools();
 
+        public FirmaService(
+            IFirmaRepository firmaRepository,
+            ILogService logService,
+            IUnitOfWork<AppSistemDbContext> unitOfWork,
+            IAuthenticationService authenticationService,
+            IBitmapTools bitmapTools)
+        {
+            _firmaRepository = firmaRepository ?? throw new ArgumentNullException(nameof(firmaRepository));
+            LogService = logService ?? throw new ArgumentNullException(nameof(logService));
+            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+            _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+            _bitmapTools = bitmapTools ?? new BitmapTools();
         }
+
         public async Task<ApiDataResponse<FirmaModel>> GetByFirmaIdAsync(long id)
         {
             return await GetFirmaAsync(id).ConfigureAwait(false);
@@ -39,91 +46,147 @@ namespace MuhasibPro.Services.SistemServices.FirmaMaliDonemService
             try
             {
                 var item = await _firmaRepository.GetByFirmaId(id);
-                if (item != null)
+                if (item == null)
                 {
-                    var model = await CreateFirmaModelAsync(item, includeAllFields: true);
-                    return new SuccessApiDataResponse<FirmaModel>(model, "Firma, FirmaModel'e dönüştürüldü");
-
+                    return new ErrorApiDataResponse<FirmaModel>(
+                        data: null,
+                        message: $"Firma bulunamadı. ID: {id}");
                 }
-                return null;
+
+                var model = await CreateFirmaModelAsync(item, includeAllFields: true);
+                return new SuccessApiDataResponse<FirmaModel>(model, "Firma başarıyla getirildi");
             }
             catch (Exception ex)
             {
+                await LogService.SistemLogService.SistemLogException(
+                    nameof(FirmaService),
+                    nameof(GetFirmaAsync),
+                    ex);
                 return new ErrorApiDataResponse<FirmaModel>(data: null, message: ex.Message);
             }
         }
 
         public async Task<ApiDataResponse<IList<FirmaModel>>> GetFirmalarAsync(int skip, int take, DataRequest<Firma> request)
         {
-            var models = new List<FirmaModel>();
             try
             {
                 var items = await _firmaRepository.GetFirmalarAsync(skip, take, request);
+                var models = new List<FirmaModel>();
+
                 foreach (var item in items)
                 {
                     models.Add(await CreateFirmaModelAsync(item, includeAllFields: false));
                 }
-                return new SuccessApiDataResponse<IList<FirmaModel>>(models, "Firmalar listelendi");
+
+                return new SuccessApiDataResponse<IList<FirmaModel>>(models, "Firmalar başarıyla listelendi");
             }
             catch (Exception ex)
             {
+                await LogService.SistemLogService.SistemLogException(
+                    nameof(FirmaService),
+                    nameof(GetFirmalarAsync),
+                    ex);
                 return new ErrorApiDataResponse<IList<FirmaModel>>(data: null, message: ex.Message);
             }
         }
+
         public async Task<IList<FirmaModel>> GetFirmalarAsync(DataRequest<Firma> request)
         {
             var collection = new FirmaCollection(this, LogService);
             await collection.LoadAsync(request);
             return collection;
         }
-        public Task<bool> IsFirma() { return _firmaRepository.IsFirma(); }
+
+        public Task<bool> IsFirma()
+        {
+            return _firmaRepository.IsFirma();
+        }
 
         public async Task<ApiDataResponse<int>> UpdateFirmaAsync(FirmaModel model)
         {
+            if (model == null)
+            {
+                return new ErrorApiDataResponse<int>(data: 0, message: "Model null olamaz");
+            }
+
             long id = model.Id;
             try
             {
                 var firma = id > 0 ? await _firmaRepository.GetByFirmaId(id) : new Firma();
-                if (firma != null)
+                if (firma == null)
                 {
-                    firma.KaydedenId = _authenticationService.CurrentUserId;
-                    UpdateFirmaModelAsync(firma, model);
-                    await _firmaRepository.UpdateFirmaAsync(firma);
-                    var updateFirma = await GetFirmaAsync(firma.Id);
-                    model.Merge(updateFirma.Data);
-
-                    var result = await _unitOfWork.CommitAsync();
-                    await LogService.SistemLogService.SistemLogInformation(nameof(FirmaService), nameof(UpdateFirmaAsync),
-                        $"Firma başarıyla güncellendi. Firma ID: {id}", $"Etkilenen kayıt: {result}");
-                    return new SuccessApiDataResponse<int>(result, "Firma kaydedildi");
+                    await LogService.SistemLogService.SistemLogError(
+                        nameof(FirmaService),
+                        nameof(UpdateFirmaAsync),
+                        $"Firma güncellenemedi. Firma bulunamadı. Model ID: {id}");
+                    return new ErrorApiDataResponse<int>(data: 0, message: "Firma bulunamadı");
                 }
 
-                await LogService.SistemLogService.SistemLogError(nameof(FirmaService), nameof(UpdateFirmaAsync),
-                    $"Firma güncellenemedi. Firma bulunamadı. Model ID: {id}");
-                return new ErrorApiDataResponse<int>(data: 0, "Firma kayıt hatası");
+                firma.KaydedenId = _authenticationService.CurrentUserId;
+                UpdateFirmaModel(firma, model);
+                await _firmaRepository.UpdateFirmaAsync(firma);
+
+                var result = await _unitOfWork.CommitAsync();
+
+                // Transaction tamamlandıktan sonra log
+                await LogService.SistemLogService.SistemLogInformation(
+                    nameof(FirmaService),
+                    nameof(UpdateFirmaAsync),
+                    $"Firma başarıyla güncellendi. Firma ID: {id}",
+                    $"Etkilenen kayıt: {result}");
+
+                // Model'i güncel veriyle doldur
+                var updateFirma = await GetFirmaAsync(firma.Id);
+                if (updateFirma.Success)
+                {
+                    model.Merge(updateFirma.Data);
+                }
+
+                return new SuccessApiDataResponse<int>(result, "Firma başarıyla kaydedildi");
             }
             catch (Exception ex)
             {
-                await LogService.SistemLogService.SistemLogException(nameof(FirmaService), nameof(UpdateFirmaAsync), ex);
-                return new ErrorApiDataResponse<int>(data: 0, $"Kayıt hatası : {ex.Message}");
+                await LogService.SistemLogService.SistemLogException(
+                    nameof(FirmaService),
+                    nameof(UpdateFirmaAsync),
+                    ex);
+                return new ErrorApiDataResponse<int>(data: 0, message: $"Kayıt hatası: {ex.Message}");
             }
         }
+
         public async Task<ApiDataResponse<int>> DeleteFirmaAsync(FirmaModel model)
         {
+            if (model == null)
+            {
+                return new ErrorApiDataResponse<int>(data: 0, message: "Model null olamaz");
+            }
+
             try
             {
                 var firma = await _firmaRepository.GetByFirmaId(model.Id);
+                if (firma == null)
+                {
+                    return new ErrorApiDataResponse<int>(data: 0, message: "Firma bulunamadı");
+                }
+
                 await _firmaRepository.DeleteAsync(firma);
                 var result = await _unitOfWork.CommitAsync();
 
-                await LogService.SistemLogService.SistemLogInformation(nameof(FirmaService), nameof(DeleteFirmaAsync),
-                    $"Firma başarıyla silindi. Firma ID: {model.Id}", $"Etkilenen kayıt: {result}");
+                await LogService.SistemLogService.SistemLogInformation(
+                    nameof(FirmaService),
+                    nameof(DeleteFirmaAsync),
+                    $"Firma başarıyla silindi. Firma ID: {model.Id}",
+                    $"Etkilenen kayıt: {result}");
+
                 return new SuccessApiDataResponse<int>(result, "Firma başarıyla silindi");
             }
             catch (Exception ex)
             {
-                await LogService.SistemLogService.SistemLogException(nameof(FirmaService), nameof(DeleteFirmaAsync), ex);
-                return new ErrorApiDataResponse<int>(data: 0, $"Silme hatası : {ex.Message}");
+                await LogService.SistemLogService.SistemLogException(
+                    nameof(FirmaService),
+                    nameof(DeleteFirmaAsync),
+                    ex);
+                return new ErrorApiDataResponse<int>(data: 0, message: $"Silme hatası: {ex.Message}");
             }
         }
 
@@ -132,27 +195,61 @@ namespace MuhasibPro.Services.SistemServices.FirmaMaliDonemService
             try
             {
                 var items = await _firmaRepository.GetFirmaKeysAsync(index, length, request);
+                if (items == null || !items.Any())
+                {
+                    return new SuccessApiDataResponse<int>(0, "Silinecek firma bulunamadı");
+                }
+
                 await _firmaRepository.DeleteRangeAsync(items.ToArray());
                 var result = await _unitOfWork.CommitAsync();
 
-                await LogService.SistemLogService.SistemLogInformation(nameof(FirmaService), nameof(DeleteFirmaRangeAsync),
-                    $"{items.Count} adet firma başarıyla silindi. Index: {index}, Length: {length}", $"Etkilenen kayıt: {result}");
-                return new SuccessApiDataResponse<int>(result, "Seçili firma(lar) başarıyla silindi");
+                await LogService.SistemLogService.SistemLogInformation(
+                    nameof(FirmaService),
+                    nameof(DeleteFirmaRangeAsync),
+                    $"{items.Count} adet firma başarıyla silindi. Index: {index}, Length: {length}",
+                    $"Etkilenen kayıt: {result}");
+
+                return new SuccessApiDataResponse<int>(result, $"{items.Count} adet firma başarıyla silindi");
             }
             catch (Exception ex)
             {
-                await LogService.SistemLogService.SistemLogException(nameof(FirmaService), nameof(DeleteFirmaRangeAsync), ex);
-                return new ErrorApiDataResponse<int>(data: 0, $"Silme hatası : {ex.Message}");
+                await LogService.SistemLogService.SistemLogException(
+                    nameof(FirmaService),
+                    nameof(DeleteFirmaRangeAsync),
+                    ex);
+                return new ErrorApiDataResponse<int>(data: 0, message: $"Silme hatası: {ex.Message}");
             }
         }
 
-        public static async Task<FirmaModel> CreateFirmaModelAsync(Firma source, bool includeAllFields)
+        public async Task<int> GetFirmalarCountAsync(DataRequest<Firma> request)
         {
+            try
+            {
+                return await _firmaRepository.GetFirmalarCountAsync(request);
+            }
+            catch (Exception ex)
+            {
+                await LogService.SistemLogService.SistemLogException(
+                    nameof(FirmaService),
+                    nameof(GetFirmalarCountAsync),
+                    ex);
+                return 0;
+            }
+        }
+
+        private async Task<FirmaModel> CreateFirmaModelAsync(Firma source, bool includeAllFields)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
             try
             {
                 var model = new FirmaModel()
                 {
                     Id = source.Id,
+                    FirmaKodu = source.FirmaKodu,
                     Adres = source.Adres,
                     AktifMi = source.AktifMi,
                     Eposta = source.Eposta,
@@ -183,23 +280,30 @@ namespace MuhasibPro.Services.SistemServices.FirmaMaliDonemService
                     model.VergiNo = source.VergiNo;
                     model.Web = source.Web;
                 }
-                return model;
+
+                return model; // Bu satır zaten var
             }
             catch (Exception ex)
             {
-                // Static method olduğu için log servisi kullanılamıyor
-                // Hata durumunda exception fırlatılabilir veya null dönebilir
+                await LogService.SistemLogService.SistemLogException(
+                    nameof(FirmaService),
+                    nameof(CreateFirmaModelAsync),
+                    ex);
                 throw new Exception("FirmaModel oluşturulurken hata oluştu", ex);
             }
         }
-        private void UpdateFirmaModelAsync(Firma target, FirmaModel source)
+
+        private void UpdateFirmaModel(Firma target, FirmaModel source)
         {
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            
+            target.FirmaKodu = source.FirmaKodu;
             target.Adres = source.Adres;
             target.AktifMi = source.AktifMi;
             target.Eposta = source.Eposta;
             target.GuncellemeTarihi = source.GuncellemeTarihi;
             target.GuncelleyenId = source.GuncelleyenId;
-
             target.KaydedenId = source.KaydedenId;
             target.KayitTarihi = source.KayitTarihi;
             target.KisaUnvani = source.KisaUnvani;
@@ -218,20 +322,6 @@ namespace MuhasibPro.Services.SistemServices.FirmaMaliDonemService
             target.VergiDairesi = source.VergiDairesi;
             target.VergiNo = source.VergiNo;
             target.Web = source.Web;
-        }
-
-        public async Task<int> GetFirmalarCountAsync(DataRequest<Firma> request)
-        {
-            try
-            {
-                return await _firmaRepository.GetFirmalarCountAsync(request);
-            }
-            catch (Exception ex)
-            {
-                var message = new ErrorApiDataResponse<int>(data: 0, message: ex.Message);
-                return message.Data;
-                throw;
-            }
         }
     }
 }

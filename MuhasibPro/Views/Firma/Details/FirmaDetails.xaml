@@ -20,29 +20,42 @@
                     Margin="12,18,6,6"
                     Columns="2"
                     ColumnSpacing="12"
-                    RowSpacing="12"
-                    controls:ValidationBehavior.Errors="{x:Bind ValidationErrors,Mode=OneWay}">
+                    controls:ValidationBehavior.Errors="{x:Bind ValidationErrors,Mode=OneWay}"
+                    RowSpacing="12">
                     <TextBlock
                         controls:FluidGrid.ColumnSpan="2"
                         Style="{StaticResource FormsSection}"
                         Text="Firma Bilgileri" />
 
-                    <controls:FormTextBox Header="Kısa Ünvan"  Text="{x:Bind EditableItem.KisaUnvani,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
-                                         controls:ValidationHelper.PropertyName="KisaUnvani"
-                                          MaxLength="11">
-                       
-                    </controls:FormTextBox>
-                    <controls:FormTextBox Header="Tam Ünvan" Text="{x:Bind EditableItem.TamUnvani,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+                    <controls:FormTextBox
+                        controls:ValidationHelper.PropertyName="FirmaKodu"
+                        Header="Firma Kodu"
+                        Text="{x:Bind FirmaKodu,Mode=OneWay}"                       
+                        IsReadOnly="True"/>
+                    <controls:FormTextBox 
+                        controls:ValidationHelper.PropertyName="KisaUnvani"
+                        Header="Kısa Ünvan" Text="{x:Bind EditableItem.KisaUnvani,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+                    <controls:FormTextBox
+                        controls:ValidationHelper.PropertyName="TamUnvani"                        
+                        controls:FluidGrid.ColumnSpan="2"
+                        Header="Tam Ünvan"
+                        Text="{x:Bind EditableItem.TamUnvani, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap" />
 
                     <controls:FluidGrid
                         Columns="2"
                         ColumnSpacing="6"
                         MinColumnWidth="60"
                         RowSpacing="12">
-                        <controls:FormTextBox Header="Yetkili Kişi" Text="{x:Bind EditableItem.YetkiliKisi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                              controls:ValidationHelper.PropertyName="YetkiliKisi"/>
-                        <controls:FormTextBox Header="Telefon" DataType="Phone" Text="{x:Bind EditableItem.Telefon1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                              controls:ValidationHelper.PropertyName="Telefon1"/>
+                        <controls:FormTextBox
+                            controls:ValidationHelper.PropertyName="YetkiliKisi"
+                            Header="Yetkili Kişi"
+                            Text="{x:Bind EditableItem.YetkiliKisi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <controls:FormTextBox
+                            controls:ValidationHelper.PropertyName="Telefon1"
+                            DataType="Phone"
+                            Header="Telefon"
+                            Text="{x:Bind EditableItem.Telefon1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                     </controls:FluidGrid>
                     <controls:FluidGrid
                         Columns="2"

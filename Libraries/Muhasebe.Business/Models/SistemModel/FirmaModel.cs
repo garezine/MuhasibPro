@@ -7,7 +7,7 @@ public class FirmaModel : ObservableObject
     public static FirmaModel CreateEmpty()
         => new() { Id = -1, IsEmpty = true };
 
-
+    public string FirmaKodu { get; set; }
     public string KisaUnvani { get; set; }
     public string TamUnvani { get; set; }
     public string YetkiliKisi { get; set; }

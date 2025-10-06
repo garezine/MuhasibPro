@@ -1,10 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using FluentValidation;
 using Muhasebe.Business.Models.SistemModel;
+using Muhasebe.Business.Tools;
 using Muhasebe.Business.Validations.SistemValidations;
 using MuhasibPro.Contracts.CommonServices;
 using MuhasibPro.Contracts.SistemServices;
 using MuhasibPro.ViewModels.Common;
+using System.Diagnostics;
 using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.Firmalar;
@@ -24,6 +26,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
     {
         FilePickerService = filePickerService;
         FirmaService = firmaService;
+       
     }
     public IFilePickerService FilePickerService
     {
@@ -32,6 +35,29 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
     public IFirmaService FirmaService
     {
         get;
+    }
+    private string _firmaKodu = "Yükleniyor...";
+    public string FirmaKodu
+    {
+        get => _firmaKodu;
+        private set
+        {            
+            Set(ref _firmaKodu,value);
+        }
+    }
+    private async Task LoadFirmaKoduAsync()
+    {
+        try
+        {
+            var mevcutKodlar = await KodGenerator.GetMevcutFirmaKodlari();
+            FirmaKodu= KodGenerator.FirmaKoduOlustur(mevcutKodlar);
+            EditableItem.FirmaKodu = FirmaKodu;
+        }
+        catch (Exception ex)
+        {
+            EditableItem.FirmaKodu = "F-0001";
+            Debug.WriteLine($"Firma kodu oluşturma hatası: {ex.Message}");
+        }       
     }
     public override string Title => (Item?.IsNew ?? true) ? "Yeni Firma" : TitleEdit;
     public string TitleEdit => Item == null ? "Firma" : $"{Item.KisaUnvani}";
@@ -47,13 +73,17 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
         {
             Item = new FirmaModel();
             IsEditMode = true;
+            await LoadFirmaKoduAsync();
+
         }
         else
         {
             try
             {
                 var item = await FirmaService.GetByFirmaIdAsync(ViewModelArgs.FirmaId);
+                FirmaKodu = item.Data?.FirmaKodu ?? "Kod alınamadı!";
                 Item = item.Data ?? new FirmaModel { Id = ViewModelArgs.FirmaId, IsEmpty = true };
+
             }
             catch (Exception ex)
             {

@@ -202,6 +202,7 @@ namespace MuhasibPro
                         }
                     });
                 }
+                await Task.CompletedTask;
 
             }
             catch (Exception ex)
