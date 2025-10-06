@@ -331,58 +331,35 @@ namespace MuhasibPro.Controls
             new PropertyMetadata(null));
         #endregion
 
-        public ListToolbarMode ToolbarMode => IsMultipleSelection
-            ? (SelectedItemsCount > 0 ? ListToolbarMode.CancelDelete : ListToolbarMode.Cancel)
-            : ListToolbarMode.Default;
+        public ListToolbarMode ToolbarMode => IsMultipleSelection ? (SelectedItemsCount > 0 ? ListToolbarMode.CancelDelete : ListToolbarMode.Cancel) : ListToolbarMode.Default;
+        static DependencyExpression ToolbarModeExpression = DependencyExpressions.Register(nameof(ToolbarMode), nameof(IsMultipleSelection), nameof(SelectedItemsCount));
 
-        static DependencyExpression ToolbarModeExpression = DependencyExpressions.Register(
-            nameof(ToolbarMode),
-            nameof(IsMultipleSelection),
-            nameof(SelectedItemsCount));
-
-        public ListViewSelectionMode SelectionMode => IsMultipleSelection
-            ? ListViewSelectionMode.Multiple
-            : ListViewSelectionMode.Single;
-
-        static DependencyExpression SelectionModeExpression = DependencyExpressions.Register(
-            nameof(SelectionMode),
-            nameof(IsMultipleSelection));
+        public ListViewSelectionMode SelectionMode => IsMultipleSelection ? ListViewSelectionMode.Multiple : ListViewSelectionMode.Single;
+        static DependencyExpression SelectionModeExpression = DependencyExpressions.Register(nameof(SelectionMode), nameof(IsMultipleSelection));
 
         public bool IsSingleSelection => !IsMultipleSelection;
-
-        static DependencyExpression IsSingleSelectionExpression = DependencyExpressions.Register(
-            nameof(IsSingleSelection),
-            nameof(IsMultipleSelection));
+        static DependencyExpression IsSingleSelectionExpression = DependencyExpressions.Register(nameof(IsSingleSelection), nameof(IsMultipleSelection));
 
         public bool IsDataAvailable => (ItemsSource?.Cast<object>().Any() ?? false);
-
-        static DependencyExpression IsDataAvailableExpression = DependencyExpressions.Register(
-            nameof(IsDataAvailable),
-            nameof(ItemsSource));
+        static DependencyExpression IsDataAvailableExpression = DependencyExpressions.Register(nameof(IsDataAvailable), nameof(ItemsSource));
 
         public bool IsDataUnavailable => !IsDataAvailable;
-
-        static DependencyExpression IsDataUnavailableExpression = DependencyExpressions.Register(
-            nameof(IsDataUnavailable),
-            nameof(IsDataAvailable));
+        static DependencyExpression IsDataUnavailableExpression = DependencyExpressions.Register(nameof(IsDataUnavailable), nameof(IsDataAvailable));
 
         public string DataUnavailableMessage => ItemsSource == null ? "Yükleniyor..." : "Öğe bulunamadı.";
-
-        static DependencyExpression DataUnavailableMessageExpression = DependencyExpressions.Register(
-            nameof(DataUnavailableMessage),
-            nameof(ItemsSource));
+        static DependencyExpression DataUnavailableMessageExpression = DependencyExpressions.Register(nameof(DataUnavailableMessage), nameof(ItemsSource));
 
         private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if(!IsMultipleSelection)
+            if (!IsMultipleSelection)
             {
-                if(ItemsSource is IList list)
+                if (ItemsSource is IList list)
                 {
-                    if(e.Action == NotifyCollectionChangedAction.Replace)
+                    if (e.Action == NotifyCollectionChangedAction.Replace)
                     {
-                        if(ItemsSource is ISelectionInfo selectionInfo)
+                        if (ItemsSource is ISelectionInfo selectionInfo)
                         {
-                            if(selectionInfo.IsSelected(e.NewStartingIndex))
+                            if (selectionInfo.IsSelected(e.NewStartingIndex))
                             {
                                 SelectedItem = list[e.NewStartingIndex];
                                 System.Diagnostics.Debug.WriteLine("SelectedItem {0}", SelectedItem);
@@ -395,7 +372,7 @@ namespace MuhasibPro.Controls
 
         private void OnDoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
         {
-            if(!IsMultipleSelection)
+            if (!IsMultipleSelection)
             {
                 ItemSecondaryActionInvokedCommand?.TryExecute(listview.SelectedItem);
             }
@@ -403,23 +380,24 @@ namespace MuhasibPro.Controls
 
         private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if(IsMultipleSelection)
+            if (IsMultipleSelection)
             {
-                if(listview.SelectedItems != null)
+                if (listview.SelectedItems != null)
                 {
                     SelectedItemsCount = listview.SelectedItems.Count;
-                } else if(listview.SelectedRanges != null)
+                }
+                else if (listview.SelectedRanges != null)
                 {
                     var ranges = listview.SelectedRanges;
                     SelectedItemsCount = ranges.IndexCount();
                     SelectRangesCommand?.TryExecute(ranges.GetIndexRanges().ToArray());
                 }
 
-                if(e.AddedItems != null)
+                if (e.AddedItems != null)
                 {
                     SelectItemsCommand?.TryExecute(e.AddedItems);
                 }
-                if(e.RemovedItems != null)
+                if (e.RemovedItems != null)
                 {
                     DeselectItemsCommand?.TryExecute(e.RemovedItems);
                 }
@@ -427,11 +405,13 @@ namespace MuhasibPro.Controls
         }
 
         private void OnQuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
-        { QuerySubmittedCommand?.TryExecute(args.QueryText); }
+        {
+            QuerySubmittedCommand?.TryExecute(args.QueryText);
+        }
 
         private void OnToolbarClick(object sender, ToolbarButtonClickEventArgs e)
         {
-            switch(e.ClickedButton)
+            switch (e.ClickedButton)
             {
                 case ToolbarButton.New:
                     NewCommand?.TryExecute();
@@ -453,7 +433,9 @@ namespace MuhasibPro.Controls
 
         #region NotifyPropertyChanged
         public void NotifyPropertyChanged(string propertyName)
-        { PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)); }
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
         #endregion
     }
 }

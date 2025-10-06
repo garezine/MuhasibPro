@@ -381,16 +381,22 @@ namespace MuhasibPro.Controls
 
 
         public ListToolbarMode ToolbarMode => IsMultipleSelection ? (SelectedItemsCount > 0 ? ListToolbarMode.CancelDelete : ListToolbarMode.Cancel) : ListToolbarMode.Default;
+        static DependencyExpression ToolbarModeExpression = DependencyExpressions.Register(nameof(ToolbarMode), nameof(IsMultipleSelection), nameof(SelectedItemsCount));
 
         public ListViewSelectionMode SelectionMode => IsMultipleSelection ? ListViewSelectionMode.Multiple : ListViewSelectionMode.None;
+        static DependencyExpression SelectionModeExpression = DependencyExpressions.Register(nameof(SelectionMode), nameof(IsMultipleSelection));
 
         public bool IsSingleSelection => !IsMultipleSelection;
+        static DependencyExpression IsSingleSelectionExpression = DependencyExpressions.Register(nameof(IsSingleSelection), nameof(IsMultipleSelection));
 
         public bool IsDataAvailable => (ItemsSource?.Cast<object>().Any() ?? false);
+        static DependencyExpression IsDataAvailableExpression = DependencyExpressions.Register(nameof(IsDataAvailable), nameof(ItemsSource));
 
         public bool IsDataUnavailable => !IsDataAvailable;
+        static DependencyExpression IsDataUnavailableExpression = DependencyExpressions.Register(nameof(IsDataUnavailable), nameof(IsDataAvailable));
 
         public string DataUnavailableMessage => ItemsSource == null ? "Loading..." : "No items found.";
+        static DependencyExpression DataUnavailableMessageExpression = DependencyExpressions.Register(nameof(DataUnavailableMessage), nameof(ItemsSource));
 
         private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
@@ -446,7 +452,7 @@ namespace MuhasibPro.Controls
                 ItemInvokedCommand?.TryExecute(e.ClickedItem);
             }
         }
-        private void OnDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+        private void OnDoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
         {
             if (!IsMultipleSelection)
             {
