@@ -1,0 +1,161 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<OutputType>WinExe</OutputType>
+	<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+	<RootNamespace>MuhasibPro</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <UseWinUI>true</UseWinUI>
+	
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <Nullable>annotations</Nullable>
+    <TrimMode>partial</TrimMode>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
+    <ImplicitUsings>true</ImplicitUsings>
+    <LangVersion>Latest</LangVersion>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <IsAotCompatible>true</IsAotCompatible>
+    <CsWinRTAotWarningLevel>0</CsWinRTAotWarningLevel>
+    <WindowsPackageType>None</WindowsPackageType>
+    <SatelliteResourceLanguages>tr-TR</SatelliteResourceLanguages>
+	<ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+	<Version>1.0.0</Version>
+
+	<!--Remove git hash from assembly informational version in .NET >= 8, Example: false = 1.0.0, true = 1.0.0+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-->
+	<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  
+	<!-- Publish Properties -->
+  <PropertyGroup>
+    <PublishAot>False</PublishAot>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="Assets\**\*">
+	  <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	</None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Assets\SetingsPageHeader.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="appsettings.json" />
+    <None Remove="Assets\AppIcon.ico" />
+    <None Remove="Assets\AppIcon.png" />
+    <None Remove="Assets\AppLogo.png" />
+    <None Remove="Assets\Images\AppLogo.scale-150.png" />
+    <None Remove="Assets\Images\CoverDark.png" />
+    <None Remove="Assets\Images\LoginBackground.jpg" />
+    <None Remove="Assets\Images\SetingsPageHeader.png" />
+    <None Remove="Assets\SplashScreen.scale-200.png" />
+    <None Remove="Assets\Store\LockScreenLogo.scale-200.png" />
+    <None Remove="Assets\Store\SplashScreen.scale-200.png" />
+    <None Remove="Assets\Store\Square150x150Logo.scale-200.png" />
+    <None Remove="Assets\Store\Square44x44Logo.scale-200.png" />
+    <None Remove="Assets\Store\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <None Remove="Assets\Store\StoreLogo.png" />
+    <None Remove="Assets\Store\Wide310x150Logo.scale-200.png" />
+    <None Remove="Controls\ModernContentDialog.xaml" />
+    <None Remove="MainWindow.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
+  <ItemGroup>
+	<Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!-- 
+	Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+	Tools extension to be activated for this project even if the Windows App SDK Nuget
+	package has not yet been restored.
+  -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+	<ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DevWinUI.Controls" Version="9.4.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.3.2" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.6901" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251003001" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.WinUI.Managed" Version="3.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="WinUI.TableView" Version="1.3.3" />
+    <PackageReference Include="WinUIEx" Version="2.9.0" />
+	
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MuhasibPro.ViewModels\MuhasibPro.ViewModels.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="Assets\AppIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Assets\Images\LoginBackground.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Controls\ModernContentDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <!-- 
+	Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
+	Explorer "Package and Publish" context menu entry to be enabled for this project even if 
+	the Windows App SDK Nuget package has not yet been restored.
+  -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NoWarn>WMC1510;NETSDK1201;PRI257</NoWarn>
+    <WarningsAsErrors></WarningsAsErrors>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NoWarn>WMC1510;NETSDK1201;PRI257</NoWarn>
+    <WarningsAsErrors></WarningsAsErrors>
+  </PropertyGroup>
+  <Target Name="RemoveFoldersWithMuiFiles" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <RemovingFiles Include="$(OutDir)*\*.mui" Exclude="$(OutDir)en-us\*.mui;$(OutDir)tr-TR\*.mui" />
+      <RemovingFolders Include="@(RemovingFiles->'%(RootDir)%(Directory)')" />
+      <!-- Publish dizini için de ekle -->
+      <PublishRemovingFiles Include="$(PublishDir)*\*.mui" Exclude="$(PublishDir)en-us\*.mui;$(PublishDir)tr-TR\*.mui" />
+      <PublishRemovingFolders Include="@(PublishRemovingFiles->'%(RootDir)%(Directory)')" />
+    </ItemGroup>
+    <Message Text="Removing unwanted MUI files and folders..." Importance="normal" />
+    <RemoveDir Directories="@(RemovingFolders);@(PublishRemovingFolders)" ContinueOnError="true" />
+  </Target>
+  <ItemGroup>
+    <PRIResource Update="Strings\tr-TR\WinUI.TableView.resw">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+    </PRIResource>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MuhasibPro.Views.Shell.MainShellView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:i="using:Microsoft.Xaml.Interactivity"
+    xmlns:local="using:MuhasibPro.Views.Shell"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:MuhasibPro.ViewModels.ViewModels.Shell"
+    xmlns:userProfile="using:MuhasibPro.Views.Login"
+    mc:Ignorable="d"
+    Loaded="OnLoaded">
+    <Page.Resources>
+
+        <DataTemplate x:Name="NavigationViewTemplate" x:DataType="models:NavigationItem">
+            <NavigationViewItem
+                Content="{x:Bind Label}"
+                Icon="{x:Bind Glyph, Mode=OneWay,Converter={StaticResource GlyphToIconConverter}}"
+                IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                MenuItemsSource="{x:Bind Children}">
+                <NavigationViewItem.InfoBadge>
+                    <InfoBadge
+                        Value="{Binding Badge, Mode=OneWay}"
+                        Style="{StaticResource AttentionValueInfoBadgeStyle}"
+                        Visibility="{x:Bind Badge, Converter={StaticResource StringToVisibilityConverter}}" />
+                </NavigationViewItem.InfoBadge>
+
+            </NavigationViewItem>
+        </DataTemplate>
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid
+            x:Name="AppTitleBar"
+            Height="{Binding ElementName=navigationView, Path=CompactPaneLength}"
+            Margin="50 0"
+            VerticalAlignment="Top"
+            Canvas.ZIndex="1"
+            IsHitTestVisible="True">
+            <Image
+                Width="22"
+                Height="22"
+                HorizontalAlignment="Left"
+                Source="/Assets/AppIcon.ico" />
+            <TextBlock
+                x:Name="AppTitleBarText"
+                Margin="28,0,0,0"
+                VerticalAlignment="Center"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                TextWrapping="NoWrap"
+                x:FieldModifier="public" />
+        </Grid>
+        <NavigationView            
+            x:Name="navigationView"
+            AlwaysShowHeader="False"
+            Canvas.ZIndex="0"
+            DisplayModeChanged="NavigationViewControl_DisplayModeChanged"
+            ExpandedModeThresholdWidth="1280"
+            IsEnabled="{x:Bind ViewModel.IsEnabled, Mode=OneWay}"
+            IsSettingsVisible="False"
+            MenuItemsSource="{x:Bind ViewModel.NavigationItems}"
+            MenuItemTemplate="{StaticResource NavigationViewTemplate}"
+            SelectedItem="{x:Bind ViewModel.SelectedItem, Mode=TwoWay}"
+            SelectionChanged="OnSelectionChanged">
+            <NavigationView.MenuItems />
+            <NavigationView.HeaderTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="{Binding}" />
+                    </Grid>
+                </DataTemplate>
+            </NavigationView.HeaderTemplate>
+            <Grid Padding="7">             
+                <Frame x:Name="frame">
+                    <Frame.ContentTransitions>
+                        <TransitionCollection>
+                            <NavigationThemeTransition />
+                        </TransitionCollection>
+                    </Frame.ContentTransitions>
+                </Frame>
+            </Grid>
+
+            <!-- Pane Footer - User Profile -->
+            <NavigationView.PaneFooter>
+                <StackPanel>
+                    <userProfile:UserProfileControl
+                        x:Name="UserProfile"
+                        Margin="0,8"
+                        DisplayName="{x:Bind ViewModel.UserInfo.AdiSoyadi,Mode=OneWay}"
+                        DisplayRol="{x:Bind ViewModel.UserInfo.Rol,Mode=OneWay}"
+                        Eposta="{x:Bind ViewModel.UserInfo.Eposta,Mode=OneWay}"
+                        LogoutCommand="{x:Bind LogoutCommand}"
+                        Rol="{x:Bind ViewModel.UserInfo.Rol,Mode=OneWay}"
+                        UserName="{x:Bind ViewModel.UserInfo.KullaniciAdi,Mode=OneWay}" />
+                </StackPanel>
+            </NavigationView.PaneFooter>
+        </NavigationView>
+
+        <!-- Back Button -->
+        <Button
+            x:Name="NavigationViewBackButton"
+            Height="35"
+            Margin="4,7"
+            VerticalAlignment="Top"
+            Click="OnNavigationViewBackButton"
+            Content="&#xE72B;"
+            IsEnabled="False"
+            Style="{StaticResource TitleBarBackButtonStyle}" />
+
+        <!-- Status Bar -->
+        <Grid Grid.Row="2">           
+            <local:ShellStatusBar />
+        </Grid>
+    </Grid>
+</Page>

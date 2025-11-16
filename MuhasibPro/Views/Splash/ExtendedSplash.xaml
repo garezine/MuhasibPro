@@ -1,0 +1,510 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MuhasibPro.Views.Splash.ExtendedSplash"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dev ="using:DevWinUI"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <!-- Folder wave-like scaling and fading animation (unchanged) -->
+        <Storyboard x:Name="FolderWaveStoryboard" RepeatBehavior="Forever">
+            <!-- Folder1 (Small folder) -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder1ScaleTransform" Storyboard.TargetProperty="ScaleX">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.3">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.6">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:2.5" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder1ScaleTransform" Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.3">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.6">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:2.5" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder1" Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:0" />
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.3">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:0.6">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:2.5" />
+            </DoubleAnimationUsingKeyFrames>
+
+            <!-- Folder2 (Medium folder) -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder2ScaleTransform" Storyboard.TargetProperty="ScaleX">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.2" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.5">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.8">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:2.7" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder2ScaleTransform" Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.2" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.5">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.8">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:2.7" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder2" Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:0.2" />
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.5">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:0.8">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:2.7" />
+            </DoubleAnimationUsingKeyFrames>
+
+            <!-- Folder3 (Large folder) -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder3ScaleTransform" Storyboard.TargetProperty="ScaleX">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.4" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.7">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:2.9" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder3ScaleTransform" Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.4" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.7">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:2.9" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder3" Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:0.4" />
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.7">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:2.9" />
+            </DoubleAnimationUsingKeyFrames>
+
+            <!-- Folder4 (Thin folder) -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder4ScaleTransform" Storyboard.TargetProperty="ScaleX">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.6" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.9">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:1.2">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:3.1" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder4ScaleTransform" Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.6" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:0.9">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:1.2">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:3.1" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder4" Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:0.6" />
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.9">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:1.2">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:3.1" />
+            </DoubleAnimationUsingKeyFrames>
+
+            <!-- Folder5 (Standard folder) -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder5ScaleTransform" Storyboard.TargetProperty="ScaleX">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.8" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:1.1">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:1.4">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:3.3" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder5ScaleTransform" Storyboard.TargetProperty="ScaleY">
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:0.8" />
+                <EasingDoubleKeyFrame Value="1.3" KeyTime="0:0:1.1">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BackEase Amplitude="0.3" EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:1.4">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <BounceEase
+                            Bounces="2"
+                            Bounciness="2"
+                            EasingMode="EaseOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:3.3" />
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Folder5" Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:0.8" />
+                <EasingDoubleKeyFrame Value="1" KeyTime="0:0:1.1">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:1.4">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut" />
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame Value="0.2" KeyTime="0:0:3.3" />
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+
+        <!-- Folder2, Folder3, Folder4, Folder5 animations (unchanged, omitted for brevity) -->
+        <!-- ... Include the rest of the Folder animations as in the original code ... -->
+
+
+
+    </Page.Resources>
+
+    <Grid x:Name="SplashOverlay" Opacity="0">
+        <Grid.Background>
+            <SolidColorBrush Color="{ThemeResource LayerFillColorDefault}" />
+        </Grid.Background>
+
+        <!-- ScrollViewer to handle overflow on small screens -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
+            <Viewbox
+                MaxWidth="800"
+                MaxHeight="600"
+                Stretch="Uniform">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+
+                    </Grid.RowDefinitions>
+
+                    <!-- Logo -->
+                    <Image
+                        Grid.Row="0"
+                        MaxWidth="300"
+                        Margin="0,20,0,20"
+                        Source="ms-appx:///Assets/SplashScreen.png"
+                        Stretch="Uniform" />
+
+                    <!-- Title and Subtitle -->
+                    <StackPanel
+                        Grid.Row="1"
+                        Margin="0,0,0,20"
+                        HorizontalAlignment="Center"
+                        Spacing="8">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            FontSize="42"
+                            FontWeight="SemiLight"
+                            Foreground="{ThemeResource TextFillColorSecondary}"
+                            Text="MuhasibPro" />
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            FontSize="16"
+                            FontWeight="Thin"
+                            Foreground="{ThemeResource AccentAAFillColorDefaultBrush}"
+                            Text="Gelişmiş Muhasebe Çözümü" />
+                    </StackPanel>
+
+                    <!-- Folder Icons and Dots -->
+                    <StackPanel
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Spacing="15">
+                        <!-- Folder Icons in a Grid instead of Canvas -->
+                        <Grid
+                            Width="280"
+                            Height="120"
+                            MaxWidth="280">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                x:Name="Folder1"
+                                Grid.Column="0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="40"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                                Glyph="&#xE77B;">
+                                <FontIcon.RenderTransform>
+                                    <ScaleTransform x:Name="Folder1ScaleTransform" CenterX="20" CenterY="20" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
+                            <FontIcon
+                                x:Name="Folder2"
+                                Grid.Column="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="40"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                                Glyph="&#xE762;">
+                                <FontIcon.RenderTransform>
+                                    <ScaleTransform x:Name="Folder2ScaleTransform" CenterX="20" CenterY="20" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
+                            <FontIcon
+                                x:Name="Folder3"
+                                Grid.Column="2"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="40"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                                Glyph="&#xEAFC;">
+                                <FontIcon.RenderTransform>
+                                    <ScaleTransform x:Name="Folder3ScaleTransform" CenterX="20" CenterY="20" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
+                            <FontIcon
+                                x:Name="Folder4"
+                                Grid.Column="3"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="40"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                                Glyph="&#xF182;">
+                                <FontIcon.RenderTransform>
+                                    <ScaleTransform x:Name="Folder4ScaleTransform" CenterX="20" CenterY="20" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
+                            <FontIcon
+                                x:Name="Folder5"
+                                Grid.Column="4"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="40"
+                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                                Glyph="&#xE9F9;">
+                                <FontIcon.RenderTransform>
+                                    <ScaleTransform x:Name="Folder5ScaleTransform" CenterX="20" CenterY="20" />
+                                </FontIcon.RenderTransform>
+                            </FontIcon>
+
+                        </Grid>
+
+                    </StackPanel>
+
+                    <!-- loading text progressBar -->
+                    <StackPanel
+                        Grid.Row="3"
+                        Margin="0 0 0 20"
+                        Spacing="20">
+
+                        <TextBlock
+                            x:Name="LoadingText"
+                            HorizontalAlignment="Center"
+                            FontSize="10"
+                            FontWeight="Thin"
+                            Foreground="{ThemeResource TextFillColorPrimary}"
+                            Opacity="0"
+                            Text="Sistem başlatılıyor...">
+                            <TextBlock.Transitions>
+                                <TransitionCollection>
+                                    <AddDeleteThemeTransition />
+                                </TransitionCollection>
+
+                            </TextBlock.Transitions>
+                        </TextBlock>
+                        <dev:IndeterminateProgressBar
+                            DotHeight="5"
+                            DotRadiusX="3"
+                            DotRadiusY="3"
+                            DotWidth="10" />
+                    </StackPanel>
+
+
+                </Grid>
+            </Viewbox>
+        </ScrollViewer>
+        <Grid Margin="20" VerticalAlignment="Bottom">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel
+                Grid.Column="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom">
+                <TextBlock
+                    FontSize="12"
+                    FontWeight="Light"
+                    Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                    Text="{x:Bind CopyrightText}" />
+            </StackPanel>
+            <StackPanel
+                Grid.Column="1"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom">
+                <TextBlock
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}"
+                    Text="{x:Bind Version}" />
+            </StackPanel>
+        </Grid>
+        <!-- Visual State Manager for adaptive layouts -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="WindowSizeStates">
+                <VisualState x:Name="SmallScreen">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="0" MinWindowWidth="0" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Value="24" Target="Folder1.FontSize" />
+                        <Setter Value="24" Target="Folder2.FontSize" />
+                        <Setter Value="24" Target="Folder3.FontSize" />
+                        <Setter Value="24" Target="Folder4.FontSize" />
+                        <Setter Value="24" Target="Folder5.FontSize" />
+                        <Setter Value="14" Target="LoadingText.FontSize" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="MediumScreen">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="400" MinWindowWidth="600" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Value="32" Target="Folder1.FontSize" />
+                        <Setter Value="32" Target="Folder2.FontSize" />
+                        <Setter Value="32" Target="Folder3.FontSize" />
+                        <Setter Value="32" Target="Folder4.FontSize" />
+                        <Setter Value="32" Target="Folder5.FontSize" />
+                        <Setter Value="16" Target="LoadingText.FontSize" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="LargeScreen">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="600" MinWindowWidth="800" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Value="40" Target="Folder1.FontSize" />
+                        <Setter Value="40" Target="Folder2.FontSize" />
+                        <Setter Value="40" Target="Folder3.FontSize" />
+                        <Setter Value="40" Target="Folder4.FontSize" />
+                        <Setter Value="40" Target="Folder5.FontSize" />
+                        <Setter Value="18" Target="LoadingText.FontSize" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+    </Grid>
+</Page>

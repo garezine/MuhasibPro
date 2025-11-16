@@ -1,0 +1,161 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MuhasibPro.Views.Shell.ShellStatusBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:MuhasibPro.Views.Shell"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid
+        x:Name="StatusBar"
+        Height="32"
+        Background="{ThemeResource LayerFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="0,1,0,0">
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sol Taraf - Status Mesajları ve Progress -->
+        <StackPanel
+            Grid.Column="0"
+            Margin="12,0,0,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="8">
+
+            <!-- Durum İkonu -->
+            <FontIcon
+                FontFamily="{StaticResource SymbolThemeFontFamily}"
+                FontSize="14"
+                Foreground="{Binding StatusColorHex, Converter={StaticResource StringToBrush}}"
+                Glyph="{Binding StatusIconGlyph}"
+                Visibility="{Binding ShowStatusIcon, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+            <!-- Durum Mesajı -->
+            <TextBlock
+                x:Name="StatusText"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{Binding StatusBrush, Mode=OneWay}"
+                Text="{Binding StatusMessage, Mode=OneWay}"
+                TextTrimming="CharacterEllipsis">
+                <TextBlock.Transitions>
+                    <TransitionCollection>
+                        <!-- ✅ FADE EFFECT -->
+                        <AddDeleteThemeTransition />
+                    </TransitionCollection>
+                </TextBlock.Transitions>
+            </TextBlock>
+
+            <!-- Progress Ring (Belirsiz Progress) -->
+            <ProgressRing
+                Width="16"
+                Height="16"
+                IsActive="{Binding IsProgressVisible}"
+                Visibility="{Binding IsProgressVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+            <!-- Progress Bar (Yüzdelik Progress) -->
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="8"
+                Visibility="{Binding ShowProgressBar, Converter={StaticResource BoolToVisibilityConverter}}">
+
+                <ProgressBar
+                    Width="120"
+                    Height="4"
+                    VerticalAlignment="Center"
+                    Value="{Binding ProgressValue}"
+                    IsIndeterminate="{Binding IsProgressIndeterminate}"
+                    Maximum="100" />
+
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="11"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="{Binding ProgressText}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Orta Taraf - Kullanıcı ve Veritabanı Bilgileri -->
+        <StackPanel
+            Grid.Column="1"
+            Margin="16,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="16">
+
+            <!-- Kullanıcı Bilgisi -->
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="6"
+                Visibility="{Binding UserName, Converter={StaticResource StringToVisibilityConverter}}">
+
+                <FontIcon
+                    FontFamily="{StaticResource SymbolThemeFontFamily}"
+                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Glyph="&#xE77B;" />
+
+                <TextBlock
+                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Text="{Binding UserName}" />
+            </StackPanel>
+
+            <!-- Separator -->
+            <Border
+                Width="1"
+                Height="16"
+                Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+                Visibility="{Binding DatabaseConnectionMessage, Converter={StaticResource StringToVisibilityConverter}}" />
+
+            <!-- Veritabanı Durumu -->
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="6"
+                Visibility="{Binding DatabaseConnectionMessage, Converter={StaticResource StringToVisibilityConverter}}">
+
+                <FontIcon
+                    FontFamily="{StaticResource SymbolThemeFontFamily}"
+                    FontSize="12"
+                    Foreground="{Binding IsDatabaseConnection, Converter={StaticResource DatabaseStatusToBrush}}"
+                    Glyph="&#xE968;" />
+
+                <TextBlock
+                    FontSize="12"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Text="{Binding DatabaseConnectionMessage}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Sağ Taraf - Sistem İkonları ve Zaman -->
+        <StackPanel
+            Grid.Column="2"
+            Margin="0,0,12,0"
+            VerticalAlignment="Center"
+            Orientation="Horizontal"
+            Spacing="12">
+            <!-- Separator -->
+            <Border
+                Width="1"
+                Height="16"
+                Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+            <!-- Sistem Saati -->
+            <TextBlock
+                x:Name="TimeDisplay"
+                MinWidth="55"
+                VerticalAlignment="Center"
+                FontFamily="Consolas"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                TextAlignment="Right" />
+        </StackPanel>
+    </Grid>
+</UserControl>

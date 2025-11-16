@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MuhasibPro.Views.Firmalar.Details.FirmalarDetails"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:MuhasibPro.Controls"
+    xmlns:converters="using:MuhasibPro.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:MuhasibPro.Views.Firmalar.Details"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewmodels="using:MuhasibPro.ViewModels.ViewModels.Firmalar"
+    xmlns:views="using:MuhasibPro.Views.Firmalar.Details"
+    xmlns:behavior="using:MuhasibPro.Helpers"
+    xmlns:services="using:MuhasibPro.ViewModels.Services.Infrastructure.CommonServices"
+    mc:Ignorable="d"
+    d:DesignHeight="400"
+
+    d:DesignWidth="800">
+    <UserControl.Resources>
+       
+        <converters:BindingTypeConverter x:Key="BindingTypeConverter" />
+        <DataTemplate x:Key="DetailsTemplate" x:DataType="viewmodels:FirmaDetailsViewModel">
+            <Border Style="{StaticResource GlassPanel}">
+                <controls:FluidGrid
+                    Margin="0,12,0,0"
+                    Columns="2"
+                    ColumnSpacing="12"
+                    RowSpacing="12">
+                    <TextBlock
+                        controls:FluidGrid.ColumnSpan="2"
+                        Style="{StaticResource FormsSection}"
+                        Text="Firma Bilgileri" />
+                    <controls:FormTextBox Header="Kısa Ünvan" ErrorMessage="Bu alan zorunludur!" Text="{x:Bind EditableItem.KisaUnvani, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                                          >
+                        <ToolTipService.ToolTip>
+                            <ToolTip Content="Manuel test tooltip"/>
+                        </ToolTipService.ToolTip>
+                    </controls:FormTextBox>
+                    <controls:FormTextBox Header="Tam Ünvan" Text="{x:Bind EditableItem.TamUnvani,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+                    <controls:FluidGrid
+                        Columns="2"
+                        ColumnSpacing="6"
+                        MinColumnWidth="60"
+                        RowSpacing="12">
+                        <controls:FormTextBox Header="Yetkili Kişi" Text="{x:Bind EditableItem.YetkiliKisi, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <controls:FormTextBox Header="Telefon" Text="{x:Bind EditableItem.Telefon1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </controls:FluidGrid>
+
+                    <controls:FluidGrid
+                        Columns="2"
+                        ColumnSpacing="6"
+                        MinColumnWidth="60"
+                        RowSpacing="12">
+                        <controls:FormTextBox Header="TCK No" Text="{x:Bind EditableItem.TCNo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <controls:FormTextBox Header="E-Posta" Text="{x:Bind EditableItem.Eposta, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </controls:FluidGrid>
+
+                    <controls:FormTextBox
+                        AcceptsReturn="True"
+                        controls:FluidGrid.ColumnSpan="2"
+                        Header="Adres"
+                        Text="{x:Bind EditableItem.Adres, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap" />
+
+                </controls:FluidGrid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border>
+            <views:FirmalarCard
+                Margin="6"
+                Item="{x:Bind ViewModel.Item, Mode=OneWay}"
+                ViewModel="{x:Bind ViewModel}" />
+        </Border>
+
+        <controls:Details
+            x:Name="details"
+            Grid.Column="1"
+            Margin="6 0 0 0 "
+            CancelCommand="{x:Bind ViewModel.CancelCommand}"
+            DeleteCommand="{x:Bind ViewModel.DeleteCommand}"
+            DetailsContent="{x:Bind ViewModel}"
+            DetailsTemplate="{StaticResource DetailsTemplate}"
+            EditCommand="{x:Bind ViewModel.EditCommand}"
+            IsEditMode="{x:Bind ViewModel.IsEditMode, Mode=OneWay}"
+            SaveCommand="{x:Bind ViewModel.SaveCommand}" />
+       
+    </Grid>
+
+</UserControl>

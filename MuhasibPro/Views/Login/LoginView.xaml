@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MuhasibPro.Views.Login.LoginView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dev="using:DevWinUI"
+    xmlns:local="using:MuhasibPro.Views.Login"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Background="{StaticResource LayerFillColorDefault}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*" />
+                <RowDefinition Height="1*" />
+            </Grid.RowDefinitions>
+
+            <Grid>                
+                <Border x:Name="background">
+                    <Image
+                        HorizontalAlignment="Center"
+                        Source="ms-appx:///Assets/Images/LoginBackground.jpg"
+                        Stretch="UniformToFill" />
+                </Border>
+            </Grid>
+
+            <TextBox
+                Grid.RowSpan="3"
+                GotFocus="OnBackgroundFocus"
+                Opacity="0" />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
+                </Grid.RowDefinitions>
+                <dev:Particle x:Name="particle" Density="7" IsPointerEnable="True" Foreground="{ThemeResource ApplicationForegroundThemeBrush}" />
+                <StackPanel
+                    x:Name="foreground"
+                    Grid.Row="1"
+                    VerticalAlignment="Center">
+                    <Grid GotFocus="OnForegroundFocus">
+                        <local:NamePasswordControl
+                            x:Name="passwordView"
+                            HorizontalAlignment="Center"
+                            IsEnabled="{x:Bind ViewModel.IsBusy, Converter={StaticResource BoolNegationConverter}}"
+                            LoginWithPasswordCommand="{x:Bind ViewModel.LoginWithPasswordCommand}"
+                            Password="{x:Bind ViewModel.Password}"
+                            UserName="{x:Bind ViewModel.Username, Mode=TwoWay}"
+                            Visibility="{x:Bind ViewModel.IsLoginWithPassword, Mode=OneWay}" />
+
+
+                    </Grid>
+                </StackPanel>
+            </Grid>
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*" />
+                    <RowDefinition Height="3*" />
+                </Grid.RowDefinitions>
+
+                <HyperlinkButton
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Content="Windows Hello ile oturum aç"
+                    FontSize="15" />
+                <Border Grid.Row="1">
+                    <Image
+                        Width="320"
+                        Margin="24"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Source="ms-appx:///Assets/AppLogo.png"
+                        Stretch="Uniform" />
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

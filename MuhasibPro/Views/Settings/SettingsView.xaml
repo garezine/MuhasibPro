@@ -1,0 +1,174 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="MuhasibPro.Views.Settings.SettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:control="using:MuhasibPro.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dev="using:DevWinUI"
+    xmlns:local="using:MuhasibPro.Views.Settings"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Loaded="Page_Loaded">
+    <Page.Resources>
+        <x:Double x:Key="SettingsCardSpacing">4</x:Double>
+        <Style
+            x:Key="SettingsSectionHeaderTextBlockStyle"
+            BasedOn="{StaticResource BodyStrongTextBlockStyle}"
+            TargetType="TextBlock">
+            <Style.Setters>
+                <Setter Property="Margin" Value="1,30,0,6" />
+            </Style.Setters>
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="36 0 36 0">
+            <Border CornerRadius="10">
+                <dev:HomePageHeader
+                    Background="Azure"
+                    HeaderImage="/Assets/Images/CoverDark.png"
+                    HeaderImageHeight="300"
+                    HeaderText="Ayarlar">
+                    <dev:HomePageHeader.HeaderContent>
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="12">
+                            <dev:HeaderTile
+                                Description="Firmanızla ilgili detaylı ayarlar"
+                                OnItemClick="ChangeCompanyButton_Click"
+                                Title="Firma Bilgileri">
+                                <dev:HeaderTile.Source>
+                                    <StackPanel Orientation="Horizontal">
+                                        <SymbolIcon Symbol="Setting" />
+                                        <TextBlock Padding="10 0" Text="Firma Ayarları" />
+                                    </StackPanel>
+                                </dev:HeaderTile.Source>
+                            </dev:HeaderTile>
+                            <dev:HeaderTile
+                                Description="Firmanızla ilgili detaylı ayarlar"
+                                OnItemClick="ChangeCompanyButton_Click"
+                                Title="Firma Bilgileri">
+                                <dev:HeaderTile.Source>
+                                    <StackPanel Orientation="Horizontal">
+                                        <SymbolIcon Symbol="Setting" />
+                                        <TextBlock Padding="10 0" Text="Firma Ayarları" />
+                                    </StackPanel>
+                                </dev:HeaderTile.Source>
+                            </dev:HeaderTile>
+                            <dev:HeaderTile
+                                Description="Her zaman güncel kalın"
+                                OnItemClick="UpdateSettingsButton_Click"
+                                Title="Güncelleme Ayarları">
+                                <dev:HeaderTile.Source>
+                                    <StackPanel Orientation="Horizontal">
+                                        <SymbolIcon Symbol="Refresh" />
+                                        <TextBlock Padding="10 0" Text="Güncelleştirmeler" />
+                                    </StackPanel>
+                                </dev:HeaderTile.Source>
+                            </dev:HeaderTile>
+                            <dev:HeaderTile
+                                Description="Her zaman güncel kalın"
+                                OnItemClick="UpdateSettingsButton_Click"
+                                Title="Güncelleme Ayarları">
+                                <dev:HeaderTile.Source>
+                                    <StackPanel Orientation="Horizontal">
+                                        <SymbolIcon Symbol="Refresh" />
+                                        <TextBlock Padding="10 0" Text="Güncelleştirmeler" />
+                                    </StackPanel>
+                                </dev:HeaderTile.Source>
+                            </dev:HeaderTile>
+                        </StackPanel>
+                    </dev:HomePageHeader.HeaderContent>
+                </dev:HomePageHeader>
+            </Border>
+        </Grid>
+
+
+        <!-- Settings Content -->
+        <ScrollView
+            Grid.Row="2"
+            Padding="36,0,36,0"
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto">
+            <StackPanel MaxWidth="1064" Spacing="{StaticResource SettingsCardSpacing}">
+                <!--<StackPanel.ChildrenTransitions>
+                    <RepositionThemeTransition />
+                </StackPanel.ChildrenTransitions>-->
+
+                <!-- Appearance Section -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="Görünüm &amp; Davranış" />
+
+                <dev:SettingsCard Description="Uygulanacak temayı seçin" Header="Uygulama Teması">
+                    <dev:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE790;" />
+                    </dev:SettingsCard.HeaderIcon>
+                    <ComboBox
+                        x:Name="themeMode"
+                        MinWidth="150"
+                        AutomationProperties.AutomationId="themeModeComboBox"
+                        SelectionChanged="themeMode_SelectionChanged">
+                        <ComboBoxItem Content="Açık" Tag="Light" />
+                        <ComboBoxItem Content="Koyu" Tag="Dark" />
+                        <ComboBoxItem Content="Cihaz" Tag="Default" />
+                    </ComboBox>
+                </dev:SettingsCard>
+
+                <!-- Log Section -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="Uygulama Günlüğü" />
+
+                <dev:SettingsExpander
+                    Margin="0,0,0,0"
+                    Description="Yapısal bütünlük günlüğünü izle "
+                    Header="Olay Görüntüleyicisi">
+                    <dev:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE81D;" />
+                    </dev:SettingsExpander.HeaderIcon>
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        IsTextSelectionEnabled="True"
+                        Text="Uygulama / Muhasebe" />
+                    <dev:SettingsExpander.Items>
+                        <dev:SettingsCard Description="Uygulama ve Hizmet Günlüğü" Header="Uygulama ve Hizmet Servisleri">
+                            <Button Click="SistemLogs_Click" Content="Görüntüle" />
+                        </dev:SettingsCard>
+                        <dev:SettingsCard Description="Muhasebe Servisleri Günlüğü" Header="Muhasebe Servisleri">
+                            <Button Click="AppLogs_Click" Content="Görüntüle" />
+                        </dev:SettingsCard>
+                    </dev:SettingsExpander.Items>
+                </dev:SettingsExpander>
+                <!-- About Section -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderTextBlockStyle}" Text="Hakkında" />
+
+                <dev:SettingsExpander
+                    Margin="0,0,0,0"
+                    Description="© 2025 MuhasibPro. Tüm hakları saklıdır."
+                    Header="MuhasibPro, Profesyonel Muhasebe">
+                    <dev:SettingsExpander.HeaderIcon>
+                        <BitmapIcon ShowAsMonochrome="False" UriSource="/Assets/Images/AppLogo.png" />
+                    </dev:SettingsExpander.HeaderIcon>
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        IsTextSelectionEnabled="True"
+                        Text="{x:Bind Version}" />
+                    <dev:SettingsExpander.Items>
+                        <dev:SettingsCard Description="Son güncellemelerde yapılan değişiklikleri görüntüle" Header="Sürüm Notları">
+                            <Button Click="ViewReleaseNotes_Click" Content="Görüntüle" />
+                        </dev:SettingsCard>
+                        <dev:SettingsCard Description="Yazılım lisans bilgileri" Header="Lisans">
+                            <Button Click="ViewLicense_Click" Content="Görüntüle" />
+                        </dev:SettingsCard>
+                    </dev:SettingsExpander.Items>
+                </dev:SettingsExpander>
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+</Page>

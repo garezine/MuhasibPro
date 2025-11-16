@@ -1,0 +1,260 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MuhasibPro.Views.Login.UserProfileControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MuhasibPro.Views.Login"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="MainGrid" >
+        <!-- Compact View - Sadece Avatar ve Ad -->
+        <Border x:Name="CompactView"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="8"
+                MinWidth="200">
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Avatar -->
+                <Border Grid.Column="0"
+                        Width="36"
+                        Height="36"
+                        CornerRadius="18"
+                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                        Margin="0,0,12,0">
+
+                    <!-- Avatar Image veya Initial -->
+                    <PersonPicture x:Name="UserAvatar"
+                                   Width="36"
+                                   Height="36"
+                                   />
+                </Border>
+
+                <!-- Kullanıcı Bilgileri -->
+                <StackPanel Grid.Column="1" 
+                            VerticalAlignment="Center"
+                            Spacing="2">
+
+                    <TextBlock x:Name="UserFullName"
+                               Text="{x:Bind DisplayName}"
+                               FontWeight="SemiBold"
+                               FontSize="14"
+                               Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+
+                    <TextBlock x:Name="UserRoleText"
+                               Text="{x:Bind DisplayRol}"
+                               FontSize="12"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+
+                <!-- Dropdown Arrow -->
+                <FontIcon Grid.Column="2"
+                          FontFamily="{StaticResource SymbolThemeFontFamily}"
+                          Glyph="&#xE70D;"
+                          FontSize="12"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                          Margin="8,0,0,0"/>
+            </Grid>
+
+            <!-- Click Handler -->
+            <Border.Resources>
+                <Storyboard x:Name="HoverAnimation">
+                    <DoubleAnimation Storyboard.TargetName="CompactView"
+                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                     To="1.02"
+                                     Duration="0:0:0.1"/>
+                    <DoubleAnimation Storyboard.TargetName="CompactView"
+                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                     To="1.02"
+                                     Duration="0:0:0.1"/>
+                </Storyboard>
+                <Storyboard x:Name="NormalAnimation">
+                    <DoubleAnimation Storyboard.TargetName="CompactView"
+                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                     To="1.0"
+                                     Duration="0:0:0.1"/>
+                    <DoubleAnimation Storyboard.TargetName="CompactView"
+                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                     To="1.0"
+                                     Duration="0:0:0.1"/>
+                </Storyboard>
+            </Border.Resources>
+
+            <Border.RenderTransform>
+                <ScaleTransform/>
+            </Border.RenderTransform>
+        </Border>
+
+        <!-- Flyout - Detaylı Kullanıcı Bilgileri -->
+        <FlyoutBase.AttachedFlyout>
+            <Flyout x:Name="UserProfileFlyout" SystemBackdrop="{ThemeResource AcrylicBackgroundFillColorDefaultBackdrop}" Placement="BottomEdgeAlignedLeft">
+                <Border Style="{ThemeResource GlassPanel}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        MinWidth="280"
+                        MaxWidth="320">
+
+                    <StackPanel Spacing="16" Margin="16">
+
+                        <!-- Header -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Büyük Avatar -->
+                            <PersonPicture Grid.Column="0"
+                                           x:Name="UserAvatarLarge"
+                                           Width="64"
+                                           Height="64"
+                                           Margin="0,0,16,0"/>
+
+                            <!-- Kullanıcı Detayları -->
+                            <StackPanel Grid.Column="1" 
+                                        VerticalAlignment="Center"
+                                        Spacing="4">
+
+                                <TextBlock x:Name="UserNameText"
+                                           Text="{x:Bind UserName,Mode=OneWay}"
+                                           FontWeight="SemiBold"
+                                           FontSize="16"
+                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                <TextBlock x:Name="UserRoleDetailText"
+                                           Text="{x:Bind Rol,Mode=OneWay}"
+                                           FontSize="13"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                <TextBlock x:Name="UserEmailText"
+                                           Text="{x:Bind Eposta,Mode=OneWay}"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Divider -->
+                        <Border Height="1" 
+                                Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+
+                        <!-- Status -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <FontIcon Grid.Column="0"
+                                      FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                      Glyph="&#xE899;"
+                                      FontSize="16"
+                                      Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                                      Margin="0,0,8,0"/>
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Aktif"
+                                           FontSize="13"
+                                           FontWeight="Medium"
+                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock x:Name="LastLoginTimeText"
+                                           Text="Son giriş zamanı"
+                                           FontSize="11"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- İstatistikler -->
+                        <Grid >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Toplam Oturum -->
+                            <StackPanel Grid.Column="0" Grid.Row="0" 
+                                        HorizontalAlignment="Center"
+                                        Spacing="2">
+                                <TextBlock x:Name="TotalSessionsText"
+                                           Text="0"
+                                           FontSize="18"
+                                           FontWeight="Bold"
+                                           Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Toplam Oturum"
+                                           FontSize="10"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Aktif Süre -->
+                            <StackPanel Grid.Column="1" Grid.Row="0" 
+                                        HorizontalAlignment="Center"
+                                        Spacing="2">
+                                <TextBlock x:Name="ActiveTimeTodayText"
+                                           Text="0s"
+                                           FontSize="18"
+                                           FontWeight="Bold"
+                                           Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Bugün Aktif"
+                                           FontSize="10"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Divider -->
+                        <Border Height="1" 
+                                Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+
+                        <!-- Action Buttons -->
+                        <StackPanel Spacing="8">
+
+                            <Button x:Name="ProfileButton"
+                                    HorizontalAlignment="Stretch"
+                                    Style="{StaticResource DefaultButtonStyle}"
+                                    Command="{x:Bind UserProfileOpenCommand}"
+                                    IsTapEnabled="False">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                              Glyph="&#xE77B;"
+                                              FontSize="16"/>
+                                    <TextBlock Text="Profil Ayarları"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button x:Name="LogoutButton"
+                                    HorizontalAlignment="Stretch"
+                                    Style="{StaticResource DefaultButtonStyle}"
+                                    Command="{x:Bind LogoutCommand}"
+                                    IsTapEnabled="False">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                              Glyph="&#xE7E8;"
+                                              FontSize="16"/>
+                                    <TextBlock Text="Çıkış Yap"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Flyout>
+        </FlyoutBase.AttachedFlyout>
+    </Grid>
+</UserControl>
