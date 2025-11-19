@@ -81,7 +81,7 @@ public class NavigationService : INavigationService
     { return await CreateNewViewAsync(typeof(TViewModel), parameter, customTitle); }
 
     public async Task<int> CreateNewViewAsync(Type viewModelType, object parameter = null, string customTitle = null)
-    { return await NavigationHelper.CreateWindowAsync(viewModelType, parameter, customTitle); }
+    { return await NavigationHelper.Instance.CreateWindowAsync(viewModelType, parameter, customTitle); }
 
 
     // Window closing methods - WindowManagerService kullanarak
@@ -93,7 +93,7 @@ public class NavigationService : INavigationService
             var windowId = CustomWindowHelper.GetWindowId(currentWindow);
             if (windowId > 0)
             {
-                await NavigationHelper.CloseWindowAsync(windowId);
+                await NavigationHelper.Instance.CloseWindowAsync(windowId);
 
                 // ✅ SMART ACTIVATION: Sadece gerekirse MainWindow'u aktif et
                 var hasOtherChildWindows = CustomWindowHelper.GetAllWindows()

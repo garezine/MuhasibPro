@@ -1,15 +1,21 @@
 ﻿using CommunityToolkit.WinUI;
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Text;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Muhasib.Business.Models.SistemModel;
+using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Data.Helper;
 using MuhasibPro.Configurations;
 using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.Services.Infrastructure.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.Views.Firma;
 using MuhasibPro.Views.Login;
 using System.Diagnostics;
+using Windows.UI;
 
 namespace MuhasibPro.Views.Splash
 {

@@ -30,7 +30,7 @@
                     <controls:FormTextBox
                         controls:ValidationHelper.PropertyName="FirmaKodu"
                         Header="Firma Kodu"
-                        Text="{x:Bind FirmaKodu,Mode=OneWay}"                       
+                        Text="{x:Bind Item.FirmaKodu,Mode=OneWay}"                       
                         IsReadOnly="True"/>
                     <controls:FormTextBox 
                         controls:ValidationHelper.PropertyName="KisaUnvani"
@@ -118,7 +118,7 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="*" MaxWidth="360" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Border>

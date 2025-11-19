@@ -42,6 +42,7 @@
         <uap:DefaultTile Wide310x150Logo="Assets\Store\Wide310x150Logo.png" />
         <uap:SplashScreen Image="Assets\Store\SplashScreen.png" />
       </uap:VisualElements>
+		
     </Application>
   </Applications>
 

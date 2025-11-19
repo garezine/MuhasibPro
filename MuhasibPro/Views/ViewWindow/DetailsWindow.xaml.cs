@@ -19,9 +19,13 @@ namespace MuhasibPro.Views.ViewWindow
         public DetailsWindow()
         {
             InitializeComponent();
-            this.ExtendsContentIntoTitleBar = true;
-            // Mica desteði kontrolü
+            WindowSetting();
+            InitializeModalWindow();
+        }
 
+        private void WindowSetting()
+        {
+            this.ExtendsContentIntoTitleBar = true;
             if (MicaController.IsSupported())
             {
                 SystemBackdrop = new MicaBackdrop() { Kind = MicaKind.Base };
@@ -30,19 +34,19 @@ namespace MuhasibPro.Views.ViewWindow
             {
                 SystemBackdrop = new DesktopAcrylicBackdrop();
             }
-            AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets/AppIcon.ico"));
-
-
+        }
+        private void InitializeModalWindow()
+        {            
             OverlappedPresenter presenter = OverlappedPresenter.CreateForDialog();
             SetWindowOwner(owner: CustomWindowHelper.MainWindow);
             presenter.IsMaximizable = true;
             presenter.IsResizable = true;
+
             presenter.IsModal = true;
+            AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets/AppIcon.ico"));
             AppWindow.SetPresenter(presenter);
             AppWindow.ShowOnceWithRequestedStartupState();
-            AppWindow.Show();
         }
-
 
 
         private void SetWindowOwner(Window owner)
@@ -55,15 +59,15 @@ namespace MuhasibPro.Views.ViewWindow
 
             // Set the owner window using SetWindowLongPtr for 64-bit systems
             // or SetWindowLong for 32-bit systems.
-            if (IntPtr.Size == 8) // Check if the system is 64-bit
+            if(IntPtr.Size == 8) // Check if the system is 64-bit
             {
                 SetWindowLongPtr(ownedHwnd, -8, ownerHwnd); // -8 = GWLP_HWNDPARENT
-            }
-            else // 32-bit system
+            } else // 32-bit system
             {
                 SetWindowLong(ownedHwnd, -8, ownerHwnd); // -8 = GWL_HWNDPARENT
             }
         }
+
         // Import the Windows API function SetWindowLongPtr for modifying window properties on 64-bit systems.
         [DllImport("User32.dll", CharSet = CharSet.Auto, EntryPoint = "SetWindowLongPtr")]
         public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);

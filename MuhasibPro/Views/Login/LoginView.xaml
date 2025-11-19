@@ -16,7 +16,8 @@
                 <RowDefinition Height="1*" />
             </Grid.RowDefinitions>
 
-            <Grid>                
+            <Grid> 
+                
                 <Border x:Name="background">
                     <Image
                         HorizontalAlignment="Center"

@@ -45,7 +45,7 @@ namespace MuhasibPro.Views.Shell
         private void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
         {
             InitializeContext();
-            App.AppTitlebar = AppTitleBarText as UIElement;
+            App.AppTitleBar = AppTitleBarText as UIElement;
             if (navigationView != null && frame != null)
             {
                 InitializeNavigation();
@@ -176,6 +176,7 @@ namespace MuhasibPro.Views.Shell
             dialog.CloseButtonText = "İptal";
             dialog.DefaultButton = ContentDialogButton.Close;
             dialog.RequestedTheme = themeSelectorService.Theme;
+            dialog.XamlRoot = this.XamlRoot;
             var logout = await dialog.ShowAsync();
             if (logout == ContentDialogResult.Primary)
             {

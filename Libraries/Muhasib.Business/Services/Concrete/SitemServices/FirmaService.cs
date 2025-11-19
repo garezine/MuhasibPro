@@ -103,8 +103,11 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                             $"Firma güncellenemedi. Firma bulunamadı. Model ID: {id}");
                     return new ErrorApiDataResponse<int>(data: 0, message: "Firma bulunamadı");
                 }
+                if (id > 0)
+                    firma.GuncelleyenId = _authenticationService.CurrentUserId;
 
                 firma.KaydedenId = _authenticationService.CurrentUserId;
+
                 UpdateFirmaModel(firma, model);
                 await _firmaRepository.UpdateFirmaAsync(firma);
 
@@ -233,7 +236,6 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                     Id = source.Id,
                     FirmaKodu = source.FirmaKodu,
                     Adres = source.Adres,
-
                     Eposta = source.Eposta,
                     KisaUnvani = source.KisaUnvani,
                     LogoOnizleme = source.LogoOnizleme,
@@ -248,6 +250,8 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                     AktifMi = source.AktifMi,
                     KaydedenId = source.KaydedenId,
                     KayitTarihi = source.KayitTarihi,
+                    GuncelleyenId = source.GuncelleyenId,
+                    GuncellemeTarihi = source.GuncellemeTarihi,
                 };
 
                 if (includeAllFields)
@@ -272,17 +276,8 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             }
         }
 
-        private async void UpdateFirmaModel(Firma target, FirmaModel source)
+        private void UpdateFirmaModel(Firma target, FirmaModel source)
         {
-            if (target == null)
-                throw new ArgumentNullException(nameof(target));
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-
-            if (target.Id == 0)
-            {
-                target.FirmaKodu = source.FirmaKodu ?? await GetYeniFirmaKodu();
-            }
             target.Adres = source.Adres;
             target.Eposta = source.Eposta;
             target.KisaUnvani = source.KisaUnvani;
@@ -304,7 +299,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
 
             //Base fields
             target.AktifMi = source.AktifMi;
-            target.GuncellemeTarihi = source.GuncellemeTarihi;
+            target.KaydedenId = source.KaydedenId;
             target.GuncelleyenId = source.GuncelleyenId;
         }
 

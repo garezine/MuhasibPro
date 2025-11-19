@@ -21,8 +21,6 @@ namespace MuhasibPro.Configurations
     public class Startup
     {
         private static readonly Lazy<Startup> _instance = new Lazy<Startup>(() => new Startup());
-
-
         public static Startup Instance => _instance.Value;
 
         private Startup()
@@ -33,6 +31,7 @@ namespace MuhasibPro.Configurations
         {
             ConfigureNavigation();
             await SistemDatabaseConnectionTest();
+
             await Task.CompletedTask;
         }
 
@@ -51,6 +50,7 @@ namespace MuhasibPro.Configurations
             NavigationService.Register<FirmalarViewModel, FirmalarView>();
         }
 
+        
         public async Task<bool> SistemDatabaseConnectionTest()
         {
             try

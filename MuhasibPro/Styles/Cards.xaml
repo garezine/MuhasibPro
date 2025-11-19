@@ -180,8 +180,8 @@
     <!-- Glass Effect Panel -->
     <Style x:Key="GlassPanel" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"/>
-        <Setter Property="BorderBrush" Value="{ThemeResource SurfaceStrokeColorDefaultBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0.5"/>
         <Setter Property="Padding" Value="10"/>
         <Setter Property="CornerRadius" Value="{StaticResource CardCornerRadius}"/>
     </Style>

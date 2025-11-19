@@ -1,5 +1,6 @@
 ﻿using Microsoft.UI.Dispatching;
 using Muhasib.Domain.Enum;
+using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -8,6 +9,7 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
 {
     public class StatusMessageService : IStatusMessageService
     {
+        private readonly IThemeSelectorService _themeSelectorService;
         private DispatcherQueue _dispatcherQueue;
         private CancellationTokenSource _autoHideCts;
 
@@ -17,6 +19,17 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
         private bool _isProgressIndeterminate = true;
         private double _progressValue;
         private DateTime _lastUpdateTime = DateTime.Now;
+
+        public StatusMessageService(IThemeSelectorService themeSelectorService)
+        {
+            _themeSelectorService = themeSelectorService;
+            _themeSelectorService.ThemeChanged += OnThemeChanged;
+        }
+        private void OnThemeChanged(object sender, ElementTheme theme)
+        {
+            // Tema değiştiğinde property'yi yenile
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StatusColorHex)));
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -114,25 +127,33 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
 
         public string StatusIconGlyph => MessageType switch
         {
-            StatusMessageType.Success => "\uE73E",
+            StatusMessageType.Success => "\uE930",
             StatusMessageType.Warning => "\uE7BA",
             StatusMessageType.Error => "\uE783",
             StatusMessageType.Edit => "\uE70F",          // ✏ - Edit
             StatusMessageType.Saving => "\uE74E",        // 💾 - Save  
             StatusMessageType.Deleting => "\uE74D",      // 🗑 - Delete
-            StatusMessageType.MultipleSelect => "\uE73A",// ☑ - Checkbox
+            StatusMessageType.MultipleSelect => "\uE762",// ☑ - Checkbox
             StatusMessageType.Refreshing => "\uE72C",    // 🔄 - Refresh - YENİ
-            _ => "\uE946"
+            _ => "\xE9CE"
         };
 
-        public string StatusColorHex => MessageType switch
+        public string StatusColorHex
         {
-            StatusMessageType.Success => "#FF32CD32",
-            StatusMessageType.Warning => "#FFFFA500",
-            StatusMessageType.Error => "#FFFF4500",
-            StatusMessageType.Deleting => "#FFFFA500",   // Turuncu - Delete
-            _ => "#FF00BFFF"
-        };
+            get
+            {
+                var isLightTheme = _themeSelectorService.Theme == ElementTheme.Light;
+
+                return MessageType switch
+                {
+                    StatusMessageType.Success => isLightTheme ? "#FF107C10" : "#FF6CCB5F",
+                    StatusMessageType.Warning => "#FFFFA500", // Turuncu her temada iyi
+                    StatusMessageType.Error => isLightTheme ? "#FFD13438" : "#FFFF7A7A",
+                    StatusMessageType.Deleting => "#FFFFA500", // Turuncu her temada iyi
+                    _ => isLightTheme ? "#FF0078D7" : "#FF00BFFF" // Default
+                };
+            }
+        }
 
         public string ProgressText => IsProgressIndeterminate ? string.Empty : $"{ProgressValue:F0}%";
 

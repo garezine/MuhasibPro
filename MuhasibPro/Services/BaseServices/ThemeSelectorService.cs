@@ -7,8 +7,18 @@ namespace MuhasibPro.Services.BaseServices;
 public class ThemeSelectorService : IThemeSelectorService
 {
     private const string SettingsKey = "AppBackgroundRequestedTheme";
+    public event EventHandler<ElementTheme> ThemeChanged;
 
-    public ElementTheme Theme { get; set; } = ElementTheme.Default;
+    private ElementTheme _theme = ElementTheme.Default;
+    public ElementTheme Theme
+    {
+        get => _theme;
+        set
+        {
+            _theme = value;
+            ThemeChanged?.Invoke(this, value);
+        }
+    }
 
     private readonly ILocalSettingsService _localSettingsService;
 

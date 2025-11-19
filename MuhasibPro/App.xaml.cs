@@ -33,6 +33,7 @@ public partial class App : Application
         // Unhandled exception handler - UYGULAMAYI KAPATMAYI ENGELLE
         this.UnhandledException += OnUnhandledException;
         // Velopack
+        
         VelopackApp.Build()
             .OnFirstRun(
                 v =>
@@ -58,7 +59,7 @@ public partial class App : Application
             .AddAppViewModel()
             .AddAppView();
     }
-    public static UIElement? AppTitlebar { get; set; }
+    public static UIElement? AppTitleBar { get; set; }
     public static Window? MainWindow { get; } = new MainWindow();
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {

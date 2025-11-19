@@ -31,7 +31,14 @@ namespace Muhasib.Business.Services.Concrete.BaseServices
 
         public event Action StateChanged;
 
-        public bool IsLoggedIn => CurrentAccount != null;
+        public bool IsLoggedIn 
+        { 
+            get => CurrentAccount != null;
+            set
+            {
+               
+            }
+        } 
 
         public string CurrentUsername => CurrentAccount?.KullaniciAdi ?? "App";
 

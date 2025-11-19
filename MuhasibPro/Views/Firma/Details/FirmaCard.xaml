@@ -74,38 +74,38 @@
             </Border>
 
             <!-- General Information Card -->
-            <Grid Style="{StaticResource ElevatedCard}">
+            <Grid Style="{StaticResource CompactInfoRow}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource ModernSectionHeader}" Text="Genel Bilgiler" />
 
-                    <Grid Style="{StaticResource InfoRow}">
+                    <Grid Style="{StaticResource ElevatedCard}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE8F1;" Style="{StaticResource InfoIcon}" />
+                        <FontIcon Glyph="&#xE8D7;" Style="{StaticResource InfoIcon}" />
                         <StackPanel Grid.Column="1">
                             <TextBlock Style="{StaticResource InfoLabel}" Text="FirmaID" />
                             <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.Id, Mode=OneWay}" />
                         </StackPanel>
                     </Grid>
-                    <Grid Style="{StaticResource InfoRow}">
+                    <Grid Style="{StaticResource ElevatedCard}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE787;" Style="{StaticResource InfoIcon}" />
+                        <FontIcon Glyph="&#xE82E;" Style="{StaticResource InfoIcon}" />
                         <StackPanel Grid.Column="1">
                             <TextBlock Style="{StaticResource InfoLabel}" Text="Oluşturulma Tarihi" />
                             <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.KayitTarihi, Mode=OneWay, Converter={StaticResource DateTimeFormatConverter}}" />
                         </StackPanel>
                     </Grid>
-                    <Grid Style="{StaticResource InfoRow}">
+                    <Grid Style="{StaticResource ElevatedCard}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE8C3;" Style="{StaticResource InfoIcon}" />
+                        <FontIcon Glyph="&#xE70F;" Style="{StaticResource InfoIcon}" />
                         <StackPanel Grid.Column="1">
                             <TextBlock Style="{StaticResource InfoLabel}" Text="Son Güncellenme" />
                             <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.GuncellemeTarihi, Mode=OneWay, Converter={StaticResource DateTimeFormatConverter}}" />
@@ -115,11 +115,11 @@
                 </StackPanel>
             </Grid>
             <!-- Contact Information Card -->
-            <Grid Style="{StaticResource ElevatedCard}">
+            <Grid Style="{StaticResource CompactInfoRow}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource ModernSectionHeader}" Text="İletişim Bilgileri" />
 
-                    <Grid Style="{StaticResource InfoRow}">
+                    <Grid Style="{StaticResource ElevatedCard}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -131,7 +131,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid Style="{StaticResource InfoRow}">
+                    <Grid Style="{StaticResource ElevatedCard}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -143,7 +143,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid Style="{StaticResource InfoRow}">
+                    <Grid Style="{StaticResource ElevatedCard}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
@@ -151,7 +151,7 @@
                         <FontIcon Style="{StaticResource InfoIcon}" Glyph="&#xE707;"/>
                         <StackPanel Grid.Column="1">
                             <TextBlock Style="{StaticResource InfoLabel}" Text="Adres"/>
-                            <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.Adres, Mode=OneWay}"/>
+                            <TextBlock Style="{StaticResource InfoValue}" TextWrapping="Wrap" Text="{x:Bind Item.Adres, Mode=OneWay}"/>
                         </StackPanel>
                     </Grid>
 

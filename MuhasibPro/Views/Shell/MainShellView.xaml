@@ -37,7 +37,7 @@
         <Grid
             x:Name="AppTitleBar"
             Height="{Binding ElementName=navigationView, Path=CompactPaneLength}"
-            Margin="50 0"
+            Margin="48 0"
             VerticalAlignment="Top"
             Canvas.ZIndex="1"
             IsHitTestVisible="True">
@@ -54,7 +54,7 @@
                 TextWrapping="NoWrap"
                 x:FieldModifier="public" />
         </Grid>
-        <NavigationView            
+        <NavigationView
             x:Name="navigationView"
             AlwaysShowHeader="False"
             Canvas.ZIndex="0"
@@ -74,7 +74,7 @@
                     </Grid>
                 </DataTemplate>
             </NavigationView.HeaderTemplate>
-            <Grid Padding="7">             
+            <Grid Padding="7">
                 <Frame x:Name="frame">
                     <Frame.ContentTransitions>
                         <TransitionCollection>
@@ -112,7 +112,7 @@
             Style="{StaticResource TitleBarBackButtonStyle}" />
 
         <!-- Status Bar -->
-        <Grid Grid.Row="2">           
+        <Grid Grid.Row="2">
             <local:ShellStatusBar />
         </Grid>
     </Grid>

@@ -55,6 +55,7 @@ namespace MuhasibPro.Views.Login
 
         public static readonly DependencyProperty DisplayRolProperty = DependencyProperty.Register(nameof(DisplayRol), typeof(string), typeof(NamePasswordControl), new PropertyMetadata(null));
         #endregion
+
         #region UserName
         public string UserName
         {

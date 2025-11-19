@@ -15,8 +15,8 @@ public class FirmaDetailsArgs
 {
     public static FirmaDetailsArgs CreateDefault() => new FirmaDetailsArgs();
 
-    public long FirmaId { get; set; }
-   
+    public long FirmaId { get; set; }   
+
     public bool IsNew => FirmaId <= 0;
 }
 
@@ -32,14 +32,9 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
     }
 
     public IFilePickerService FilePickerService { get; }
-    public IFirmaService FirmaService { get; }
-    
-    private string _firmaKodu;
-    public string FirmaKodu 
-    {
-        get => _firmaKodu;
-        set => Set(ref _firmaKodu, value);
-    }
+    public IFirmaService FirmaService { get; }  
+   
+
     private string Header => "Firma";
 
     public override string Title => (Item?.IsNew ?? true) ? "Yeni Firma" : TitleEdit;
@@ -53,10 +48,11 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
     public async Task LoadAsync(FirmaDetailsArgs args)
     {
         ViewModelArgs = args ?? FirmaDetailsArgs.CreateDefault();
+        
         if (ViewModelArgs.IsNew)
         {
-            FirmaKodu = await FirmaService.GetYeniFirmaKodu();
-            Item = new FirmaModel { FirmaKodu = FirmaKodu };
+            var firmaKodu = await FirmaService.GetYeniFirmaKodu();
+            Item = new FirmaModel { FirmaKodu = firmaKodu };
             IsEditMode = true;
         }
         else
@@ -66,7 +62,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
                 var item = await FirmaService.GetByFirmaIdAsync(ViewModelArgs.FirmaId);
 
                 Item = item.Data ??
-                    new FirmaModel { Id = ViewModelArgs.FirmaId, FirmaKodu = FirmaKodu, IsEmpty = true };
+                    new FirmaModel { Id = ViewModelArgs.FirmaId, IsEmpty = true };
             }
             catch (UserFriendlyException uex)
             {

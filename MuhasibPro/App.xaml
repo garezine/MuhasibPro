@@ -14,7 +14,6 @@
                 <ResourceDictionary Source="/Styles/FontSizes.xaml" />
                 <ResourceDictionary Source="/Styles/Thickness.xaml" />
                 <ResourceDictionary Source="/Styles/TextBlock.xaml" />
-                
 
                 <ResourceDictionary Source="/Styles/Buttons.xaml" />
                 <ResourceDictionary Source="/Styles/CalendarPicker.xaml" />
@@ -23,7 +22,8 @@
                 <ResourceDictionary Source="/Styles/Sections.xaml" />
                 <ResourceDictionary Source="/Styles/ToolBar.xaml" />
                 <ResourceDictionary Source="/Styles/Cards.xaml" />
-                <ResourceDictionary Source="/Styles/ProgressRingStyle.xaml" />
+                
+                
             </ResourceDictionary.MergedDictionaries>
             <!--  Other app resources here  -->
 

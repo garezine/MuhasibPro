@@ -7,77 +7,21 @@
     xmlns:local="using:MuhasibPro.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    d:DesignHeight="42"
+    d:DesignHeight="50"
     d:DesignWidth="800">
 
-    <CommandBar
-        x:Name="commandBar"
-        Margin="5"
-        Width="auto"        
-        Height="42"
-        Background="Transparent"
-        DefaultLabelPosition="Right"
-        Style="{StaticResource ToolBarStyle}"
-        FlowDirection="RightToLeft">
-        <AppBarButton
-            x:Name="buttonCancel"
-            HorizontalAlignment="Left"
-            Icon="Cancel"
-            Label="İptal"
-            LabelPosition="Default"
-            Style="{StaticResource ModernToolBarButtonStyle}"
-            Tag="cancel" />
-        <AppBarButton
-            x:Name="buttonNew"
-            HorizontalAlignment="Left"
-            Icon="Add"
-            Label="{x:Bind NewLabel, Mode=OneWay}"
-            LabelPosition="Default"
-            Style="{StaticResource ModernToolBarButtonStyle}"
-            Tag="new" />
-        <AppBarButton
-            x:Name="buttonEdit"
-            HorizontalAlignment="Left"
-            Icon="Edit"
-            Label="Düzenle"
-            LabelPosition="Default"
-            Style="{StaticResource ModernToolBarButtonStyle}"
-            Tag="edit" />
-        <AppBarButton
-            x:Name="buttonDelete"
-            HorizontalAlignment="Left"
-            Icon="Delete"
-            Label="Sil"
-            LabelPosition="Default"
-            Style="{StaticResource ModernToolBarButtonStyle}"
-            Tag="delete" />
+    <CommandBar x:Name="commandBar" Margin="0 0 0 10" DefaultLabelPosition="Right" Style="{StaticResource ToolBarStyle}" Background="Transparent">
+        <AppBarButton x:Name="buttonCancel" Icon="Cancel" Label="İptal" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="cancel" />
+        <AppBarButton x:Name="buttonNew" Icon="Add" Label="{x:Bind NewLabel, Mode=OneWay}" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ActionButton}" Tag="new" />
+        <AppBarButton x:Name="buttonEdit" Icon="Edit" Label="Düzenle" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="edit" />
+        <AppBarButton x:Name="buttonDelete" Icon="Delete" Label="Sil" LabelPosition="Default" HorizontalAlignment="Left" Style="{StaticResource ModernToolBarButtonStyle}" Tag="delete" />
         <CommandBar.Content>
-            <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
-                <AppBarButton
-                    
-                    x:Name="buttonSelect"
-                    Icon="List"
-                    Label="Label"
-                    LabelPosition="Collapsed"
-                    Style="{StaticResource ToolBarButtonCollapsedStyle}"
-                    Tag="select" />
-                <AppBarButton
-                   
-                    x:Name="buttonRefresh"
-                    Icon="Refresh"
-                    Label="Label"
-                    LabelPosition="Collapsed"
-                    Style="{StaticResource ToolBarButtonCollapsedStyle}"
-                    Tag="refresh" />
-                <local:Search
-                   
-                    x:Name="search"
-                    Width="240"
-                    Margin="6,-5,0,0"
-                    VerticalAlignment="Center"
-                    Query="{x:Bind Query, Mode=TwoWay}"
-                    QuerySubmitted="OnQuerySubmitted"
-                    Tag="search" />
+            <StackPanel Orientation="Horizontal">
+                <AppBarButton x:Name="buttonSelect" Icon="List" Label="Label" LabelPosition="Collapsed" Style="{StaticResource DefaultAppBarButtonStyle}" Tag="select" />
+                <AppBarSeparator/>
+                <AppBarButton x:Name="buttonRefresh" Icon="Refresh" Label="Label" LabelPosition="Collapsed" Style="{StaticResource DefaultAppBarButtonStyle}" Tag="refresh" />
+                <AppBarSeparator/>
+                <local:Search x:Name="search" Margin="6,0,0,0" Query="{x:Bind Query, Mode=TwoWay}" Width="240" VerticalAlignment="Center" Tag="search" QuerySubmitted="OnQuerySubmitted" />
             </StackPanel>
         </CommandBar.Content>
     </CommandBar>

@@ -11,13 +11,11 @@
     d:DesignWidth="800">
 
     <CommandBar
-        Margin="5"
         x:Name="commandBar"
-        Height="42"
+        Margin="0 0 0 10"
         Background="Transparent"
         DefaultLabelPosition="Right"
-        Style="{StaticResource ToolBarStyle}"
-        FlowDirection="RightToLeft">
+        Style="{StaticResource ToolBarStyle}">
         <AppBarButton
             x:Name="buttonBack"
             HorizontalAlignment="Left"
@@ -26,24 +24,25 @@
             LabelPosition="Default"
             Style="{StaticResource ModernToolBarButtonStyle}"
             Tag="back" />
+
         <AppBarButton
-            
             x:Name="buttonEdit"
             HorizontalAlignment="Left"
             Icon="Edit"
             Label="Düzenle"
             LabelPosition="Default"
-            Style="{StaticResource ModernToolBarButtonStyle}"
+            Style="{StaticResource  ModernToolBarButtonStyle}"
             Tag="edit" />
+
         <AppBarButton
             x:Name="buttonDelete"
             HorizontalAlignment="Left"
-            Height="42"
             Icon="Delete"
             Label="Sil"
             LabelPosition="Default"
             Style="{StaticResource ModernToolBarButtonStyle}"
             Tag="delete" />
+
         <AppBarButton
             x:Name="buttonCancel"
             HorizontalAlignment="Left"
@@ -52,6 +51,7 @@
             LabelPosition="Default"
             Style="{StaticResource ModernToolBarButtonStyle}"
             Tag="cancel" />
+
         <AppBarButton
             x:Name="buttonSave"
             HorizontalAlignment="Left"

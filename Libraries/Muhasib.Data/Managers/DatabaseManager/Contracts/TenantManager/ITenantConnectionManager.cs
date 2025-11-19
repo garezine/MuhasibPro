@@ -1,5 +1,4 @@
-﻿using Muhasib.Data.Contracts.SistemRepositories;
-using Muhasib.Data.Managers.DatabaseManager.Models;
+﻿using Muhasib.Data.Managers.DatabaseManager.Models;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager
 {

@@ -1,6 +1,7 @@
 ﻿using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
+using MuhasibPro.ViewModels.ViewModels.Firmalar;
 using MuhasibPro.Views.Splash;
 
 
@@ -9,6 +10,7 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices;
 public class ActivationInfo()
 {
     public static ActivationInfo CreateDefault() => Create<DashboardViewModel>();
+    public static ActivationInfo CreateNewFirma() => Create<FirmaDetailsViewModel>();
     public static ActivationInfo Create<TViewModel>(object entryArgs = null) where TViewModel : class
     {
         return new ActivationInfo

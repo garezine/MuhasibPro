@@ -50,11 +50,7 @@ namespace MuhasibPro.Views.Firmalar
         public int GetRowSpan(bool isMultipleSelection)
         {
             return isMultipleSelection ? 2 : 1;
-        }
-        public int GetSelectRowSpan(bool isSelectedItems)
-        {
-            return isSelectedItems ? 1 : 2;
-        }
+        }       
 
     }
 }

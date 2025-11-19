@@ -30,8 +30,8 @@ namespace MuhasibPro.Views.Login
         {
             _currentEffectMode = EffectMode.None;
             await ViewModel.LoadAsync(e.Parameter as ShellArgs);
-            //TODO : Move to StatusBarService Initialization to ShellView when implemented
-            ViewModel.StatusBarService.Initialize(DispatcherQueue);
+            
+            
             InitializeNavigation();
         }
 

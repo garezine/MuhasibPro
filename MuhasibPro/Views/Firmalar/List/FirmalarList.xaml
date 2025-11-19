@@ -17,7 +17,7 @@
         <controls:DataList.ConfigControl>
             <controls:BaseConfig>
                 <controls:BaseConfig.CoreData>
-                    <controls:CoreDataConfig                        
+                    <controls:CoreDataConfig
                         ItemsCount="{x:Bind ViewModel.ItemsCount, Mode=OneWay}"
                         ItemsSource="{x:Bind ViewModel.Items, Mode=OneWay}"
                         NewLabel="Yeni Firma"
@@ -43,22 +43,40 @@
                                     <tv:TableViewTemplateColumn Width="32">
                                         <tv:TableViewTemplateColumn.CellTemplate>
                                             <DataTemplate x:DataType="models:FirmaModel">
-                                                <PersonPicture
+                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                    <PersonPicture                                                    
                                                     Width="28"
                                                     Height="28"
-                                                    Foreground="{x:Bind LogoOnizlemeSource,, Converter={StaticResource ObjectToImageConverter}}"
+                                                    ProfilePicture="{x:Bind LogoOnizlemeSource,Mode=OneWay, Converter={StaticResource ObjectToImageConverter}}"
                                                     x:Phase="1" />
+                                                </StackPanel>
                                             </DataTemplate>
                                         </tv:TableViewTemplateColumn.CellTemplate>
                                     </tv:TableViewTemplateColumn>
                                     <tv:TableViewTextColumn
                                         Width="120"
                                         Binding="{Binding Id}"
-                                        Header="Firma Id" />
+                                        Header="Kimlik" />
                                     <tv:TableViewTextColumn
-                                        Width="120"
-                                        Binding="{Binding FirmaKodu}"
-                                        Header="Firma Kodu" />
+                                        Width="auto"
+                                        Binding="{Binding KisaUnvani}"
+                                        Header="Kısa Ünvan" />
+                                    <tv:TableViewTextColumn
+                                        Width="auto"
+                                        Binding="{Binding TamUnvani}"
+                                        Header="Tam Ünvanı" />
+                                    <tv:TableViewTextColumn
+                                        Width="auto"
+                                        Binding="{Binding YetkiliKisi}"
+                                        Header="Yetkili Kişi" />
+                                    <tv:TableViewTextColumn
+                                        Width="auto"
+                                        Binding="{Binding Telefon1}"
+                                        Header="Telefon" />
+                                    <tv:TableViewTextColumn
+                                        Width="*"
+                                        Binding="{Binding Adres}"
+                                        Header="Adres" />
 
                                 </tv:TableView.Columns>
                             </tv:TableView>
@@ -83,8 +101,7 @@
                         StartSelectionCommand="{x:Bind ViewModel.StartSelectionCommand}" />
                 </controls:BaseConfig.Command>
                 <controls:BaseConfig.Selection>
-                    <controls:SelectionConfig IsMultipleSelection="{x:Bind ViewModel.IsMultipleSelection, Mode=TwoWay}"
-                                              />
+                    <controls:SelectionConfig IsMultipleSelection="{x:Bind ViewModel.IsMultipleSelection, Mode=TwoWay}" />
                 </controls:BaseConfig.Selection>
                 <controls:BaseConfig.Pagination>
                     <controls:PaginationConfig

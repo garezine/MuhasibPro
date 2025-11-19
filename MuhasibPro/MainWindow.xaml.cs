@@ -35,6 +35,7 @@ namespace MuhasibPro
                 SystemBackdrop = new DesktopAcrylicBackdrop();
             }
             ExtendsContentIntoTitleBar = true;
+           
             this.AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets/AppIcon.ico"));
             Content = null;
             this.Title = "MuhasibPro";

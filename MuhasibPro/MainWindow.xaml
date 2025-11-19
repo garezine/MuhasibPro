@@ -6,7 +6,7 @@
         xmlns:local="using:MuhasibPro"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        xmlns:windowex="using:WinUIEx">
+        >
     <Window.SystemBackdrop>
         <MicaBackdrop/>
     </Window.SystemBackdrop>

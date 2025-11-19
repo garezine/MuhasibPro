@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Muhasib.Data.Contracts.SistemRepositories;
-using Muhasib.Data.DataContext;
 using Muhasib.Data.DataContext.Factories;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager;
 using Muhasib.Data.Managers.DatabaseManager.Models;
@@ -110,7 +109,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
             }
         }
 
-        public event Action<TenantContext> TenantChanged;
+        
 
 
 
