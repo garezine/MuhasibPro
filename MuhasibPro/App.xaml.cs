@@ -58,6 +58,7 @@ public partial class App : Application
             .AddBusinessServices()
             .AddAppViewModel()
             .AddAppView();
+            
     }
     public static UIElement? AppTitleBar { get; set; }
     public static Window? MainWindow { get; } = new MainWindow();

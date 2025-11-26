@@ -10,7 +10,7 @@ using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Linq.Expressions;
 
 
-namespace MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs
+namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs
 {
     #region SistemLogListArgs
     public class SistemLogListArgs
@@ -78,14 +78,10 @@ namespace MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs
                 NotifyPropertyChanged(nameof(Title));  // ✅ SADECE BAŞARILI DURUMDA
                 return true;
             }
-            catch (UserFriendlyException uex)
-            {
-                StatusError(uex);
-                return false;
-            }
+           
             catch (Exception ex)
             {
-                StatusError(GlobalErrorCode.GeneralError, $"{Header} listesi yenilenirken beklenmeyen hata");
+                StatusError($"{Header} listesi yenilenirken beklenmeyen hata");
                 LogSistemException($"{Header}", "Yenile", ex);
                 return false;
             }
@@ -183,15 +179,10 @@ namespace MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs
                         await RemoveItemsFromUIWithAnimationAsync(SelectedItems);
                     }
                 }
-                catch (UserFriendlyException uex)
-                {
-                    StatusError(uex);
-                    StopProgress();
-                    count = 0;
-                }
+                
                 catch (Exception ex)
                 {
-                    StatusError(GlobalErrorCode.GeneralError, $"{Header} silinirken beklenmeyen hata");
+                    StatusError($"{Header} silinirken beklenmeyen hata");
                     LogSistemException($"{Header}", "Sil", ex);
                     StopProgress();
                     count = 0;

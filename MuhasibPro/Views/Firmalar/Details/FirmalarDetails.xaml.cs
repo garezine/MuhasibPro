@@ -1,4 +1,4 @@
-﻿using MuhasibPro.ViewModels.ViewModels.Firmalar;
+﻿using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 using MuhasibPro.Views.Firma;
 
 // To learn more about WinUI, the WinUI project structure,

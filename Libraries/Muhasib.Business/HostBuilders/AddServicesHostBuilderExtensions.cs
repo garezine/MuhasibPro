@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Muhasib.Business.Services.Concrete.BaseServices;
-using Muhasib.Business.Services.Concrete.SitemServices;
+using Muhasib.Business.Services.Concrete.SistemServices;
 using Muhasib.Business.Services.Contracts.BaseServices;
 using Muhasib.Business.Services.Contracts.SistemServices;
 
@@ -16,7 +16,7 @@ namespace Muhasib.Business.HostBuilders
                 services.AddSingleton<IAuthenticationService, AuthenticationService>();
                 services.AddSingleton<IFirmaService, FirmaService>();
                 services.AddSingleton<IMaliDonemService, MaliDonemService>();
-                services.AddSingleton<IMaliDonemDbService, MaliDonemDbService>();
+                
             });
             return host;
         }

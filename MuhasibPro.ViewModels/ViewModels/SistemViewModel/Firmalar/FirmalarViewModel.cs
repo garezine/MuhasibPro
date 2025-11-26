@@ -2,23 +2,25 @@
 using Muhasib.Business.Services.Contracts.SistemServices;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
-using MuhasibPro.ViewModels.ViewModels.MaliDonem;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
 
-namespace MuhasibPro.ViewModels.ViewModels.Firmalar;
+namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 public class FirmalarViewModel : ViewModelBase
 {
-    public FirmalarViewModel(ICommonServices commonServices, IFirmaService firmaService, IFilePickerService filePickerService) : base(commonServices)
+    public FirmalarViewModel(ICommonServices commonServices, IFirmaService firmaService, IFilePickerService filePickerService, IMaliDonemService maliDonemService) : base(commonServices)
     {
         FirmaService = firmaService;
+        MaliDonemService = maliDonemService;
 
         FirmaList = new FirmaListViewModel(commonServices, FirmaService);
         FirmaDetails = new FirmaDetailsViewModel(commonServices, filePickerService, FirmaService);
-        FirmaCalismaDonemler = new MaliDonemListViewModel(commonServices);
+        FirmaMaliDonemler = new MaliDonemListViewModel(commonServices,MaliDonemService);
     }
     public IFirmaService FirmaService { get; }
+    public IMaliDonemService MaliDonemService { get; }
     public FirmaListViewModel FirmaList { get; set; }
     public FirmaDetailsViewModel FirmaDetails { get; set; }
-    public MaliDonemListViewModel FirmaCalismaDonemler { get; set; }
+    public MaliDonemListViewModel FirmaMaliDonemler { get; set; }
 
     private string Header = "Firma";
     public async Task LoadAsync(FirmaListArgs args)
@@ -35,12 +37,14 @@ public class FirmalarViewModel : ViewModelBase
         MessageService.Subscribe<FirmaListViewModel>(this, OnMessage);
         FirmaList.Subscribe();
         FirmaDetails.Subscribe();
+        FirmaMaliDonemler.Subscribe();
     }
     public void Unsubscribe()
     {
         MessageService.Unsubscribe(this);
         FirmaList.Unsubscribe();
         FirmaDetails.Unsubscribe();
+        FirmaMaliDonemler.Unsubscribe();
 
     }
     private async void OnMessage(FirmaListViewModel viewModel, string message, object args)
@@ -68,7 +72,7 @@ public class FirmalarViewModel : ViewModelBase
             if (selected != null && !selected.IsEmpty)
             {
                 await PopulateDetails(selected);
-                //await PopulateOrders(selected);
+                await PopulateMaliDonem(selected);
             }
         }
         FirmaDetails.Item = selected;
@@ -84,6 +88,20 @@ public class FirmalarViewModel : ViewModelBase
         catch (Exception ex)
         {
             LogSistemException($"{Header}lar", $"{Header} Detay", ex);
+        }
+    }
+    private async Task PopulateMaliDonem(FirmaModel selectedItem)
+    {
+        try
+        {
+            if(selectedItem != null)
+            {
+                await FirmaMaliDonemler.LoadAsync(new MaliDonemListArgs { FirmaId = selectedItem.Id },silent:true);
+            }
+        }
+        catch (Exception ex)
+        {
+            LogSistemException("Firmalar", "Mali Dönemler", ex);
         }
     }
 }

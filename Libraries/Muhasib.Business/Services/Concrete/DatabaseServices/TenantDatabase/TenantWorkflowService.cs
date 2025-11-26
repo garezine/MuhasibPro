@@ -1,25 +1,24 @@
 ﻿using Microsoft.Extensions.Logging;
 using Muhasib.Business.Infrastructure.Extensions;
+using Muhasib.Business.Models.SistemModel;
 using Muhasib.Business.Models.TenantModel;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.LogServices;
+using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Data.BaseRepositories.Contracts;
-using Muhasib.Data.Contracts.SistemRepositories;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.Infrastructure;
 using Muhasib.Data.Utilities.Responses;
-using Muhasib.Domain.Entities.SistemEntity;
 using Muhasib.Domain.Enum;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 {
     public class TenantWorkflowService : ITenantWorkflowService
     {
-        private readonly ITenantDatabaseLifecycleService _lifecycleService;
+        public ITenantDatabaseLifecycleService _lifecycleService { get; }
         private readonly ITenantDatabaseOperationService _operationService;
-        private readonly IFirmaRepository _firmaRepo;
-        private readonly IMaliDonemRepository _maliDonemRepo;
-        private readonly IMaliDonemDbRepository _maliDonemDbRepo;
+        private readonly IFirmaService _firmaService;
+        private readonly IMaliDonemService _maliDonemService;        
         private readonly IApplicationPaths _applicationPaths;
         private readonly IUnitOfWork<SistemDbContext> _unitOfWork;
         private readonly ILogService _logService;
@@ -28,9 +27,8 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         public TenantWorkflowService(
             ITenantDatabaseLifecycleService lifecycleService,
             ITenantDatabaseOperationService operationService,
-            IFirmaRepository firmaRepo,
-            IMaliDonemRepository maliDonemRepo,
-            IMaliDonemDbRepository maliDonemDbRepo,
+            IFirmaService firmaService,
+            IMaliDonemService maliDonemService,            
             IApplicationPaths applicationPaths,
             IUnitOfWork<SistemDbContext> unitOfWork,
             ILogService logService,
@@ -38,9 +36,8 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         {
             _lifecycleService = lifecycleService;
             _operationService = operationService;
-            _firmaRepo = firmaRepo;
-            _maliDonemRepo = maliDonemRepo;
-            _maliDonemDbRepo = maliDonemDbRepo;
+            _firmaService = firmaService;
+            _maliDonemService = maliDonemService;            
             _applicationPaths = applicationPaths;
             _unitOfWork = unitOfWork;
             _logService = logService;
@@ -50,80 +47,83 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         public async Task<ApiDataResponse<TenantCreationResult>> CreateNewTenantAsync(TenantCreationRequest request)
         {
             _logger.LogInformation(
-                "Starting tenant creation workflow for FirmaId: {FirmaId}, MaliYil: {MaliYil}",
+                "Tenant oluşturma başlatıldı - FirmaId: {FirmaId}, MaliYil: {MaliYil}",
                 request.FirmaId,
                 request.MaliYil);
 
             var result = new TenantCreationResult();
+            var saga = new TenantCreationSaga(_logger);
 
             try
             {
-                // 1. Firma kontrol
-                var firma = await _firmaRepo.GetByFirmaId(request.FirmaId);
-                if (firma == null)
-                {
-                    return new ErrorApiDataResponse<TenantCreationResult>(null, "Firma bulunamadı");
-                }
+                // ============================================
+                // STEP 1: Firma Kontrolü
+                // ============================================
+                _logger.LogInformation("Step 1/7: Firma kontrol ediliyor...");
 
-                // 2. Aynı mali dönem var mı kontrol
-                var existingDonem = await _maliDonemRepo.FindAsync(
-                    md => md.FirmaId == request.FirmaId && md.MaliYil == request.MaliYil);
-
-                if (existingDonem != null)
+                var firmaResponse = await _firmaService.GetByFirmaIdAsync(request.FirmaId);
+                if (!firmaResponse.Success || firmaResponse.Data == null)
                 {
+                    _logger.LogWarning("Firma bulunamadı: {FirmaId}", request.FirmaId);
                     return new ErrorApiDataResponse<TenantCreationResult>(
                         null,
-                        $"Bu firma için {request.MaliYil} mali dönemi zaten mevcut");
+                        firmaResponse.Message ?? $"Firma bulunamadı (FirmaId: {request.FirmaId})",
+                        false,
+                        ResultCodes.HATA_Bulunamadi);
                 }
+                var firma = firmaResponse.Data;
+                _logger.LogInformation("Firma bulundu: {FirmaKodu}", firma.FirmaKodu);
 
-                // 3. Database adını oluştur
-                var dbNameResponse = _lifecycleService.GenerateDatabaseNameAsync(firma.FirmaKodu, request.MaliYil);
+                // ============================================
+                // STEP 2: Duplicate Mali Dönem Kontrolü
+                // ============================================
+                _logger.LogInformation("Step 2/7: Mali dönem kontrolü yapılıyor...");
 
-                if (!dbNameResponse.Success)
+                var existingDonem = await _maliDonemService.IsMaliDonem(request.FirmaId, request.MaliYil);
+                if (existingDonem)
                 {
-                    return new ErrorApiDataResponse<TenantCreationResult>(null, dbNameResponse.Message);
+                    _logger.LogWarning("Mali dönem zaten mevcut: {FirmaId}-{MaliYil}", request.FirmaId, request.MaliYil);
+                    return new ErrorApiDataResponse<TenantCreationResult>(
+                        null,
+                        $"Bu firma için {request.MaliYil} mali dönemi zaten mevcut",
+                        false,
+                        ResultCodes.HATA_ZatenVar);
                 }
+                _logger.LogInformation("Mali dönem mevcut değil, devam ediliyor");
+
+                // ============================================
+                // STEP 3: Database Adı Oluştur
+                // ============================================
+                _logger.LogInformation(" Step 3/7: Database adı oluşturuluyor...");
+
+                var dbNameResponse = _lifecycleService.GenerateDatabaseNameAsync(firma.FirmaKodu, request.MaliYil);
+                if (!dbNameResponse.Success || string.IsNullOrEmpty(dbNameResponse.Data))
+                {
+                    _logger.LogError("Database adı oluşturulamadı");
+                    return new ErrorApiDataResponse<TenantCreationResult>(
+                        null,
+                        dbNameResponse.Message ?? "Database adı oluşturulamadı",
+                        false,
+                        ResultCodes.HATA_Olusturulamadi);
+                }
+
                 result.DatabaseName = dbNameResponse.Data;
+                var databasePath = Path.Combine(
+                    _applicationPaths.GetDatabasePath(),
+                    "Muhasebe",
+                    result.DatabaseName);
 
-                // transaction başlat
-                using var transaction = await _unitOfWork.BeginTransactionAsync();
+                _logger.LogInformation("Database adı oluşturuldu: {DatabaseName}", result.DatabaseName);
 
-                // 4. MaliDonem kaydı oluştur (SQLite)
-                var maliDonem = new MaliDonem
+                // ============================================
+                // STEP 4: MaliDonem Kaydı Oluştur
+                // ============================================
+                _logger.LogInformation("Step 4/7: MaliDonem kaydı oluşturuluyor...");
+
+                var maliDonem = new MaliDonemModel
                 {
                     FirmaId = request.FirmaId,
-                    MaliYil = request.MaliYil,
-                    DbOlusturulduMu = false,
-                    AktifMi = true
-                };
-
-                await _maliDonemRepo.UpdateMaliDonemAsync(maliDonem);
-
-                result.MaliDonemId = maliDonem.Id;
-
-                // 5. SQL Server Database oluştur
-                if (request.AutoCreateDatabase)
-                {
-                    var dbCreateResponse = await _lifecycleService.CreateDatabaseAsync(result.DatabaseName);
-                    if (!dbCreateResponse.Success)
-                    {
-                        // Rollback: MaliDonem kaydını sil
-                        await transaction.RollbackAsync();
-
-                        return new ErrorApiDataResponse<TenantCreationResult>(
-                            result,
-                            $"Veritabanı oluşturulamadı: {dbCreateResponse.Message}");
-                    }
-
-                    result.DatabaseCreated = true;
-                }
-
-                // 6. MaliDonemDb kaydı oluştur (SQLite)
-                var databasePath = Path.Combine(_applicationPaths.GetDatabasePath(), "Muhasebe", result.DatabaseName);
-
-                var maliDonemDb = new MaliDonemDb
-                {
-                    MaliDonemId = maliDonem.Id,
+                    MaliYil = request.MaliYil,                    
                     DBName = result.DatabaseName,
                     Directory = Path.GetDirectoryName(databasePath),
                     DBPath = databasePath,
@@ -131,64 +131,228 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                     AktifMi = true
                 };
 
-                await _maliDonemDbRepo.UpdateMaliDonemDbAsync(maliDonemDb);
+                // ✅ DÜZELTİLDİ: Saga step içinde transaction kullan
+                await saga.ExecuteStepAsync(
+                    stepName: "CreateMaliDonem",
+                    action: async () =>
+                    {
+                        using (var transaction = await _unitOfWork.BeginTransactionAsync())
+                        {
+                            try
+                            {
+                                await _maliDonemService.UpdateMaliDonemAsync(maliDonem);
+                                await _unitOfWork.SaveChangesAsync();
+                                await transaction.CommitAsync();
 
-                result.MaliDonemDbId = maliDonemDb.Id;
+                                result.MaliDonemId = maliDonem.Id;
+                                _logger.LogInformation("MaliDonem kaydı oluşturuldu: {MaliDonemId}", maliDonem.Id);
+                                return maliDonem.Id;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "MaliDonem oluşturma hatası");
+                                await transaction.RollbackAsync();
+                                throw new InvalidOperationException($"MaliDonem oluşturulamadı: {ex.Message}", ex);
+                            }
+                        }
+                    },
+                    compensate: async (maliDonemId) =>
+                    {
+                        _logger.LogWarning("Rollback: MaliDonem kaydı siliniyor: {MaliDonemId}", maliDonemId);
+                        try
+                        {
+                            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+                            {
+                                var deleteMaliDonem = new MaliDonemModel { Id = maliDonemId };
+                                 await _maliDonemService.DeleteMaliDonemAsync(deleteMaliDonem);
+                                await _unitOfWork.SaveChangesAsync();
+                                await transaction.CommitAsync();
+                                _logger.LogInformation("MaliDonem silindi: {MaliDonemId}", maliDonemId);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "MaliDonem silme hatası: {MaliDonemId}", maliDonemId);
+                            // Compensate hatası fırlatmıyoruz, sadece logluyoruz
+                        }
+                    }
+                );
 
-                // 7. Migration çalıştır
+                // ============================================
+                // STEP 5: SQL Server Database Oluştur
+                // ============================================
+                if (request.AutoCreateDatabase)
+                {
+                    _logger.LogInformation("Step 5/7: Database oluşturuluyor: {DatabaseName}", result.DatabaseName);
+
+                    await saga.ExecuteStepAsync(
+                        stepName: "CreateDatabase",
+                        action: async () =>
+                        {
+                            var dbCreateResponse = await _lifecycleService.CreateDatabaseAsync(result.DatabaseName);
+                            if (!dbCreateResponse.Success)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Database oluşturulamadı: {dbCreateResponse.Message}");
+                            }
+                            result.DatabaseCreated = true;
+                            _logger.LogInformation("Database oluşturuldu: {DatabaseName}", result.DatabaseName);
+                            return result.DatabaseName;
+                        },
+                        compensate: async (dbName) =>
+                        {
+                            _logger.LogWarning("Rollback: Database siliniyor: {DatabaseName}", dbName);
+                            try
+                            {
+                                var deleteResponse = await _lifecycleService.DeleteDatabaseAsync(dbName);
+                                if (deleteResponse.Success)
+                                {
+                                    _logger.LogInformation("Database silindi: {DatabaseName}", dbName);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Database silinemedi: {DatabaseName} - {Message}", dbName, deleteResponse.Message);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Database silme hatası: {DatabaseName}", dbName);
+                            }
+                        }
+                    );
+                }
+                else
+                {
+                    _logger.LogInformation("Step 5/7: Database oluşturma atlandı (AutoCreateDatabase=false)");
+                }
+
+                // ============================================
+                // STEP 6: Migration Çalıştır
+                // ============================================
                 if (request.RunMigrations && result.DatabaseCreated)
                 {
-                    var migrationResponse = await _operationService.RunMigrationsAsync(maliDonem.Id);
-                    if (!migrationResponse.Success)
-                    {
-                        // Rollback: MaliDonem ve MaliDonemDb kayıtlarını sil
-                        await transaction.RollbackAsync();
-                        await _lifecycleService.DeleteDatabaseAsync(result.DatabaseName); // Eğer Migration hata verirse sil.
-                        return new ErrorApiDataResponse<TenantCreationResult>(
-                            result,
-                            $"Migration işlemi başarısız: {migrationResponse.Message}");
-                    }
-                    result.MigrationsRun = migrationResponse.Success;
+                    _logger.LogInformation("Step 6/7: Migration çalıştırılıyor...");
+
+                    await saga.ExecuteStepAsync(
+                        stepName: "RunMigrations",
+                        action: async () =>
+                        {
+                            var migrationResponse = await _operationService.RunMigrationsAsync(maliDonem.Id);
+                            if (!migrationResponse.Success)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Migration başarısız: {migrationResponse.Message}");
+                            }
+                            result.MigrationsRun = true;
+                            _logger.LogInformation("Migration tamamlandı");
+                            return true;
+                        },
+                        compensate: null // Database zaten silinecek, ayrı compensate gerekmez
+                    );
+                }
+                else
+                {
+                    _logger.LogInformation("Step 6/7: Migration atlandı");
                 }
 
-                // 8. MaliDonem'i güncelle (DB oluşturuldu flag)
-                maliDonem.DbOlusturulduMu = result.DatabaseCreated;
-                await _maliDonemRepo.UpdateMaliDonemAsync(maliDonem);
-                await _unitOfWork.CommitAsync();
-                await transaction.CommitAsync();
+                // ============================================
+                // STEP 7: MaliDonem Güncelle (DB Flag)
+                // ============================================
+                _logger.LogInformation("Step 7/7: MaliDonem kaydı güncelleniyor...");
 
-                // 9. İsteğe bağlı backup
+                using (var updateTransaction = await _unitOfWork.BeginTransactionAsync())
+                {
+                    try
+                    {                        
+                        await _maliDonemService.UpdateMaliDonemAsync(maliDonem);
+                        await _unitOfWork.SaveChangesAsync();
+                        await updateTransaction.CommitAsync();
+                        _logger.LogInformation("MaliDonem güncellendi");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "MaliDonem güncelleme hatası");
+                        await updateTransaction.RollbackAsync();
+                        throw new InvalidOperationException($"MaliDonem güncellenemedi: {ex.Message}", ex);
+                    }
+                }
+
+                // ============================================
+                // BONUS: İsteğe Bağlı Backup
+                // ============================================
                 if (request.CreateInitialBackup && result.MigrationsRun)
                 {
-                    await _operationService.CreateBackupAsync(maliDonem.Id);
+                    _logger.LogInformation("Initial backup oluşturuluyor...");
+                    try
+                    {
+                        await _operationService.CreateBackupAsync(maliDonem.Id);
+                        _logger.LogInformation("Initial backup oluşturuldu");
+                    }
+                    catch (Exception backupEx)
+                    {
+                        _logger.LogWarning(backupEx, "Initial backup oluşturulamadı (kritik değil)");
+                    }
                 }
 
-                // transaction işlemi bitti 
+                // ============================================
+                // BAŞARILI SONUÇ
+                // ============================================
                 result.Message = "Tenant başarıyla oluşturuldu";
 
-                await _logService.SistemLogService
-                    .SistemLogInformation(
-                        nameof(TenantWorkflowService),
-                        nameof(CreateNewTenantAsync),
-                        $"Yeni tenant oluşturuldu. Firma: {firma.FirmaKodu}, Yıl: {request.MaliYil}, DB: {result.DatabaseName}",
-string.Empty);
+                await _logService.SistemLogService.SistemLogInformation(
+                    nameof(TenantWorkflowService),
+                    nameof(CreateNewTenantAsync),
+                    $"Yeni tenant oluşturuldu. Firma: {firma.FirmaKodu}, Yıl: {request.MaliYil}, DB: {result.DatabaseName}, MaliDonemId: {result.MaliDonemId}",
+                    string.Empty);
 
-                return new SuccessApiDataResponse<TenantCreationResult>(result, "Tenant başarıyla oluşturuldu");
+                _logger.LogInformation(
+                    "Tenant başarıyla oluşturuldu - DatabaseName: {DatabaseName}, MaliDonemId: {MaliDonemId}",
+                    result.DatabaseName,
+                    result.MaliDonemId);
+
+                return new SuccessApiDataResponse<TenantCreationResult>(
+                    result,
+                    "Tenant başarıyla oluşturuldu",
+                    true,
+                    ResultCodes.BASARILI_Olusturuldu,
+                    1);
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Tenant creation workflow failed for FirmaId: {FirmaId}, MaliYil: {MaliYil}",
+                    "Tenant oluşturma BAŞARISIZ - FirmaId: {FirmaId}, MaliYil: {MaliYil}",
                     request.FirmaId,
                     request.MaliYil);
 
-                await _logService.SistemLogService
-                    .SistemLogException(nameof(TenantWorkflowService), nameof(CreateNewTenantAsync), ex);
+                // ============================================
+                // SAGA ROLLBACK - Tüm İşlemleri Geri Al
+                // ============================================
+                _logger.LogWarning("Saga rollback başlatılıyor...");
+                try
+                {
+                    await saga.CompensateAllAsync();
+                    _logger.LogInformation("Saga rollback tamamlandı");
+                }
+                catch (Exception rollbackEx)
+                {
+                    _logger.LogError(rollbackEx, "Saga rollback sırasında hata oluştu! Manuel müdahale gerekebilir!");
+                }
 
-                return new ErrorApiDataResponse<TenantCreationResult>(result, $"Tenant oluşturma hatası: {ex.Message}");
+                await _logService.SistemLogService.SistemLogException(
+                    nameof(TenantWorkflowService),
+                    nameof(CreateNewTenantAsync),
+                    ex);
+
+                return new ErrorApiDataResponse<TenantCreationResult>(
+                    result,
+                    $"Tenant oluşturma hatası: {ex.Message}",
+                    false,
+                    ResultCodes.HATA_Olusturulamadi);
             }
         }
+
+
 
         public async Task<ApiDataResponse<bool>> DeleteTenantCompleteAsync(long maliDonemId)
         {
@@ -197,12 +361,12 @@ string.Empty);
             try
             {
                 // 1. MaliDonemDb bilgisini al
-                var maliDonemDb = await _maliDonemDbRepo.GetByMaliDonemDbIdAsync(maliDonemId);
+                var maliDonemDb = await _maliDonemService.GetByMaliDonemIdAsync(maliDonemId);
                 if (maliDonemDb == null)
                 {
                     return new ErrorApiDataResponse<bool>(false, "Mali dönem veritabanı kaydı bulunamadı");
                 }
-                var databaseName = maliDonemDb.DBName;
+                var databaseName = maliDonemDb.Data.DBName;
 
                 // 2. SQL Server database'i sil
                 var dbDeleteResponse = await _lifecycleService.DeleteDatabaseAsync(databaseName);
@@ -212,17 +376,17 @@ string.Empty);
                 }
                 using var transaction = await _unitOfWork.BeginTransactionAsync();
                 // 3. MaliDonemDb kaydını sil (SQLite)
-                await _maliDonemDbRepo.DeleteAsync(maliDonemDb);
+                await _maliDonemService.DeleteMaliDonemAsync(maliDonemDb.Data);
 
 
                 // 4. MaliDonem kaydını sil (SQLite) - Cascade delete olmalı
-                var maliDonem = await _maliDonemRepo.GetByMaliDonemId(maliDonemId);
+                var maliDonem = await _maliDonemService.GetByMaliDonemIdAsync(maliDonemId);
                 if (maliDonem != null)
                 {
-                    await _maliDonemRepo.DeleteAsync(maliDonem);
+                    await _maliDonemService.DeleteMaliDonemAsync(maliDonem.Data);
                 }
 
-                await _unitOfWork.CommitAsync();
+                await _unitOfWork.SaveChangesAsync();
                 await transaction.CommitAsync();
                 await _logService.SistemLogService
                     .SistemLogInformation(

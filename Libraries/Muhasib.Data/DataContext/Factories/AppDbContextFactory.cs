@@ -6,46 +6,45 @@ using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager;
 namespace Muhasib.Data.DataContext.Factories
 {
     /// <summary>
-    /// AppDbContext instance'ları oluşturmak için factory sınıfı.
-    /// Connection string'e göre otomatik provider seçimi yapar (SQLite/SQLServer).
-    /// Dependency Injection ile kullanım için tasarlanmıştır.
+    /// AppDbContext instance'ları oluşturmak için factory sınıfı. Connection string'e göre otomatik provider seçimi
+    /// yapar (SQLite/SQLServer). Dependency Injection ile kullanım için tasarlanmıştır.
     /// </summary>
     public class AppDbContextFactory : IAppDbContextFactory
     {
         private readonly ISqlConnectionStringFactory _connectionStringFactory;
-        private readonly IMaliDonemDbRepository _maliDonemDbRepo;
+        private readonly IMaliDonemRepository _maliDonemRepo;
 
         public AppDbContextFactory(
             ISqlConnectionStringFactory connectionStringFactory,
-            IMaliDonemDbRepository maliDonemDbRepo)
+            IMaliDonemRepository maliDonemDbRepo)
         {
             _connectionStringFactory = connectionStringFactory;
-            _maliDonemDbRepo = maliDonemDbRepo;
+            _maliDonemRepo = maliDonemDbRepo;
         }
 
         public AppDbContext CreateForTenant(long maliDonemId)
         {
-            var maliDonemDb = _maliDonemDbRepo.GetByMaliDonemDbId(maliDonemId);
+            var maliDonemDb = _maliDonemRepo.GetByMaliDonemId(maliDonemId);
 
-            if (maliDonemDb == null)
+            if(maliDonemDb == null)
                 throw new InvalidOperationException($"MaliDonemDb bulunamadı: {maliDonemId}");
+
 
             return CreateForDatabase(maliDonemDb.DBName);
         }
+
         public async Task<AppDbContext> CreateForTenantAsync(long maliDonemId)
         {
-            var maliDonemDb = await _maliDonemDbRepo.GetByMaliDonemDbIdAsync(maliDonemId);
+            var maliDonemDb = await _maliDonemRepo.GetByMaliDonemIdAsync(maliDonemId);
 
-            if (maliDonemDb == null)
+            if(maliDonemDb == null)
                 throw new InvalidOperationException($"MaliDonemDb bulunamadı: {maliDonemId}");
 
             return CreateForDatabase(maliDonemDb.DBName);
         }
 
         public async Task<AppDbContext> CreateForDatabaseAsync(string databaseName)
-        {
-            return await Task.FromResult(CreateForDatabase(databaseName));
-        }
+        { return await Task.FromResult(CreateForDatabase(databaseName)); }
 
         public AppDbContext CreateForDatabase(string databaseName)
         {

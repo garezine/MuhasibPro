@@ -1,4 +1,5 @@
-﻿using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager;
+﻿using Microsoft.Data.SqlClient;
+using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 {
@@ -9,13 +10,13 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
         private readonly bool _trustServerCertificate;
 
         public SqlConnectionStringFactory(
-            string serverName = "localhost",
+            string serverName,
             bool integratedSecurity = true,
             bool trustServerCertificate = true)
         {
             _serverName = serverName;
             _integratedSecurity = integratedSecurity;
-            _trustServerCertificate = trustServerCertificate;
+            _trustServerCertificate = trustServerCertificate;           
         }
 
         public string CreateForDatabase(string databaseName)
@@ -25,10 +26,36 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                    $"TrustServerCertificate={_trustServerCertificate};" +
                    $"Initial Catalog={databaseName};";
         }
-
-        public string CreateForMaster()
+          
+        
+        public string GetMasterConnectionString()
         {
-            return CreateForDatabase("master");
+            var serverCandidates = new[] { "(localdb)\\mssqllocaldb", ".\\SQLEXPRESS", ".", "localhost" };
+
+            foreach (var server in serverCandidates)
+            {
+                var connectionString = $"Data Source={server};Integrated Security=true;TrustServerCertificate=true;Initial Catalog=master;";
+                
+                if (TestConnectionAsync(connectionString))
+                {                    
+                    return connectionString;
+                }
+            }
+
+            throw new Exception("No SQL Server instance found");
+        }
+        private bool TestConnectionAsync(string connectionString)
+        {
+            try
+            {
+                using var connection = new SqlConnection(connectionString);
+                connection.Open();
+                return true;
+            }
+            catch (Exception)
+            {
+                throw new Exception("No SQL Server connection test");
+            }
         }
     }
 }

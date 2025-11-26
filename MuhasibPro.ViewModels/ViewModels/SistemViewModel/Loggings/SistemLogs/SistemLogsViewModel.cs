@@ -2,7 +2,7 @@
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 
-namespace MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs
+namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs
 {
     public class SistemLogsViewModel : ViewModelBase
     {

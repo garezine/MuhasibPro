@@ -11,7 +11,7 @@ using System.Linq.Expressions;
 using System.Windows.Input;
 
 
-namespace MuhasibPro.ViewModels.ViewModels.Firmalar;
+namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 
 public class FirmaListArgs
 {
@@ -79,14 +79,10 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
             NotifyPropertyChanged(nameof(Title));  // ✅ SADECE BAŞARILI DURUMDA
             return true;
         }
-        catch (UserFriendlyException uex)
-        {
-            StatusError(uex);
-            return false;
-        }
+        
         catch (Exception ex)
         {
-            StatusError(GlobalErrorCode.GeneralError, $"{Header} listesi yenilenirken beklenmeyen hata");
+            StatusError($"{Header} listesi yenilenirken beklenmeyen hata");
             LogSistemException($"{Header}", "Yenile", ex);
             return false;
         }
@@ -206,14 +202,9 @@ public class FirmaListViewModel : GenericListViewModel<FirmaModel>
 
                     await RemoveItemsFromUIWithAnimationAsync(SelectedItems);
                 }
-            } catch(UserFriendlyException uex)
+            }  catch(Exception ex)
             {
-                StatusError(uex);
-                StopProgress();
-                count = 0;
-            } catch(Exception ex)
-            {
-                StatusError(GlobalErrorCode.GeneralError, $"{Header} silinirken beklenmeyen hata");
+                StatusError($"{Header} silinirken beklenmeyen hata");
                 LogSistemException($"{Header}", "Sil", ex);
                 StopProgress();
                 count = 0;

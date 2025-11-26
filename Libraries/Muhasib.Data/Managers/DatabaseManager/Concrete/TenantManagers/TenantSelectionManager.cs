@@ -13,17 +13,17 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
     public class TenantSelectionManager : ITenantSelectionManager
     {
         private readonly ITenantConnectionManager _connectionManager;
-        private readonly IMaliDonemDbRepository _maliDonemDbRepo;
+        private readonly IMaliDonemRepository _maliDonemRepo;
         private TenantContext _currentTenant;
 
         public bool IsTenantLoaded => _currentTenant?.IsLoaded ?? false;
 
         public TenantSelectionManager(
             ITenantConnectionManager connectionManager,
-            IMaliDonemDbRepository maliDonemDbRepo)
+            IMaliDonemRepository maliDonemRepo)
         {
             _connectionManager = connectionManager;
-            _maliDonemDbRepo = maliDonemDbRepo;
+            _maliDonemRepo = maliDonemRepo;
             _currentTenant = TenantContext.Empty;
         }
 
@@ -35,7 +35,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                 throw new Exception($"Tenant connection failed: {testResult}");
 
             // 2. Database bilgilerini al
-            var maliDonemDb = await _maliDonemDbRepo.GetByIdAsync(maliDonemId);
+            var maliDonemDb = await _maliDonemRepo.GetByMaliDonemIdAsync(maliDonemId);
             var connectionString = await _connectionManager.GetConnectionStringAsync(maliDonemId);
 
             // 3. Context oluştur - DÜZELTİLDİ

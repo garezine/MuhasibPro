@@ -2,7 +2,7 @@
 {
     public interface ISqlConnectionStringFactory
     {
-        string CreateForDatabase(string databaseName);
-        string CreateForMaster();
+        string CreateForDatabase(string databaseName);       
+        string GetMasterConnectionString();
     }
 }

@@ -13,12 +13,6 @@ namespace Muhasib.Data.DataContext
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<MaliDonem>()
-                .HasOne(md => md.MaliDonemDb)
-                .WithOne(mddb => mddb.MaliDonem)
-                .HasForeignKey<MaliDonemDb>(mddb => mddb.MaliDonemId)
-                .OnDelete(DeleteBehavior.Cascade); // MaliDonem silinirse DB de silinsin
-
             SeedUser(modelBuilder);
             SeedInitialVersion(modelBuilder);
             modelBuilder.Entity<Kullanici>(
@@ -29,6 +23,15 @@ namespace Muhasib.Data.DataContext
                         .HasForeignKey(h => h.KullaniciId)
                         .OnDelete(DeleteBehavior.NoAction);
                 });
+            modelBuilder.Entity<MaliDonem>(entity =>
+            {
+                entity.HasOne(m => m.Firma)
+                      .WithMany(f => f.MaliDonemler) //eğer Firma'da collection varsa
+                      .HasForeignKey(m => m.FirmaId)
+                      .OnDelete(DeleteBehavior.Restrict); // Veya Cascade, SetNull
+
+                // Diğer konfigürasyonlar...
+            });
         }
         private void SeedUser(ModelBuilder modelBuilder)
         {
@@ -80,6 +83,6 @@ namespace Muhasib.Data.DataContext
         public DbSet<KullaniciRol> KullaniciRoller { get; set; }
         public DbSet<Firma> Firmalar { get; set; }
         public DbSet<MaliDonem> MaliDonemler { get; set; }
-        public DbSet<MaliDonemDb> MaliDonemDbler { get; set; }
+        
     }
 }

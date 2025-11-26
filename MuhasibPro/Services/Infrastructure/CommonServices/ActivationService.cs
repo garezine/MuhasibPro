@@ -1,7 +1,7 @@
 ﻿using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 using MuhasibPro.Views.Splash;
 
 

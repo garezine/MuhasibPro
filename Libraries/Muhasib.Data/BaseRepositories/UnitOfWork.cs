@@ -14,43 +14,45 @@ namespace Muhasib.Data.BaseRepositories
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        /// <summary>
-        /// Context'e erişim sağlar (gerektiğinde)
-        /// </summary>
         public TContext Context => _context;
 
-        /// <summary>
-        /// Transaction başlatır
-        /// Aynı anda sadece bir transaction olabilir
-        /// </summary>
-        /// <returns>ITransaction - using bloğu ile kullanılmalı</returns>
         public async Task<ITransaction> BeginTransactionAsync()
         {
             if (_currentTransaction != null)
-                throw new InvalidOperationException("Zaten aktif bir transaction mevcut");
+            {
+                // Mevcut transaction varsa onu dönebilir veya hata fırlatabilirsiniz.
+                // Genelde nested transaction EF Core'da desteklenmez (Savepoint hariç),
+                // bu yüzden hata fırlatmak daha güvenlidir.
+                throw new InvalidOperationException("Zaten aktif bir transaction mevcut.");
+            }
 
-            _currentTransaction = await _context.Database.BeginTransactionAsync().ConfigureAwait(false);
-            return new EfTransaction(_currentTransaction);
+            _currentTransaction = await _context.Database.BeginTransactionAsync();
+
+            // EfTransaction wrapper'ına (kendi yazdığınız sınıf) context ve transaction'ı veriyoruz.
+            // Önemli: Transaction bittiğinde _currentTransaction null yapılmalı.
+            return new EfTransaction(_currentTransaction, () => _currentTransaction = null);
         }
 
         /// <summary>
-        /// Tüm değişiklikleri database'e kaydeder (SaveChanges)
-        /// Transaction içindeyse sadece SaveChanges yapar
-        /// Transaction commit'i ayrıca yapılmalıdır
+        /// Değişiklikleri veritabanına yazar.
+        /// İsimlendirme SaveChangesAsync olarak değiştirildi çünkü yaptığı iş bu.
         /// </summary>
-        /// <returns>Etkilenen kayıt sayısı</returns>
-        public async Task<int> CommitAsync()
+        public async Task<int> SaveChangesAsync()
         {
             try
             {
-                return await _context.SaveChangesAsync().ConfigureAwait(false);
+                return await _context.SaveChangesAsync();
             }
             catch
             {
-                // Hata durumunda transaction varsa rollback
+                // Hata durumunda transaction bütünlüğünü korumak için rollback yapılabilir
+                // Ancak bu kararı çağıran katmana (service layer) bırakmak bazen daha iyidir.
+                // Eğer burada rollback yapacaksanız:
                 if (_currentTransaction != null)
                 {
-                    await _currentTransaction.RollbackAsync().ConfigureAwait(false);
+                    await _currentTransaction.RollbackAsync();
+                    await _currentTransaction.DisposeAsync();
+                    _currentTransaction = null;
                 }
                 throw;
             }
@@ -58,9 +60,12 @@ namespace Muhasib.Data.BaseRepositories
 
         public void Dispose()
         {
+            // Sadece transaction'ı dispose ediyoruz. 
+            // Context DI container tarafından dispose edilecektir.
             _currentTransaction?.Dispose();
-            _context.Dispose();
+            _currentTransaction = null;
+
+            // GC.SuppressFinalize(this); // Eğer finalizer yoksa buna gerek yok ama eklenebilir.
         }
     }
 }
-

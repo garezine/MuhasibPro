@@ -1,7 +1,4 @@
-﻿using Muhasib.Data.Managers.DatabaseManager.Contracts.Infrastructure;
-using MuhasibPro.ViewModels.ViewModels.Dashboard;
-
-// To learn more about WinUI, the WinUI project structure,
+﻿// To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace MuhasibPro.Views.Dashboard
@@ -15,6 +12,6 @@ namespace MuhasibPro.Views.Dashboard
         {
             InitializeComponent();            
         }
-        
+       
     }
 }

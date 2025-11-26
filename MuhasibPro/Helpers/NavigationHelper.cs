@@ -63,9 +63,9 @@ namespace MuhasibPro.Helpers
 
                 int viewId = (int)DetailsWindow.AppWindow.Id.Value;
                 DetailsWindow.Title = customTitle;
+                CustomWindowHelper.PositionRelativeToParent(DetailsWindow, App.MainWindow);
                 CustomWindowHelper.RegisterWindow(DetailsWindow, viewId, viewModelType);
                 await SetupWindowContentAsync(DetailsWindow, viewModelType, parameter);
-                CustomWindowHelper.PositionRelativeToParent(DetailsWindow, App.MainWindow);
                 _themeSelectorService.ApplyThemeToWindow(DetailsWindow);
                 _themeSelectorService.SubscribeToThemeChanges(DetailsWindow);
                 return viewId;

@@ -37,7 +37,7 @@ namespace Muhasib.Business.HostBuilders
                 services.AddSingleton<IAuthenticator, Authenticator>();
                 services.AddSingleton<IFirmaRepository, FirmaRepository>();
                 services.AddSingleton<IMaliDonemRepository, MaliDonemRepository>();
-                services.AddSingleton<IMaliDonemDbRepository, MaliDonemDbRepository>();
+                
 
 
             });

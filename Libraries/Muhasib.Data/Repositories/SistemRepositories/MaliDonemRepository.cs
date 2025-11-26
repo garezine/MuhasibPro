@@ -5,7 +5,6 @@ using Muhasib.Data.Contracts.SistemRepositories;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.Utilities.UIDGenerator;
 using Muhasib.Domain.Entities.SistemEntity;
-using System.Linq;
 
 namespace Muhasib.Data.Repositories.SistemRepositories
 {
@@ -20,12 +19,19 @@ namespace Muhasib.Data.Repositories.SistemRepositories
             await base.DeleteRangeAsync(maliDonemler);
         }
 
-        public async Task<MaliDonem> GetByMaliDonemId(long id)
+        public async Task<MaliDonem> GetByMaliDonemIdAsync(long id)
         {
             return await DbSet.Where(r => r.Id == id)
                 .Include(r => r.Firma)
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
+        }
+        public MaliDonem GetByMaliDonemId(long id)
+        {
+            return DbSet.Where(r => r.Id == id)
+                .Include(r => r.Firma)
+                .FirstOrDefault();
+                
         }
 
         public async Task<IList<MaliDonem>> GetMaliDonemKeysAsync(int skip, int take, DataRequest<MaliDonem> request)
@@ -58,6 +64,7 @@ namespace Muhasib.Data.Repositories.SistemRepositories
         public async Task<int> GetMaliDonemlerCountAsync(DataRequest<MaliDonem> request)
         {
             IQueryable<MaliDonem> items = GetQuery(request);
+            items.Include(r => r.Firma);
 
             if (!string.IsNullOrEmpty(request.Query))
             {

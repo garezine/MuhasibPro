@@ -56,16 +56,11 @@ public class GeneralMapping : Profile
         CreateMap<MaliDonem, MaliDonemModel>()
             .IncludeBase<BaseEntity, BaseModel>()
             .ForMember(dest => dest.FirmaModel, opt => opt.MapFrom(src => src.Firma))
-            .ForMember(dest => dest.MaliDonemDbModel, opt => opt.MapFrom(src => src.MaliDonemDb))
+            
             .PreserveReferences()
             .ReverseMap()
             .IncludeBase<BaseModel, BaseEntity>();
 
-        CreateMap<MaliDonemDb, MaliDonemDbModel>()
-            .IncludeBase<BaseEntity, BaseModel>()
-            .ForMember(dest => dest.MaliDonemModel, opt => opt.MapFrom(src => src.MaliDonem))
-            .PreserveReferences()
-            .ReverseMap()
-            .IncludeBase<BaseModel, BaseEntity>();
+        
     }
 }

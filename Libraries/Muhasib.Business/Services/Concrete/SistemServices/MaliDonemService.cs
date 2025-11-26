@@ -1,4 +1,5 @@
-﻿using Muhasib.Business.Infrastructure.Extensions;
+﻿using Azure.Core;
+using Muhasib.Business.Infrastructure.Extensions;
 using Muhasib.Business.Models.SistemModel;
 using Muhasib.Business.Services.Contracts.BaseServices;
 using Muhasib.Business.Services.Contracts.LogServices;
@@ -10,7 +11,7 @@ using Muhasib.Data.DataContext;
 using Muhasib.Data.Utilities.Responses;
 using Muhasib.Domain.Entities.SistemEntity;
 
-namespace Muhasib.Business.Services.Concrete.SitemServices
+namespace Muhasib.Business.Services.Concrete.SistemServices
 {
     public class MaliDonemService : IMaliDonemService
     {
@@ -18,31 +19,34 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
         private readonly ILogService _logService;
         private readonly IUnitOfWork<SistemDbContext> _unitOfWork;
         private readonly IAuthenticationService _authenticationService;
+        private readonly IFirmaService _firmaService;
+
         public MaliDonemService(
             IMaliDonemRepository maliDonemRepository,
             ILogService logService,
             IUnitOfWork<SistemDbContext> unitOfWork,
-            IAuthenticationService authenticationService)
+            IAuthenticationService authenticationService,
+            IFirmaService firmaService)
         {
             _maliDonemRepository = maliDonemRepository;
             _logService = logService;
             _unitOfWork = unitOfWork;
             _authenticationService = authenticationService;
+            _firmaService = firmaService;
         }
 
         public async Task<ApiDataResponse<MaliDonemModel>> GetByMaliDonemIdAsync(long id)
         {
             try
             {
-                var item = await _maliDonemRepository.GetByMaliDonemId(id);
-                if (item == null)
+                var item = await _maliDonemRepository.GetByMaliDonemIdAsync(id);
+                if(item == null)
                     return new ErrorApiDataResponse<MaliDonemModel>(
                         data: null,
                         $"Firmaya ait mali dönem bulunamadı, ID: {id}");
                 var model = await CreateMaliDonemModelAsync(item, includeAllFields: true);
                 return new SuccessApiDataResponse<MaliDonemModel>(model, "Firmaya ait Mali Donem veri işlemi başarılı");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(MaliDonemService), nameof(GetByMaliDonemIdAsync), ex);
@@ -57,15 +61,14 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
         {
             try
             {
-                var items = await _maliDonemRepository.GetMaliDonemlerAsync(skip, take, request);
                 var models = new List<MaliDonemModel>();
-                foreach (var item in items)
+                var items = await _maliDonemRepository.GetMaliDonemlerAsync(skip, take, request);
+                foreach(var item in items)
                 {
                     models.Add(await CreateMaliDonemModelAsync(item, includeAllFields: false));
                 }
                 return new SuccessApiDataResponse<IList<MaliDonemModel>>(models, "Mali Donemler başarıyla listelendi.");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(MaliDonemService), nameof(GetMaliDonemlerAsync), ex);
@@ -75,15 +78,13 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
 
         public async Task<ApiDataResponse<int>> UpdateMaliDonemAsync(MaliDonemModel model)
         {
-            if (model == null)
+            if(model == null)
                 return new ErrorApiDataResponse<int>(data: 0, message: "Model boş olamaz!");
             long id = model.Id;
             try
             {
-                var maliDonem = id > 0
-                    ? await _maliDonemRepository.GetByMaliDonemId(id)
-                    : new MaliDonem();
-                if (maliDonem == null)
+                var maliDonem = id > 0 ? await _maliDonemRepository.GetByMaliDonemIdAsync(id) : new MaliDonem();
+                if(maliDonem == null)
                 {
                     await _logService.SistemLogService
                         .SistemLogError(
@@ -96,23 +97,22 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                 UpdateMaliDonemModel(maliDonem, model);
                 await _maliDonemRepository.UpdateMaliDonemAsync(maliDonem);
 
-                var result = await _unitOfWork.CommitAsync();
+                var result = await _unitOfWork.SaveChangesAsync();
                 // Model'i güncel veriyle doldur
                 await _logService.SistemLogService
-                   .SistemLogInformation(
-                       nameof(MaliDonemService),
-                       nameof(UpdateMaliDonemAsync),
-                       $"Mali Dömem başarıyla güncellendi. Firma ID: {id}",
-                       $"Etkilenen kayıt: {result}");
+                    .SistemLogInformation(
+                        nameof(MaliDonemService),
+                        nameof(UpdateMaliDonemAsync),
+                        $"Mali Dömem başarıyla güncellendi. Firma ID: {id}",
+                        $"Etkilenen kayıt: {result}");
 
                 var updateMaliDonemModel = await GetByMaliDonemIdAsync(maliDonem.Id);
-                if (updateMaliDonemModel.Success)
+                if(updateMaliDonemModel.Success)
                 {
                     model.Merge(updateMaliDonemModel.Data);
                 }
                 return new SuccessApiDataResponse<int>(data: result, message: "Mali Dönem başarıyla kaydedildi");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(MaliDonemService), nameof(UpdateMaliDonemAsync), ex);
@@ -122,31 +122,63 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
 
         public async Task<ApiDataResponse<int>> DeleteMaliDonemAsync(MaliDonemModel model)
         {
-            if (model == null)
+            if(model == null)
             {
                 return new ErrorApiDataResponse<int>(data: 0, message: "Model boş olamaz");
             }
             try
             {
-                var maliDonem = await _maliDonemRepository.GetByMaliDonemId(model.Id);
-                if (maliDonem == null)
+                var maliDonem = await _maliDonemRepository.GetByMaliDonemIdAsync(model.Id);
+                if(maliDonem == null)
                 {
                     return new ErrorApiDataResponse<int>(data: 0, message: "Mali Dönem bulunamadı");
                 }
                 await _maliDonemRepository.DeleteAsync(maliDonem);
-                var result = await _unitOfWork.CommitAsync();
+                var result = await _unitOfWork.SaveChangesAsync();
                 await _logService.SistemLogService
                     .SistemLogInformation(
                         nameof(MaliDonemService),
                         nameof(DeleteMaliDonemAsync),
-                        $"Firma başarıyla silindi. Firma ID: {model.Id}",
+                        $"Mali dönem başarıyla silindi. Firma ID: {model.Id}",
                         $"Etkilenen kayıt: {result}");
                 return new SuccessApiDataResponse<int>(result, "Mali Dönem başarıyla silindi");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(MaliDonemService), nameof(DeleteMaliDonemAsync), ex);
+                return new ErrorApiDataResponse<int>(data: 0, message: $"Silme hatası: {ex.Message}");
+            }
+        }
+        
+
+        public async Task<ApiDataResponse<int>> DeleteMaliDonemRangeAsync(
+            int index,
+            int length,
+            DataRequest<MaliDonem> request)
+        {
+            try
+            {
+                var items = await _maliDonemRepository.GetMaliDonemKeysAsync(index, length, request);
+                if(items == null || !items.Any())
+                {
+                    return new ErrorApiDataResponse<int>(0, "Silinecek mali dönem bulunamadı");
+                }
+
+                await _maliDonemRepository.DeleteRangeAsync(items.ToArray());
+                var result = await _unitOfWork.SaveChangesAsync();
+
+                await _logService.SistemLogService
+                    .SistemLogInformation(
+                        nameof(MaliDonemService),
+                        nameof(DeleteMaliDonemRangeAsync),
+                        $"{items.Count} adet mali dönem başarıyla silindi. Index: {index}, Length: {length}",
+                        $"Etkilenen kayıt: {result}");
+
+                return new SuccessApiDataResponse<int>(result, $"{items.Count} adet firma başarıyla silindi");
+            } catch(Exception ex)
+            {
+                await _logService.SistemLogService
+                    .SistemLogException(nameof(MaliDonemService), nameof(DeleteMaliDonemRangeAsync), ex);
                 return new ErrorApiDataResponse<int>(data: 0, message: $"Silme hatası: {ex.Message}");
             }
         }
@@ -156,8 +188,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             try
             {
                 return await _maliDonemRepository.GetMaliDonemlerCountAsync(request);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(MaliDonemService), nameof(GetMaliDonemlerCountAsync), ex);
@@ -165,17 +196,17 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             }
         }
 
-        public async Task<bool> IsMaliDonem(long firmaId)
+        public async Task<bool> IsMaliDonem(long firmaId, int maliYil)
         {
-            var donem = await _maliDonemRepository.FindAsync(a => a.FirmaId == firmaId);
-            if (donem != null)
+            var donem = await _maliDonemRepository.FindAsync(a => a.FirmaId == firmaId && a.MaliYil == maliYil);
+            if(donem != null)
                 return true;
             return false;
         }
 
         public static async Task<MaliDonemModel> CreateMaliDonemModelAsync(MaliDonem source, bool includeAllFields)
         {
-            if (source == null)
+            if(source == null)
                 throw new ArgumentNullException("source");
             try
             {
@@ -184,19 +215,24 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                     Id = source.Id,
                     FirmaId = source.FirmaId,
                     MaliYil = source.MaliYil,
-                    DbOlusturulduMu = source.DbOlusturulduMu,
+                    
+                    DatabaseType = source.DatabaseType,
+                    DBName = source.DBName,
+                    DBPath = source.DBPath,
+                    Directory = source.Directory,
+
                     //Base Entity
                     AktifMi = source.AktifMi,
                     KaydedenId = source.KaydedenId,
                     KayitTarihi = source.KayitTarihi,
                 };
-                if (source.Firma != null)
-                {
-                    model.FirmaModel = await FirmaService.CreateFirmaModelAsync(source.Firma, includeAllFields);
-                }
-                return model;
-            }
-            catch (Exception ex)
+                //if(source.Firma != null)
+                //{
+
+                //    model.FirmaModel = await FirmaService.CreateFirmaModelAsync(source.Firma, includeAllFields);
+                //}
+                return await Task.FromResult(model);
+            } catch(Exception ex)
             {
                 throw new Exception("MaliDonemModel oluşturulurken hata oluştu", ex);
             }
@@ -204,16 +240,49 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
 
         private void UpdateMaliDonemModel(MaliDonem target, MaliDonemModel source)
         {
-            if (target == null)
+            if(target == null)
                 throw new ArgumentNullException(nameof(target));
-            if (source == null)
+            if(source == null)
                 throw new ArgumentNullException(nameof(source));
             target.MaliYil = source.MaliYil;
-            target.DbOlusturulduMu = source.DbOlusturulduMu;
+            target.FirmaId = source.FirmaId;
+            target.DatabaseType = source.DatabaseType;
+            target.DBName = source.DBName;
+            target.DBPath = source.DBPath;
+            target.Directory = source.Directory;            
+            
             //Base fields
             target.AktifMi = source.AktifMi;
             target.GuncellemeTarihi = source.GuncellemeTarihi;
             target.GuncelleyenId = source.GuncelleyenId;
+        }
+
+        public async Task<ApiDataResponse<MaliDonemModel>> CreateNewMaliDonemAsync(long firmaId)
+        {
+            var model = new MaliDonemModel { FirmaId = firmaId, MaliYil = DateTime.Now.Year };
+            if(firmaId > 0)
+            {
+                var parent = await _firmaService.GetByFirmaIdAsync(firmaId);
+                if(parent == null)
+                {
+                    await _logService.SistemLogService
+                        .SistemLogError(
+                            nameof(MaliDonemService),
+                            nameof(CreateNewMaliDonemAsync),
+                            $"Mali Dönem bulunamadı. Model ID: {model.FirmaId}");
+                    return new ErrorApiDataResponse<MaliDonemModel>(data: null, message: "Mali Dönem bulunamadı");
+                } else if(parent != null)
+                {
+                    model.FirmaId = firmaId;
+                    model.FirmaModel = parent.Data;
+                }
+            }
+            return new SuccessApiDataResponse<MaliDonemModel>(data: model, message: "Firma Mali Dönem'e entegre edildi");
+        }
+
+        public async Task<ApiDataResponse<IList<MaliDonemModel>>> GetMaliDonemlerAsync(DataRequest<MaliDonem> request)
+        {
+            return await GetMaliDonemlerAsync(0, 100, request);
         }
     }
 }

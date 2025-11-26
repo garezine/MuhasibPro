@@ -169,9 +169,9 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
 
                 IsEnabled = true;
             },
-            startMessage: $"{Title} kaydediliyor",
+            startMessage: $"Kaydediliyor",
             startMessageType: StatusMessageType.Saving, // 💾
-            successMessage: $"{Title} kaydedildi"       // ✅
+            successMessage: $"Kaydedildi"       // ✅
         );
     }
     public ICommand DeleteCommand => new RelayCommand(OnDelete);

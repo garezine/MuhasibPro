@@ -4,7 +4,7 @@ using Muhasib.Domain.Exceptions;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 
-namespace MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs
+namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs
 {
     #region SistemLogDetailsArgs
     public class SistemLogDetailsArgs
@@ -36,13 +36,10 @@ namespace MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs
                 var item = await LogService.SistemLogService.GetSistemLogAsync(ViewModelArgs.AppLogID);
                 Item = item ?? new SistemLogModel { Id = 0, IsEmpty = true };
             }
-            catch (UserFriendlyException uex)
-            {
-                StatusError(uex); // ✅ "Hata: 0x08002 - Veritabanı bağlantı hatası"
-            }
+            
             catch (Exception ex)
             {
-                StatusError(GlobalErrorCode.GeneralError, $"{Header} bilgileri yüklenirken beklenmeyen hata");
+                StatusError($"{Header} bilgileri yüklenirken beklenmeyen hata");
                 LogSistemException($"{Header}", $"{Header} Detay", ex);
             }
         }
@@ -81,14 +78,10 @@ namespace MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs
                 await LogService.SistemLogService.DeleteSistemLogAsync(model);                
                 return true;
             }
-            catch (UserFriendlyException uex)
-            {
-                StatusError(uex);
-                return false;
-            }
+            
             catch (Exception ex)
             {
-                StatusError(GlobalErrorCode.GeneralError, $"{Header} silinirken beklenmeyen hata");
+                StatusError($"{Header} silinirken beklenmeyen hata");
                 LogSistemException($"{Header}", "Sil", ex);
                 return false;
             }

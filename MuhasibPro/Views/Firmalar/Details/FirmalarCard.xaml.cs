@@ -1,5 +1,5 @@
 ﻿using Muhasib.Business.Models.SistemModel;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.

@@ -4,7 +4,7 @@
 
 
 
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 
 namespace MuhasibPro.Views.Firmalar.List
 {

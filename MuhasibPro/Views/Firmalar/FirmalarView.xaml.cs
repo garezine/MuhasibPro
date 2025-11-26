@@ -1,7 +1,8 @@
 ﻿using Microsoft.UI.Xaml.Navigation;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -44,7 +45,7 @@ namespace MuhasibPro.Views.Firmalar
             }
             else
             {
-
+                await _navigationService.CreateNewViewAsync<MaliDonemViewModel>(ViewModel.FirmaMaliDonemler.CreateArgs());
             }
         }
         public int GetRowSpan(bool isMultipleSelection)

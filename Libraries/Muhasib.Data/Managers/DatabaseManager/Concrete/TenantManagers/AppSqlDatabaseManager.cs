@@ -16,7 +16,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
         private readonly ISqlConnectionStringFactory _connectionFactory;
         private readonly string _backupBasePath;
 
-        public AppSqlDatabaseManager(ILogger<AppSqlDatabaseManager> logger, IApplicationPaths applicationPaths, ISqlConnectionStringFactory connectionFactory)
+        public AppSqlDatabaseManager(
+            ILogger<AppSqlDatabaseManager> logger,
+            IApplicationPaths applicationPaths,
+            ISqlConnectionStringFactory connectionFactory)
         {
             _logger = logger;
             _applicationPaths = applicationPaths;
@@ -31,16 +34,14 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
             {
                 using var context = CreateAppDbContext(databaseName);
 
-                _logger.LogInformation(
-                    "Initializing accounting database: {FirmaKodu}_{MaliYil}",
-                    databaseName);
+                _logger.LogInformation("Initializing accounting database: {databaseName}", databaseName);
 
                 var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
 
-                if (pendingMigrations.Any())
+                if(pendingMigrations.Any())
                 {
                     _logger.LogInformation(
-                        "Found {Count} pending migrations for {FirmaKodu}_{MaliYil}",
+                        "Found {Count} pending migrations for {databaseName}",
                         pendingMigrations.Count(),
                         databaseName);
 
@@ -56,8 +57,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                         var migrationVersion = GetLatestMigrationVersion(
                             await context.Database.GetAppliedMigrationsAsync());
                         await UpdateMuhasebeVersionAsync(databaseName, migrationVersion);
-                    }
-                    catch (Exception ex)
+                    } catch(Exception ex)
                     {
                         _logger.LogError(ex, "Migration failed for {databaseName}", databaseName);
                         throw;
@@ -68,13 +68,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                 _logger.LogInformation("Accounting database initialization completed: {Success}", canConnect);
 
                 return canConnect;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Accounting database initialization failed for {FirmaKodu}_{MaliYil}",
-                    databaseName);
+                // ✅ DOĞRU - 1 placeholder, 1 parametre
+                _logger.LogError(ex, "Accounting database initialization failed for {databaseName}", databaseName);
                 return false;
             }
         }
@@ -83,7 +80,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
         {
             try
             {
-                var masterConnectionString = GetMasterConnectionString();
+                var masterConnectionString = _connectionFactory.GetMasterConnectionString();
 
                 _logger.LogInformation("Creating new accounting database: {DatabaseName}", databaseName);
 
@@ -101,13 +98,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 
                 // Yeni oluşturulan database'i initialize et
                 return await InitializeDatabaseAsync(databaseName);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Failed to create accounting database for {FirmaKodu}_{MaliYil}",
-                    databaseName);
+                _logger.LogError(ex, $"Failed to create accounting database for {databaseName}");
                 return false;
             }
         }
@@ -133,13 +126,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 
                 _logger.LogInformation("Manual accounting backup created: {BackupPath}", backupPath);
                 return File.Exists(backupPath);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Manual accounting backup failed for {FirmaKodu}_{MaliYil}",
-                    databaseName);
+                _logger.LogError(ex, "Manual accounting backup failed for {FirmaKodu}_{MaliYil}", databaseName);
                 return false;
             }
         }
@@ -165,8 +154,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                     BackupFilesCount = backupFiles,
                     LastBackupDate = GetLastBackupDate(databaseName)
                 };
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 return new DatabaseHealthInfo { HasError = true, ErrorMessage = ex.Message };
             }
@@ -178,7 +166,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
             {
                 var backupDir = Path.Combine(_backupBasePath, $"{databaseName}");
 
-                if (!Directory.Exists(backupDir))
+                if(!Directory.Exists(backupDir))
                     return Task.FromResult(new List<BackupFileInfo>());
 
                 var result = Directory.GetFiles(backupDir, "*.bak")
@@ -196,8 +184,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                         })
                     .ToList();
                 return Task.FromResult(result);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Failed to get backup history for {databaseName}", databaseName);
                 return Task.FromResult(new List<BackupFileInfo>());
@@ -206,7 +193,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 
         private AppDbContext CreateAppDbContext(string databaseName)
         {
-            var connectionString = _connectionFactory.CreateForDatabase(databaseName);
+            var connectionString = _connectionFactory.GetMasterConnectionString();
 
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
@@ -215,12 +202,12 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
             return new AppDbContext(options);
         }
 
-        private string GetMasterConnectionString()
-        { return "Data Source=localhost;Integrated Security=true;TrustServerCertificate=true;Initial Catalog=master;"; }
+        
+
+        
 
         private async Task CreateSafetyBackupAsync(string databaseName)
         {
-
             var backupDir = Path.Combine(_backupBasePath, $"{databaseName}");
             Directory.CreateDirectory(backupDir);
 
@@ -238,8 +225,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 
                 await context.Database.ExecuteSqlRawAsync(sql);
                 _logger.LogInformation("Safety backup created: {BackupPath}", backupPath);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogWarning(ex, "Safety backup failed: {BackupPath}", backupPath);
             }
@@ -251,7 +237,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
             {
                 var backupDir = Path.Combine(_backupBasePath, $"{databaseName}");
 
-                if (!Directory.Exists(backupDir))
+                if(!Directory.Exists(backupDir))
                     return null;
 
                 var lastBackup = Directory.GetFiles(backupDir, "*.bak")
@@ -260,8 +246,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                     .FirstOrDefault();
 
                 return lastBackup?.CreationTime;
-            }
-            catch
+            } catch
             {
                 return null;
             }
@@ -271,7 +256,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
         {
             try
             {
-                var masterConnectionString = GetMasterConnectionString();
+                var masterConnectionString = _connectionFactory.GetMasterConnectionString();
 
                 _logger.LogInformation("Deleting accounting database: {DatabaseName}", databaseName);
 
@@ -300,13 +285,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 
                 _logger.LogInformation("Accounting database deleted successfully: {DatabaseName}", databaseName);
                 return true;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Failed to delete accounting database for {FirmaKodu}_{MaliYil}",
-                    databaseName);
+                _logger.LogError(ex, "Failed to delete accounting database for {FirmaKodu}_{MaliYil}", databaseName);
                 return false;
             }
         }
@@ -317,7 +298,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
             int counter = 0;
             decimal number = bytes;
 
-            while (Math.Round(number / 1024) >= 1)
+            while(Math.Round(number / 1024) >= 1)
             {
                 number /= 1024;
                 counter++;
@@ -336,13 +317,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                     .OrderByDescending(v => v.MuhasebeDBSonGuncellemeTarihi)
                     .AsNoTracking()
                     .FirstOrDefaultAsync();
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Failed to get muhasebe version for {FirmaKodu}_{MaliYil}",
-                    databaseName);
+                _logger.LogError(ex, "Failed to get muhasebe version for {FirmaKodu}_{MaliYil}", databaseName);
                 return null;
             }
         }
@@ -357,7 +334,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                     .Where(v => v.DatabaseName == databaseName)
                     .FirstOrDefaultAsync();
 
-                if (currentVersion == null)
+                if(currentVersion == null)
                 {
                     // İlk kurulum
                     var initialVersion = new MuhasebeVersiyon
@@ -368,8 +345,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                         OncekiMuhasebeDbVersiyon = null
                     };
                     context.MuhasebeVersiyonlar.Add(initialVersion);
-                }
-                else
+                } else
                 {
                     // Güncelleme
                     currentVersion.OncekiMuhasebeDbVersiyon = currentVersion.MuhasebeDBVersiyon;
@@ -383,13 +359,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                     newVersion,
                     databaseName);
                 return true;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Failed to update muhasebe version for {FirmaKodu}_{MaliYil}",
-                    databaseName);
+                _logger.LogError(ex, "Failed to update muhasebe version for {FirmaKodu}_{MaliYil}", databaseName);
                 return false;
             }
         }
@@ -397,7 +369,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
         private string GetLatestMigrationVersion(IEnumerable<string> appliedMigrations)
         {
             var latest = appliedMigrations.LastOrDefault();
-            if (latest != null && latest.Length > 8) // Migration timestamp kısmını al
+            if(latest != null && latest.Length > 8) // Migration timestamp kısmını al
             {
                 return latest.Substring(0, 14); // YYYYMMDDHHMMSS formatı
             }
@@ -408,7 +380,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
         {
             // Master/Sistem veritabanı bağlantı dizesini al.
             // RESTORE komutu Master DB üzerinden çalıştırılmalıdır.            
-            var masterConnectionString = _connectionFactory.CreateForMaster();
+            var masterConnectionString = _connectionFactory.GetMasterConnectionString();
 
             try
             {
@@ -429,27 +401,30 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                     ALTER DATABASE [{databaseName}] SET MULTI_USER;
                 ";
 
-                using (var connection = new SqlConnection(masterConnectionString))
+                using(var connection = new SqlConnection(masterConnectionString))
                 {
                     await connection.OpenAsync();
 
                     // Bağlantıları Kesme
-                    using (var command = new SqlCommand(disconnectSql, connection))
+                    using(var command = new SqlCommand(disconnectSql, connection))
                     {
                         await command.ExecuteNonQueryAsync();
                         _logger.LogInformation("Database {Name} set to SINGLE_USER.", databaseName);
                     }
 
                     // Geri Yükleme
-                    using (var command = new SqlCommand(restoreSql, connection))
+                    using(var command = new SqlCommand(restoreSql, connection))
                     {
                         command.CommandTimeout = 300; // Uzun sürebilir, timeout artırıldı
                         await command.ExecuteNonQueryAsync();
-                        _logger.LogInformation("Database {Name} restored successfully from {Path}.", databaseName, backupFilePath);
+                        _logger.LogInformation(
+                            "Database {Name} restored successfully from {Path}.",
+                            databaseName,
+                            backupFilePath);
                     }
 
                     // MULTI_USER moduna geri alma
-                    using (var command = new SqlCommand(multiUserSql, connection))
+                    using(var command = new SqlCommand(multiUserSql, connection))
                     {
                         await command.ExecuteNonQueryAsync();
                         _logger.LogInformation("Database {Name} set to MULTI_USER.", databaseName);
@@ -457,32 +432,34 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
                 }
 
                 return true;
-            }
-            catch (SqlException ex)
+            } catch(SqlException ex)
             {
                 _logger.LogError(ex, "SQL Server Restore failed for database {Name}.", databaseName);
 
                 // Hata oluşsa bile MULTI_USER moduna geri almaya çalış.
                 try
                 {
-                    var connectionString = GetMasterConnectionString();
-                    using (var connection = new SqlConnection(connectionString))
+                    var connectionString = _connectionFactory.GetMasterConnectionString();
+                    using(var connection = new SqlConnection(connectionString))
                     {
                         await connection.OpenAsync();
-                        using (var command = new SqlCommand($"ALTER DATABASE [{databaseName}] SET MULTI_USER;", connection))
+                        using(var command = new SqlCommand(
+                            $"ALTER DATABASE [{databaseName}] SET MULTI_USER;",
+                            connection))
                         {
                             await command.ExecuteNonQueryAsync();
                         }
                     }
-                }
-                catch (Exception cleanupEx)
+                } catch(Exception cleanupEx)
                 {
-                    _logger.LogError(cleanupEx, "Failed to reset database {Name} to MULTI_USER after restore error.", databaseName);
+                    _logger.LogError(
+                        cleanupEx,
+                        "Failed to reset database {Name} to MULTI_USER after restore error.",
+                        databaseName);
                 }
 
                 return false;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Restore operation failed for database {Name}.", databaseName);
                 return false;

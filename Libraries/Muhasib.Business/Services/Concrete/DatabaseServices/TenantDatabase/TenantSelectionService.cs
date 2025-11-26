@@ -3,39 +3,40 @@ using Muhasib.Business.Infrastructure.Extensions;
 using Muhasib.Business.Models.TenantModel;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.LogServices;
-using Muhasib.Data.Contracts.SistemRepositories;
+using Muhasib.Business.Services.Contracts.SistemServices;
+using Muhasib.Data.Common;
 using Muhasib.Data.Utilities.Responses;
+using Muhasib.Domain.Entities.SistemEntity;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 {
     public class TenantSelectionService : ITenantSelectionService
     {
-        private readonly IMaliDonemRepository _maliDonemRepo;
-        private readonly IMaliDonemDbRepository _maliDonemDbRepo;
-        private readonly IFirmaRepository _firmaRepo;
+        private readonly IMaliDonemService _maliDonemService;        
+        private readonly IFirmaService _firmaService;
         private readonly ILogService _logService;
         private readonly ILogger<TenantSelectionService> _logger;
 
         public TenantSelectionService(
-            IMaliDonemRepository maliDonemRepo,
-            IMaliDonemDbRepository maliDonemDbRepo,
-            IFirmaRepository firmaRepo,
+            IMaliDonemService maliDonemService,        
+            IFirmaService firmaService,
             ILogService logService,
             ILogger<TenantSelectionService> logger)
         {
-            _maliDonemRepo = maliDonemRepo;
-            _maliDonemDbRepo = maliDonemDbRepo;
-            _firmaRepo = firmaRepo;
+            _maliDonemService = maliDonemService;            
+            _firmaService = firmaService;
             _logService = logService;
             _logger = logger;
         }
 
-        public async Task<ApiDataResponse<List<TenantSelectionModel>>> GetTenantsForSelectionAsync(long? firmaId = null)
+       
+        public async Task<ApiDataResponse<List<TenantSelectionModel>>> GetTenantsForSelectionAsync(long? firmaId = null, DataRequest<MaliDonem> request = null)
         {
             try
             {
-                var query = await _maliDonemRepo.GetAllAsync();
 
+                var allMaliDonem = await _maliDonemService.GetMaliDonemlerAsync(request);
+                var query = allMaliDonem.Data.ToList();
                 // Firma filtresi
                 if (firmaId.HasValue)
                 {
@@ -46,18 +47,14 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 
                 foreach (var maliDonem in query)
                 {
-                    var firma = await _firmaRepo.GetByFirmaId(maliDonem.FirmaId);
-                    var maliDonemDb = await _maliDonemDbRepo.GetByMaliDonemDbIdAsync(maliDonem.Id);
-
                     models.Add(new TenantSelectionModel
                     {
                         MaliDonemId = maliDonem.Id,
                         FirmaId = maliDonem.FirmaId,
-                        FirmaKodu = firma?.FirmaKodu ?? string.Empty,
-                        FirmaKisaUnvani = firma?.KisaUnvani ?? string.Empty,
+                        FirmaKodu = maliDonem.FirmaModel?.FirmaKodu ?? string.Empty,
+                        FirmaKisaUnvani = maliDonem.FirmaModel?.KisaUnvani ?? string.Empty,
                         MaliYil = maliDonem.MaliYil,
-                        DatabaseName = maliDonemDb?.DBName ?? string.Empty,
-                        DbOlusturulduMu = maliDonem.DbOlusturulduMu,
+                        DatabaseName = maliDonem?.DBName ?? string.Empty,                       
                         AktifMi = maliDonem.AktifMi
                     });
                 }
@@ -117,27 +114,23 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         {
             try
             {
-                var maliDonem = await _maliDonemRepo.GetByMaliDonemId(maliDonemId);
+                var maliDonem = await _maliDonemService.GetByMaliDonemIdAsync(maliDonemId);
                 if (maliDonem == null)
                 {
                     return new ErrorApiDataResponse<TenantDetailsModel>(
                         null,
                         "Mali dönem bulunamadı");
                 }
-
-                var firma = await _firmaRepo.GetByFirmaId(maliDonem.FirmaId);
-                var maliDonemDb = await _maliDonemDbRepo.GetByMaliDonemDbIdAsync(maliDonemId);
-
                 var details = new TenantDetailsModel
                 {
-                    MaliDonemId = maliDonem.Id,
-                    FirmaId = maliDonem.FirmaId,
-                    FirmaKodu = firma?.FirmaKodu ?? string.Empty,
-                    FirmaUnvani = firma?.TamUnvani ?? firma?.KisaUnvani ?? string.Empty,
-                    MaliYil = maliDonem.MaliYil,
-                    DatabaseName = maliDonemDb?.DBName ?? string.Empty,
-                    DatabasePath = maliDonemDb?.DBPath ?? string.Empty,
-                    DbOlusturulduMu = maliDonem.DbOlusturulduMu
+                    MaliDonemId = maliDonem.Data.Id,
+                    FirmaId = maliDonem.Data.FirmaId,
+                    FirmaKodu = maliDonem.Data.FirmaModel?.FirmaKodu ?? string.Empty,
+                    FirmaUnvani = maliDonem.Data.FirmaModel?.TamUnvani ?? maliDonem.Data.FirmaModel?.KisaUnvani ?? string.Empty,
+                    MaliYil = maliDonem.Data.MaliYil,
+                    DatabaseName = maliDonem.Data?.DBName ?? string.Empty,
+                    DatabasePath = maliDonem.Data?.DBPath ?? string.Empty,
+                    
                 };
 
                 return new SuccessApiDataResponse<TenantDetailsModel>(
@@ -151,17 +144,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             }
         }
 
-        public async Task<ApiDataResponse<List<TenantSelectionModel>>> GetMaliDonemlerByFirmaAsync(long firmaId)
-        {
-            try
-            {
-                return await GetTenantsForSelectionAsync(firmaId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Get mali donemler by firma failed for FirmaId: {FirmaId}", firmaId);
-                return new ErrorApiDataResponse<List<TenantSelectionModel>>(null, ex.Message);
-            }
-        }
+       
     }
 }

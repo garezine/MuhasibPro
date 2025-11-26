@@ -8,5 +8,6 @@ namespace Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase
         Task<ApiDataResponse<TenantCreationResult>> CreateNewTenantAsync(TenantCreationRequest request);
         Task<ApiDataResponse<bool>> DeleteTenantCompleteAsync(long maliDonemId);
         Task<ApiDataResponse<bool>> PrepareTenantForFirstUseAsync(long maliDonemId);
+        ITenantDatabaseLifecycleService _lifecycleService { get; }
     }
 }

@@ -1,8 +1,8 @@
 ﻿using Muhasib.Data.Helper;
 using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs;
 using MuhasibPro.ViewModels.ViewModels.Settings;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs;
 using MuhasibPro.Views.Loggings;
 
 namespace MuhasibPro.Views.Settings
@@ -16,10 +16,12 @@ namespace MuhasibPro.Views.Settings
         public SettingsView()
         {
             this.InitializeComponent();
+            ViewModel = ServiceLocator.Current.GetService<SettingsViewModel>();
             _themeSelectorService = ServiceLocator.Current.GetService<IThemeSelectorService>();
+
         }
         //TODO: settingsView gözden geçir ekle
-        public SettingsViewModel ViewModel => ServiceLocator.Current.GetService<SettingsViewModel>();
+        public SettingsViewModel ViewModel { get; }
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             LoadThemeSettings();

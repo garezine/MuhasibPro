@@ -264,13 +264,10 @@ public abstract partial class GenericListViewModel<TModel> : ViewModelBase where
          );
             UpdatePaginationInfo();
         }
-        catch (UserFriendlyException ex)
-        {
-            StatusError(ex); // ✅ ErrorCode ile birlikte gösterir: "Hata: 0x08002 - Sayfa yüklenirken hata"
-        }
+       
         catch (Exception ex)
         {
-            StatusError(GlobalErrorCode.GeneralError, $"Sayfa {CurrentPage} yüklenirken beklenmeyen hata");
+            StatusError($"Sayfa {CurrentPage} yüklenirken beklenmeyen hata");
             LogSistemException("LoadPageAsync","Veriler yüklenirken hata oluştu" ,ex);
         }
     }

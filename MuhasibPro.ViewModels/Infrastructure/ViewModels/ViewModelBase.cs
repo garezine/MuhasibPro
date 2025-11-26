@@ -1,15 +1,12 @@
 ﻿using Muhasib.Business.Models.Common;
 using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Domain.Enum;
-using Muhasib.Domain.Exceptions;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
-using System.Diagnostics;
 
 namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 {
     public class ViewModelBase : ObservableObject
     {
-        private Stopwatch _stopwatch = new();
         public ViewModelBase(ICommonServices commonServices)
         {
             ContextService = commonServices.ContextService;
@@ -30,14 +27,14 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
         public IMessageService MessageService { get; }
         public IDialogService DialogService { get; }
         public ILogService LogService { get; }
-        public INotificationService NotificationService { get; set; }      
+        public INotificationService NotificationService { get; set; }
         public IStatusBarService StatusBarService { get; set; }
-        
+
         public bool IsMainWindow => ContextService.IsMainView;
 
         private bool _isBusy = false;
         public bool IsBusy { get => _isBusy; set => Set(ref _isBusy, value); }
-        
+
         public virtual string Title => string.Empty;
 
         #region Log Metodları
@@ -215,43 +212,24 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
         public void StatusReady()
             => StatusBarService.StatusMessageService.Clear();
         public void StatusActionMessage(string message, StatusMessageType type, int autoHide)
-        => StatusBarService.StatusMessageService.ShowMessage(message, type,autoHide);
+        => StatusBarService.StatusMessageService.ShowMessage(message, type, autoHide);
         #region  Error Exception Global Mesaj
-        public void StatusError(UserFriendlyException ex)
-        {
-            var message = $"Hata: 0x{ex.GlobalErrorCode:X5} - {ex.Message}";
-            StatusActionMessage(message, StatusMessageType.Error, autoHide: -1);
 
-            if (ex.ShouldLog)
-            {
-                LogSistemException("ViewModelBase", ex.Message, ex);
-            }
+        public void StatusError(string message, StatusMessageType type = StatusMessageType.Error, int autoHide=-1)
+        {            
+            StatusActionMessage(message, type, autoHide);
         }
-        public void StatusError(GlobalErrorCode errorCode, string additionalMessage = null)
-        {
-            var message = $"Hata: 0x{errorCode:X5}";
-            if (!string.IsNullOrEmpty(additionalMessage))
-            {
-                message += $" - {additionalMessage}";
-            }
-            StatusActionMessage(message, StatusMessageType.Error, autoHide: -1);
-        }
-        public void StatusError(Exception ex, string context = "")
-        {
-            var message = $"Hata: 0x{GlobalErrorCode.GeneralError:X5} - {context}";
-            StatusActionMessage(message, StatusMessageType.Error, autoHide: -1);
-            LogSistemException("ViewModelBase",context, ex);
-        }
+       
         #endregion
-              
+
 
 
         #endregion
 
         #region Progress Wrappers
-               
 
-        public void StartProgressWithPercent(string message = "İşlem yapılıyor...", double percent=-1)
+
+        public void StartProgressWithPercent(string message = "İşlem yapılıyor...", double percent = -1)
             => StatusBarService.StatusMessageService.ShowProgress(message, percent);
 
         public void UpdateProgress(double percent)

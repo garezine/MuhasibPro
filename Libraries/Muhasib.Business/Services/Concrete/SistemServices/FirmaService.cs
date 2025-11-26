@@ -11,7 +11,7 @@ using Muhasib.Data.DataContext;
 using Muhasib.Data.Utilities.Responses;
 using Muhasib.Domain.Entities.SistemEntity;
 
-namespace Muhasib.Business.Services.Concrete.SitemServices
+namespace Muhasib.Business.Services.Concrete.SistemServices
 {
     public class FirmaService : IFirmaService
     {
@@ -40,15 +40,14 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             try
             {
                 var item = await _firmaRepository.GetByFirmaId(id);
-                if (item == null)
+                if(item == null)
                 {
                     return new ErrorApiDataResponse<FirmaModel>(data: null, message: $"Firma bulunamadı. ID: {id}");
                 }
 
                 var model = await CreateFirmaModelAsync(item, includeAllFields: true, bitmapToolsService: _bitmapTools);
                 return new SuccessApiDataResponse<FirmaModel>(model, "Firma verileri işlemi başarılı");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(FirmaService), nameof(GetByFirmaIdAsync), ex);
@@ -64,18 +63,17 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
         {
             try
             {
-                var items = await _firmaRepository.GetFirmalarAsync(skip, take, request);
                 var models = new List<FirmaModel>();
+                var items = await _firmaRepository.GetFirmalarAsync(skip, take, request);
 
-                foreach (var item in items)
+                foreach(var item in items)
                 {
                     models.Add(
                         await CreateFirmaModelAsync(item, includeAllFields: false, bitmapToolsService: _bitmapTools));
                 }
 
                 return new SuccessApiDataResponse<IList<FirmaModel>>(models, "Firmalar başarıyla listelendi");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(FirmaService), nameof(GetFirmalarAsync), ex);
@@ -85,7 +83,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
 
         public async Task<ApiDataResponse<int>> UpdateFirmaAsync(FirmaModel model)
         {
-            if (model == null)
+            if(model == null)
             {
                 return new ErrorApiDataResponse<int>(data: 0, message: "Model boş olamaz");
             }
@@ -94,7 +92,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             try
             {
                 var firma = id > 0 ? await _firmaRepository.GetByFirmaId(id) : new Firma();
-                if (firma == null)
+                if(firma == null)
                 {
                     await _logService.SistemLogService
                         .SistemLogError(
@@ -103,7 +101,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                             $"Firma güncellenemedi. Firma bulunamadı. Model ID: {id}");
                     return new ErrorApiDataResponse<int>(data: 0, message: "Firma bulunamadı");
                 }
-                if (id > 0)
+                if(id > 0)
                     firma.GuncelleyenId = _authenticationService.CurrentUserId;
 
                 firma.KaydedenId = _authenticationService.CurrentUserId;
@@ -111,7 +109,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                 UpdateFirmaModel(firma, model);
                 await _firmaRepository.UpdateFirmaAsync(firma);
 
-                var result = await _unitOfWork.CommitAsync();
+                var result = await _unitOfWork.SaveChangesAsync();
 
                 // Transaction tamamlandıktan sonra log
                 await _logService.SistemLogService
@@ -123,14 +121,13 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
 
                 // Model'i güncel veriyle doldur
                 var updateFirma = await GetByFirmaIdAsync(firma.Id);
-                if (updateFirma.Success)
+                if(updateFirma.Success)
                 {
                     model.Merge(updateFirma.Data);
                 }
 
                 return new SuccessApiDataResponse<int>(result, "Firma başarıyla kaydedildi");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(FirmaService), nameof(UpdateFirmaAsync), ex);
@@ -140,7 +137,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
 
         public async Task<ApiDataResponse<int>> DeleteFirmaAsync(FirmaModel model)
         {
-            if (model == null)
+            if(model == null)
             {
                 return new ErrorApiDataResponse<int>(data: 0, message: "Model boş olamaz");
             }
@@ -148,13 +145,13 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             try
             {
                 var firma = await _firmaRepository.GetByFirmaId(model.Id);
-                if (firma == null)
+                if(firma == null)
                 {
                     return new ErrorApiDataResponse<int>(data: 0, message: "Firma bulunamadı");
                 }
 
                 await _firmaRepository.DeleteFirmalarAsync(firma);
-                var result = await _unitOfWork.CommitAsync();
+                var result = await _unitOfWork.SaveChangesAsync();
 
                 await _logService.SistemLogService
                     .SistemLogInformation(
@@ -164,8 +161,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                         $"Etkilenen kayıt: {result}");
 
                 return new SuccessApiDataResponse<int>(result, "Firma başarıyla silindi");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(FirmaService), nameof(DeleteFirmaAsync), ex);
@@ -178,13 +174,13 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             try
             {
                 var items = await _firmaRepository.GetFirmaKeysAsync(index, length, request);
-                if (items == null || !items.Any())
+                if(items == null || !items.Any())
                 {
                     return new SuccessApiDataResponse<int>(0, "Silinecek firma bulunamadı");
                 }
 
                 await _firmaRepository.DeleteRangeAsync(items.ToArray());
-                var result = await _unitOfWork.CommitAsync();
+                var result = await _unitOfWork.SaveChangesAsync();
 
                 await _logService.SistemLogService
                     .SistemLogInformation(
@@ -194,8 +190,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                         $"Etkilenen kayıt: {result}");
 
                 return new SuccessApiDataResponse<int>(result, $"{items.Count} adet firma başarıyla silindi");
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(FirmaService), nameof(DeleteFirmaRangeAsync), ex);
@@ -208,8 +203,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             try
             {
                 return await _firmaRepository.GetFirmalarCountAsync(request);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(FirmaService), nameof(GetFirmalarCountAsync), ex);
@@ -224,7 +218,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
             bool includeAllFields,
             IBitmapToolsService bitmapToolsService = null)
         {
-            if (source == null)
+            if(source == null)
             {
                 throw new ArgumentNullException(nameof(source));
             }
@@ -254,7 +248,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                     GuncellemeTarihi = source.GuncellemeTarihi,
                 };
 
-                if (includeAllFields)
+                if(includeAllFields)
                 {
                     model.Il = source.Il;
                     model.Ilce = source.Ilce;
@@ -269,8 +263,7 @@ namespace Muhasib.Business.Services.Concrete.SitemServices
                 }
 
                 return model; // Bu satır zaten var
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 throw new Exception("FirmaModel oluşturulurken hata oluştu", ex);
             }

@@ -2,7 +2,7 @@
 using Muhasib.Business.Infrastructure.Extensions;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.LogServices;
-using Muhasib.Data.Contracts.SistemRepositories;
+using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager;
 using Muhasib.Data.Managers.DatabaseManager.Models;
@@ -14,20 +14,20 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
     {
         private readonly ITenantConnectionManager _connectionManager;
         private readonly ITenantSelectionManager _selectionManager;
-        private readonly IMaliDonemDbRepository _maliDonemDbRepo;
+        private readonly IMaliDonemService _maliDonemService;
         private readonly ILogService _logService;
         private readonly ILogger<TenantConnectionService> _logger;
 
         public TenantConnectionService(
             ITenantConnectionManager connectionManager,
             ITenantSelectionManager selectionManager,
-            IMaliDonemDbRepository maliDonemDbRepo,
+            IMaliDonemService maliDonemService,
             ILogService logService,
             ILogger<TenantConnectionService> logger)
         {
             _connectionManager = connectionManager;
             _selectionManager = selectionManager;
-            _maliDonemDbRepo = maliDonemDbRepo;
+            _maliDonemService = maliDonemService;
             _logService = logService;
             _logger = logger;
         }
@@ -39,7 +39,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 _logger.LogInformation("Switching to tenant: {MaliDonemId}", maliDonemId);
 
                 // 1. MaliDonemDb kaydı var mı kontrol et
-                var maliDonemDb = await _maliDonemDbRepo.GetByMaliDonemDbIdAsync(maliDonemId);
+                var maliDonemDb = await _maliDonemService.GetByMaliDonemIdAsync(maliDonemId);
                 if (maliDonemDb == null)
                 {
                     return new ErrorApiDataResponse<TenantContext>(
@@ -66,7 +66,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 
                 return new SuccessApiDataResponse<TenantContext>(
                     tenantContext,
-                    $"Mali dönem başarıyla değiştirildi: {maliDonemDb.DBName}");
+                    $"Mali dönem başarıyla değiştirildi: {maliDonemDb.Data.DBName}");
             }
             catch (Exception ex)
             {

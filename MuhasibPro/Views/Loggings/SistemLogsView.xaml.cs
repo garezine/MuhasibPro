@@ -4,7 +4,7 @@
 using Microsoft.UI.Xaml.Navigation;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
-using MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs;
 
 namespace MuhasibPro.Views.Loggings
 {

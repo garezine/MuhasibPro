@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
@@ -75,7 +76,16 @@ namespace Muhasib.Business.HostBuilders
                     // Sql Database Yöneticisi
                     // Factories
                     services.AddSingleton<IAppDbContextFactory, AppDbContextFactory>();
-                    services.AddSingleton<ISqlConnectionStringFactory, SqlConnectionStringFactory>();
+                    services.AddSingleton<ISqlConnectionStringFactory>(provider =>
+                    {
+                        // Dinamik olarak server bul
+                        var serverName = FindWorkingSqlServer();
+                        return new SqlConnectionStringFactory(
+                            serverName: serverName,
+                            integratedSecurity: true,
+                            trustServerCertificate: true
+                        );
+                    });
 
 
                     // Managers
@@ -103,5 +113,33 @@ namespace Muhasib.Business.HostBuilders
                 });
             return host;
         }
+        private static string FindWorkingSqlServer()
+        {
+            var servers = new[] { "(localdb)\\mssqllocaldb", ".\\SQLEXPRESS", ".", "localhost" };
+
+            foreach (var server in servers)
+            {
+                if (TestConnection(server))
+                    return server;
+            }
+            return "(localdb)\\mssqllocaldb";
+        }
+
+        private static bool TestConnection(string server)
+        {
+            try
+            {
+                var connectionString = $"Data Source={server};Integrated Security=true;TrustServerCertificate=true;Initial Catalog=master;";
+                using var connection = new SqlConnection(connectionString);
+                connection.Open();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
     }
+
 }

@@ -35,15 +35,17 @@
                 VerticalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 VerticalContentAlignment="Stretch"
-                Content="{x:Bind ConfigControl.CoreData.ListContent, Mode=OneWay}"/>
+                Content="{x:Bind ConfigControl.CoreData.ListContent, Mode=OneWay}" />
 
             <!--No Data Message - SADECE data yoksa görünecek-->
-            <TextBlock
-                Margin="6"
+            <StackPanel
+                Margin="0 30 0 0"
                 HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Text="{x:Bind ConfigControl.CoreData.DataUnavailableMessage, Mode=OneWay}"
-                Visibility="{x:Bind ConfigControl.CoreData.IsDataUnavailable, Mode=OneWay}" />
+                VerticalAlignment="Center">
+                <FontIcon Glyph="&#xED1A;" FontSize="42" Visibility="{x:Bind ConfigControl.CoreData.IsDataUnavailable, Mode=OneWay}"  />
+                <TextBlock Text="{x:Bind ConfigControl.CoreData.DataUnavailableMessage, Mode=OneWay}" Visibility="{x:Bind ConfigControl.CoreData.IsDataUnavailable, Mode=OneWay}" />
+            </StackPanel>
+
         </Grid>
 
         <!--Footer-->
@@ -75,10 +77,10 @@
 
                 <!--Seçilen öğe sayısı-->
                 <TextBlock
-                    Foreground="{ThemeResource AccentAAFillColorDefaultBrush}"
-                    VerticalAlignment="Center"
                     Margin="7"
+                    VerticalAlignment="Center"
                     FontSize="14"
+                    Foreground="{ThemeResource AccentAAFillColorDefaultBrush}"
                     Opacity="0.75"
                     Text="{x:Bind ConfigControl.Selection.SelectionInfo, Mode=OneWay}" />
 

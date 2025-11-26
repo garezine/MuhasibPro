@@ -1,12 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
-using MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs;
 using MuhasibPro.ViewModels.ViewModels.Login;
-using MuhasibPro.ViewModels.ViewModels.MaliDonem;
 using MuhasibPro.ViewModels.ViewModels.Settings;
 using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
 
 namespace MuhasibPro.HostBuilders;
 public static class AddAppViewModelHostBuilderExtensions
@@ -26,7 +26,9 @@ public static class AddAppViewModelHostBuilderExtensions
             services.AddTransient<FirmalarViewModel>();
             services.AddTransient<FirmaDetailsViewModel>();
 
-            services.AddTransient<MaliDonemDetailsViewModel>();
+            services.AddTransient<MaliDonemViewModel>();
+            services.AddTransient<MaliDonemDetailsViewModel>();            
+
             services.AddTransient<SistemLogsViewModel>();
 
         });

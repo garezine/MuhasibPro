@@ -9,18 +9,18 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 {
     public class TenantConnectionManager : ITenantConnectionManager
     {
-        private readonly IMaliDonemDbRepository _maliDonemDbRepo;
+        private readonly IMaliDonemRepository _maliDonemRepo;
         private readonly ISqlConnectionStringFactory _connectionStringFactory;
         private readonly IAppDbContextFactory _dbContextFactory;
         private readonly ILogger<TenantConnectionManager> _logger;
 
         public TenantConnectionManager(
-            IMaliDonemDbRepository maliDonemDbRepo,
+            IMaliDonemRepository maliDonemRepo,
             ISqlConnectionStringFactory connectionStringFactory,
             IAppDbContextFactory dbContextFactory,
             ILogger<TenantConnectionManager> logger)
         {
-            _maliDonemDbRepo = maliDonemDbRepo;
+            _maliDonemRepo = maliDonemRepo;
             _connectionStringFactory = connectionStringFactory;
             _dbContextFactory = dbContextFactory;
             _logger = logger;
@@ -29,7 +29,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
 
         public async Task<string> GetConnectionStringAsync(long maliDonemId)
         {
-            var maliDonemDb = await _maliDonemDbRepo.GetByIdAsync(maliDonemId);
+            var maliDonemDb = await _maliDonemRepo.GetByMaliDonemIdAsync(maliDonemId);
             return _connectionStringFactory.CreateForDatabase(maliDonemDb.DBName);
         }
 

@@ -86,50 +86,63 @@ namespace MuhasibPro.Views.Shell
         }
         private void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
-            InitializeContext();
-            if (args.SelectedItem is NavigationItem item)
-            {
-                ViewModel.NavigateTo(item.ViewModel);
+            try
+            {               
+                if (args.SelectedItem is NavigationItem item)
+                {
+                    ViewModel.NavigateTo(item.ViewModel);
+                }
+                else if (args.IsSettingsSelected)
+                {
+                    ViewModel.NavigateTo(typeof(SettingsViewModel));
+                }
             }
-            else if (args.IsSettingsSelected)
+            catch (Exception)
             {
-                ViewModel.NavigateTo(typeof(SettingsViewModel));
+                ViewModel.StatusActionMessage("Menü yönlendirme hatası", Muhasib.Domain.Enum.StatusMessageType.Error, -1);
+                throw;
             }
-            UpdateBackButton();
+            
         }
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             ViewModel.Unload();
             ViewModel.Unsubscribe();
         }
-        private void OnNavigationViewBackButton(object sender, RoutedEventArgs e)
+        
+        private void OnPaneOpenButton(object sender, RoutedEventArgs e)
         {
-            if (_navigationService.CanGoBack)
-            {
-                _navigationService.GoBack();
-            }
+            navigationView.IsPaneOpen = !navigationView.IsPaneOpen;
         }
         private void OnFrameNavigated(object sender, NavigationEventArgs e)
         {
-            var targetType = NavigationService.GetViewModel(e.SourcePageType);
-            switch (targetType.Name)
+            try
             {
-                case "SettingsViewModel":
-                    ViewModel.SelectedItem = navigationView.SettingsItem;
-                    break;
-                default:
-                    ViewModel.SelectedItem = ViewModel.NavigationItems
-                        .Where(r => r.ViewModel == targetType)
-                        .FirstOrDefault();
-                    break;
+                var targetType = NavigationService.GetViewModel(e.SourcePageType);
+                switch (targetType.Name)
+                {
+                    case "SettingsViewModel":
+                        ViewModel.SelectedItem = navigationView.SettingsItem;
+                        break;
+                    default:
+                        ViewModel.SelectedItem = ViewModel.NavigationItems
+                            .Where(r => r.ViewModel == targetType)
+                            .FirstOrDefault();
+                        break;
+                }
+                if (frame != null && frame.Content?.GetType() != targetType)
+                {
+                    frame.Navigate(targetType);
+                }
             }
-            if (frame != null && frame.Content?.GetType() != targetType)
+            catch (Exception)
             {
-                frame.Navigate(targetType);
+                ViewModel.StatusActionMessage("Frame Hatası", Muhasib.Domain.Enum.StatusMessageType.Error, -1);
+                throw;
             }
-            UpdateBackButton();
+            
         }
-        private void UpdateBackButton() { NavigationViewBackButton.IsEnabled = _navigationService.CanGoBack; }
+        
         private void OnLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             TitleBarHelper.UpdateTitleBar(RequestedTheme);
@@ -193,7 +206,14 @@ namespace MuhasibPro.Views.Shell
                 Application.Current.Exit();
             }
         }
-        public bool IsSistemDatabaseConnection => false;
+
+        private void navigationView_BackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
+        {
+            if (frame.CanGoBack)
+            {
+                _navigationService.GoBack();
+            }
+        }
     }
 }
 

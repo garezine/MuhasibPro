@@ -51,6 +51,7 @@
     <None Remove="Assets\AppIcon.ico" />
     <None Remove="Assets\AppIcon.png" />
     <None Remove="Assets\AppLogo.png" />
+    <None Remove="Assets\Images\add_maliDonem.png" />
     <None Remove="Assets\Images\AppLogo.scale-150.png" />
     <None Remove="Assets\Images\CoverDark.png" />
     <None Remove="Assets\Images\LoginBackground.jpg" />
@@ -68,6 +69,9 @@
     <None Remove="Styles\FontSizes.xaml" />
     <None Remove="Styles\TextBlock.xaml" />
     <None Remove="Styles\Thickness.xaml" />
+    <None Remove="Views\Firmalar\Details\FirmaMaliDonemler.xaml" />
+    <None Remove="Views\MaliDonem\MaliDonemDetails.xaml" />
+    <None Remove="Views\MaliDonem\MaliDonemView.xaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -116,6 +120,11 @@
     <Content Update="Assets\Images\LoginBackground.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\MaliDonem\MaliDonemView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Styles\FontSizes.xaml">
@@ -174,5 +183,15 @@
     <PRIResource Update="Strings\tr-TR\WinUI.TableView.resw">
       <Generator>PublicResXFileCodeGenerator</Generator>
     </PRIResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firmalar\Details\FirmaMaliDonemler.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\MaliDonem\MaliDonemDetails.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 </Project>

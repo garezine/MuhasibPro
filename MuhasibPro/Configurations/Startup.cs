@@ -3,16 +3,18 @@ using MuhasibPro.HostBuilders;
 using MuhasibPro.Services.Infrastructure.CommonServices;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
-using MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs;
 using MuhasibPro.ViewModels.ViewModels.Login;
 using MuhasibPro.ViewModels.ViewModels.Settings;
 using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
 using MuhasibPro.Views.Dashboard;
 using MuhasibPro.Views.Firma;
 using MuhasibPro.Views.Firmalar;
 using MuhasibPro.Views.Loggings;
 using MuhasibPro.Views.Login;
+using MuhasibPro.Views.MaliDonem;
 using MuhasibPro.Views.Settings;
 using MuhasibPro.Views.Shell;
 
@@ -48,6 +50,8 @@ namespace MuhasibPro.Configurations
 
             NavigationService.Register<FirmaDetailsViewModel, FirmaView>();
             NavigationService.Register<FirmalarViewModel, FirmalarView>();
+            
+            NavigationService.Register<MaliDonemDetailsViewModel, MaliDonemView>();
         }
 
         

@@ -6,7 +6,7 @@
     xmlns:local="using:MuhasibPro.Views.Loggings.Details"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:viewModel="using:MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs"
+    xmlns:viewModel="using:MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs"
     xmlns:controls="using:MuhasibPro.Controls"
      mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600">
 

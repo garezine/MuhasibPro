@@ -2,7 +2,7 @@
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
 
-using MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs;
 
 namespace MuhasibPro.Views.Loggings.List
 {

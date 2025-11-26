@@ -321,8 +321,21 @@ namespace Muhasib.Data.Migrations
                     b.Property<string>("ArananTerim")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("DbOlusturulduMu")
+                    b.Property<string>("DBName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DBPath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DatabaseType")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Directory")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("FirmaId")
                         .HasColumnType("INTEGER");
@@ -347,56 +360,6 @@ namespace Muhasib.Data.Migrations
                     b.HasIndex("FirmaId");
 
                     b.ToTable("MaliDonemler");
-                });
-
-            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.MaliDonemDb", b =>
-                {
-                    b.Property<long>("Id")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("AktifMi")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ArananTerim")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DBName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("DBPath")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DatabaseType")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Directory")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("GuncellemeTarihi")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long?>("GuncelleyenId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("KaydedenId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("KayitTarihi")
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("MaliDonemId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MaliDonemId")
-                        .IsUnique();
-
-                    b.ToTable("MaliDonemDbler");
                 });
 
             modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.SistemLog", b =>
@@ -510,21 +473,10 @@ namespace Muhasib.Data.Migrations
                     b.HasOne("Muhasib.Domain.Entities.SistemEntity.Firma", "Firma")
                         .WithMany("MaliDonemler")
                         .HasForeignKey("FirmaId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Firma");
-                });
-
-            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.MaliDonemDb", b =>
-                {
-                    b.HasOne("Muhasib.Domain.Entities.SistemEntity.MaliDonem", "MaliDonem")
-                        .WithOne("MaliDonemDb")
-                        .HasForeignKey("Muhasib.Domain.Entities.SistemEntity.MaliDonemDb", "MaliDonemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MaliDonem");
                 });
 
             modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.SistemDbVersiyon", b =>
@@ -544,12 +496,6 @@ namespace Muhasib.Data.Migrations
             modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.Kullanici", b =>
                 {
                     b.Navigation("Hesaplar");
-                });
-
-            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.MaliDonem", b =>
-                {
-                    b.Navigation("MaliDonemDb")
-                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

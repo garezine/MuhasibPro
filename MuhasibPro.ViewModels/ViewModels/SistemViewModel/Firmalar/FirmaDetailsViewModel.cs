@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Muhasib.Business.Models.SistemModel;
+using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Business.Validations.SistemValidations;
 using Muhasib.Domain.Enum;
@@ -9,13 +10,13 @@ using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Windows.Input;
 
-namespace MuhasibPro.ViewModels.ViewModels.Firmalar;
+namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 
 public class FirmaDetailsArgs
 {
     public static FirmaDetailsArgs CreateDefault() => new FirmaDetailsArgs();
 
-    public long FirmaId { get; set; }   
+    public long FirmaId { get; set; }
 
     public bool IsNew => FirmaId <= 0;
 }
@@ -32,12 +33,12 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
     }
 
     public IFilePickerService FilePickerService { get; }
-    public IFirmaService FirmaService { get; }  
-   
+
+    public IFirmaService FirmaService { get; }
 
     private string Header => "Firma";
 
-    public override string Title => (Item?.IsNew ?? true) ? "Yeni Firma" : TitleEdit;
+    public override string Title => Item?.IsNew ?? true ? "Yeni Firma" : TitleEdit;
 
     public string TitleEdit => Item == null ? "Firma" : $"{Item.KisaUnvani}";
 
@@ -48,29 +49,23 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
     public async Task LoadAsync(FirmaDetailsArgs args)
     {
         ViewModelArgs = args ?? FirmaDetailsArgs.CreateDefault();
-        
-        if (ViewModelArgs.IsNew)
+
+        if(ViewModelArgs.IsNew)
         {
             var firmaKodu = await FirmaService.GetYeniFirmaKodu();
             Item = new FirmaModel { FirmaKodu = firmaKodu };
             IsEditMode = true;
-        }
-        else
+        } else
         {
             try
             {
                 var item = await FirmaService.GetByFirmaIdAsync(ViewModelArgs.FirmaId);
 
-                Item = item.Data ??
-                    new FirmaModel { Id = ViewModelArgs.FirmaId, IsEmpty = true };
-            }
-            catch (UserFriendlyException uex)
+                Item = item.Data ?? new FirmaModel { Id = ViewModelArgs.FirmaId, IsEmpty = true };
+            } 
+            catch(Exception ex)
             {
-                StatusError(uex); // ✅ "Hata: 0x08002 - Veritabanı bağlantı hatası"
-            }
-            catch (Exception ex)
-            {
-                StatusError(GlobalErrorCode.GeneralError, $"{Header} bilgileri yüklenirken beklenmeyen hata");
+                StatusError($"{Header} bilgileri yüklenirken beklenmeyen hata");
                 LogSistemException($"{Header}", $"{Header} Detay", ex);
             }
         }
@@ -80,7 +75,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
 
     public void Subscribe()
     {
-        MessageService.Subscribe<FirmaDetailsViewModel, FirmaModel>(this, OnDetailMessage);
+        MessageService.Subscribe<FirmaDetailsViewModel, FirmaModel>(this, OnDetailsMessage);
         MessageService.Subscribe<FirmaListViewModel>(this, OnListMessage);
     }
 
@@ -99,55 +94,46 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
     public ICommand EditPictureCommand => new RelayCommand(OnEditPicture);
 
     private async void OnEditPicture()
-{
-    NewPictureSource = null;
-    
-    await ExecuteActionAsync(
-        action: async () => 
-        {
-            var result = await FilePickerService.OpenImagePickerAsync();
-            if (result != null)
+    {
+        NewPictureSource = null;
+
+        await ExecuteActionAsync(
+            action: async () =>
             {
-                EditableItem.Logo = result.ImageBytes;
-                EditableItem.LogoSource = result.ImageSource;
-                EditableItem.LogoOnizleme = result.ImageBytes;
-                EditableItem.LogoOnizlemeSource = result.ImageSource;
-                NewPictureSource = result.ImageSource;
-                
-                StatusActionMessage("Logo güncellendi", StatusMessageType.Success, autoHide:3);
-            }
-            else
-            {
-                NewPictureSource = null;
-                StatusReady(); // Seçim iptal edildi
-            }
-        },
-        startMessage: "Logo seçiliyor",
-        startMessageType: StatusMessageType.Info
-    );
-}
+                var result = await FilePickerService.OpenImagePickerAsync();
+                if(result != null)
+                {
+                    EditableItem.Logo = result.ImageBytes;
+                    EditableItem.LogoSource = result.ImageSource;
+                    EditableItem.LogoOnizleme = result.ImageBytes;
+                    EditableItem.LogoOnizlemeSource = result.ImageSource;
+                    NewPictureSource = result.ImageSource;
+
+                    StatusActionMessage("Logo güncellendi", StatusMessageType.Success, autoHide: 3);
+                } else
+                {
+                    NewPictureSource = null;
+                    StatusReady(); // Seçim iptal edildi
+                }
+            },
+            startMessage: "Logo seçiliyor",
+            startMessageType: StatusMessageType.Info);
+    }
 
     protected async override Task<bool> SaveItemAsync(FirmaModel model)
     {
         try
         {
             await FirmaService.UpdateFirmaAsync(model);
-
             LogSistemInformation(
                 $"{Header}",
                 "Kayıt",
                 $"{Header} başarıyla kaydedildi",
                 $"{Header} {model.Id} '{model.KisaUnvani}' başarıyla kaydedildi");
             return true;
-        }
-        catch (UserFriendlyException uex)
+        } catch(Exception ex)
         {
-            StatusError(uex);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            StatusError(GlobalErrorCode.GeneralError, $"{Header} kaydedilirken beklenmeyen hata");
+            StatusError($"{Header} kaydedilirken beklenmeyen hata");
             LogSistemException($"{Header}", "Kayıt", ex);
             return false;
         }
@@ -160,15 +146,9 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
             await FirmaService.DeleteFirmaAsync(model);
             LogSistemWarning($"{Header}", "Sil", $"{Header} silindi", $"'{TitleEdit}' silindi");
             return true;
-        }
-        catch (UserFriendlyException uex)
+        }  catch(Exception ex)
         {
-            StatusError(uex);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            StatusError(GlobalErrorCode.GeneralError, $"{Header} silinirken beklenmeyen hata");
+            StatusError($"{Header} silinirken beklenmeyen hata");
             LogSistemException($"{Header}", "Sil", ex);
             return false;
         }
@@ -176,41 +156,48 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
 
     protected async override Task<bool> ConfirmDeleteAsync()
     {
-        return await DialogService.ShowAsync("Silme Onayı", $"{Header}yı silmek istediğinize emin misiniz?", "Sil", "İptal");
+        return await DialogService.ShowAsync(
+            "Silme Onayı",
+            $"{Header}'yı silmek istediğinize emin misiniz?",
+            "Sil",
+            "İptal");
     }
     protected override IEnumerable<AbstractValidator<FirmaModel>> GetValidationConstraints(FirmaModel model)
     { yield return new FirmaValidator(); }
 
-    async void OnDetailMessage(FirmaDetailsViewModel sender, string message, FirmaModel changed)
+    async void OnDetailsMessage(FirmaDetailsViewModel sender, string message, FirmaModel changed)
     {
         var current = Item;
-        if (current != null)
+        if(current != null)
         {
-            if (changed != null && changed.Id == current?.Id)
+            if(changed != null && changed.Id == current?.Id)
             {
-                switch (message)
+                switch(message)
                 {
                     case "ItemChanged":
-                        await ContextService.RunAsync(async () =>
-                        {
-                            try
+                        await ContextService.RunAsync(
+                            async () =>
                             {
-                                var item = await FirmaService.GetByFirmaIdAsync(current.Id);
-                                item.Data = item.Data ?? new FirmaModel { Id = current.Id, IsEmpty = true };
-                                current.Merge(item.Data);
-                                current.NotifyChanges();
-                                NotifyPropertyChanged(nameof(Title));
-                                if (IsEditMode)
+                                try
                                 {
-                                    StatusActionMessage($"DİKKAT: Bu {Header} başkası tarafından değiştirildi!", StatusMessageType.Warning, autoHide: 5);
+                                    var item = await FirmaService.GetByFirmaIdAsync(current.Id);
+                                    item.Data = item.Data ?? new FirmaModel { Id = current.Id, IsEmpty = true };
+                                    current.Merge(item.Data);
+                                    current.NotifyChanges();
+                                    NotifyPropertyChanged(nameof(Title));
+                                    if(IsEditMode)
+                                    {
+                                        StatusActionMessage(
+                                            $"DİKKAT: Bu {Header} başkası tarafından değiştirildi!",
+                                            StatusMessageType.Warning,
+                                            autoHide: 5);
+                                    }
+                                } catch(Exception ex)
+                                {
+                                    StatusError($"{Header} bilgileri güncellenirken hata");
+                                    LogSistemException($"{Header}", "Değiştirilmiş", ex);
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                StatusError(GlobalErrorCode.GeneralError, $"{Header} bilgileri güncellenirken hata");
-                                LogSistemException($"{Header}", "Değiştirilmiş", ex);
-                            }
-                        });
+                            });
                         break;
                     case "ItemDeleted":
                         await OnItemDeletedExternally();
@@ -227,21 +214,21 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
             {
                 CancelEdit();
                 IsEnabled = false;
-                StatusActionMessage($"DİKKAT: Bu {Header} kaydı silinmiş!",StatusMessageType.Warning, autoHide: 5);
+                StatusActionMessage($"DİKKAT: Bu {Header} kaydı silinmiş!", StatusMessageType.Warning, autoHide: 5);
             });
     }
 
     private async void OnListMessage(FirmaListViewModel sender, string message, object args)
     {
         var current = Item;
-        if (current != null)
+        if(current != null)
         {
-            switch (message)
+            switch(message)
             {
                 case "ItemsDeleted":
-                    if (args is IList<FirmaModel> deletedModels)
+                    if(args is IList<FirmaModel> deletedModels)
                     {
-                        if (deletedModels.Any(r => r.Id == current.Id))
+                        if(deletedModels.Any(r => r.Id == current.Id))
                         {
                             await OnItemDeletedExternally();
                         }
@@ -251,12 +238,11 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
                     try
                     {
                         var model = await FirmaService.GetByFirmaIdAsync(current.Id);
-                        if (model == null)
+                        if(model == null)
                         {
                             await OnItemDeletedExternally();
                         }
-                    }
-                    catch (Exception ex)
+                    } catch(Exception ex)
                     {
                         LogSistemException($"{Header}", $"{Header} kaydı silinmiş!", ex);
                     }

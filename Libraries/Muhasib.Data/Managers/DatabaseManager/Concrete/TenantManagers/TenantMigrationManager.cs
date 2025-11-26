@@ -11,17 +11,17 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
         private readonly IAppDbContextFactory _dbContextFactory;
         private readonly ILogger<TenantMigrationManager> _logger;
         private readonly IAppSqlDatabaseManager _appSqlDatabaseManager;
-        private readonly IMaliDonemDbRepository _maliDonemDbRepo;
+        private readonly IMaliDonemRepository _maliDonemRepo;
         public TenantMigrationManager(
             IAppDbContextFactory dbContextFactory,
             ILogger<TenantMigrationManager> logger,
             IAppSqlDatabaseManager appSqlDatabaseManager,
-            IMaliDonemDbRepository maliDonemDbRepo)
+            IMaliDonemRepository maliDonemRepo)
         {
             _dbContextFactory = dbContextFactory;
             _logger = logger;
             _appSqlDatabaseManager = appSqlDatabaseManager;
-            _maliDonemDbRepo = maliDonemDbRepo;
+            _maliDonemRepo = maliDonemRepo;
         }
 
         public async Task<bool> PrepareDatabaseAsync(long maliDonemId)
@@ -29,7 +29,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers
             try
             {
                 // Database ismini al
-                var maliDonemDb = await _maliDonemDbRepo.GetByIdAsync(maliDonemId);
+                var maliDonemDb = await _maliDonemRepo.GetByMaliDonemIdAsync(maliDonemId);
                 if (maliDonemDb == null) return false;
 
                 // AppSqlDatabaseManager'ı kullanarak DB'yi hazırla

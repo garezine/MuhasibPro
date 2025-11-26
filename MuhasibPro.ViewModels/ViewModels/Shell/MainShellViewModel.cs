@@ -5,8 +5,8 @@ using Muhasib.Domain.Entities.MuhasebeEntity.DegerlerEntities;
 using Muhasib.Domain.Entities.SistemEntity;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
-using MuhasibPro.ViewModels.ViewModels.Loggings.SistemLogs;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs;
 
 namespace MuhasibPro.ViewModels.ViewModels.Shell
 {
@@ -21,7 +21,13 @@ namespace MuhasibPro.ViewModels.ViewModels.Shell
         {
             get => _selectedItem;
             set => Set(ref _selectedItem, value);
-        }        
+        }
+        private bool _isPaneOpen = true;
+        public bool IsPaneOpen
+        {
+            get => _isPaneOpen;
+            set => Set(ref _isPaneOpen, value);
+        }
 
         public override async Task LoadAsync(ShellArgs args)
         {

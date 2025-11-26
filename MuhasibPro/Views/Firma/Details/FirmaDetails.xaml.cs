@@ -3,7 +3,7 @@
 
 
 
-using MuhasibPro.ViewModels.ViewModels.Firmalar;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 
 namespace MuhasibPro.Views.Firma;
 public sealed partial class FirmaDetails : UserControl

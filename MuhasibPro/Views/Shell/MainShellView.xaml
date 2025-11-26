@@ -37,30 +37,48 @@
         <Grid
             x:Name="AppTitleBar"
             Height="{Binding ElementName=navigationView, Path=CompactPaneLength}"
-            Margin="48 0"
+            Margin="0 0"
             VerticalAlignment="Top"
             Canvas.ZIndex="1"
             IsHitTestVisible="True">
-            <Image
-                Width="22"
-                Height="22"
-                HorizontalAlignment="Left"
-                Source="/Assets/AppIcon.ico" />
-            <TextBlock
-                x:Name="AppTitleBarText"
-                Margin="28,0,0,0"
-                VerticalAlignment="Center"
-                Style="{StaticResource CaptionTextBlockStyle}"
-                TextWrapping="NoWrap"
-                x:FieldModifier="public" />
+            <StackPanel Orientation="Horizontal">
+               
+                <!-- Pane Button -->
+                <Button
+                    x:Name="NavigationViewPaneButton"
+                    Height="35"
+                    Margin="4,7"
+                    VerticalAlignment="Top"
+                    Click="OnPaneOpenButton"
+                    Content="&#xE700;"
+                    IsEnabled="True"
+                    Style="{StaticResource PaneToggleCustomButtonStyle}" />
+                <Image
+                    Margin="5 0"
+                    Width="20"
+                    Height="20"
+                    HorizontalAlignment="Left"
+                    Source="/Assets/AppIcon.ico" />
+                <TextBlock
+                    x:Name="AppTitleBarText"
+                    Margin="18,0,0,0"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CaptionTextBlockStyle}"
+                    TextWrapping="NoWrap"
+                    x:FieldModifier="public" />
+            </StackPanel>
+
         </Grid>
         <NavigationView
             x:Name="navigationView"
             AlwaysShowHeader="False"
-            Canvas.ZIndex="0"
+            Canvas.ZIndex="0"            
+            IsBackEnabled="{x:Bind frame.CanGoBack, Mode=OneWay}"
+            BackRequested="navigationView_BackRequested"
             DisplayModeChanged="NavigationViewControl_DisplayModeChanged"
             ExpandedModeThresholdWidth="1280"
             IsEnabled="{x:Bind ViewModel.IsEnabled, Mode=OneWay}"
+            IsPaneToggleButtonVisible="False"
             IsSettingsVisible="False"
             MenuItemsSource="{x:Bind ViewModel.NavigationItems}"
             MenuItemTemplate="{StaticResource NavigationViewTemplate}"
@@ -100,16 +118,8 @@
             </NavigationView.PaneFooter>
         </NavigationView>
 
-        <!-- Back Button -->
-        <Button
-            x:Name="NavigationViewBackButton"
-            Height="35"
-            Margin="4,7"
-            VerticalAlignment="Top"
-            Click="OnNavigationViewBackButton"
-            Content="&#xE72B;"
-            IsEnabled="False"
-            Style="{StaticResource TitleBarBackButtonStyle}" />
+
+
 
         <!-- Status Bar -->
         <Grid Grid.Row="2">

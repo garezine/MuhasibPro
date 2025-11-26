@@ -7,7 +7,7 @@
     xmlns:converters="using:MuhasibPro.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:viewmodels="using:MuhasibPro.ViewModels.ViewModels.Firmalar"
+    xmlns:viewmodels="using:MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar"
     xmlns:views="using:MuhasibPro.Views.Firma"
     mc:Ignorable="d"
     d:DesignHeight="600"

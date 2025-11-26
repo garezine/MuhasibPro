@@ -17,5 +17,6 @@ namespace Muhasib.Business.Services.Contracts.SistemServices
         Task<ApiDataResponse<int>> DeleteFirmaAsync(FirmaModel model);
         Task<ApiDataResponse<int>> DeleteFirmaRangeAsync(int index, int length, DataRequest<Firma> request);
 
+
     }
 }
