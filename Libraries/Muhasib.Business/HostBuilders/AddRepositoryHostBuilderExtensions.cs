@@ -19,8 +19,8 @@ namespace Muhasib.Business.HostBuilders
         {
             host.ConfigureServices(services =>
             {
-                services.AddSingleton<IUnitOfWork<SistemDbContext>, UnitOfWork<SistemDbContext>>();
-                services.AddSingleton<IUnitOfWork<AppDbContext>, UnitOfWork<AppDbContext>>();
+                services.AddScoped<IUnitOfWork<SistemDbContext>, UnitOfWork<SistemDbContext>>();
+                services.AddScoped<IUnitOfWork<AppDbContext>, UnitOfWork<AppDbContext>>();
                 services.AddSingleton<IPasswordHasher<Kullanici>>(provider => new PasswordHasher<Kullanici>());
 
                 ////Repository
