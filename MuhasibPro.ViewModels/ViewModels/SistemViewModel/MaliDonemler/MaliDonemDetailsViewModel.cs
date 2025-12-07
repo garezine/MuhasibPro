@@ -18,23 +18,25 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
 
         public long MaliDonemId { get; set; }
 
-        public bool IsNew => MaliDonemId < 0;
+        public bool IsNew => MaliDonemId <= 0;
     }
 
     public class MaliDonemDetailsViewModel : GenericDetailsViewModel<MaliDonemModel>
     {
         public MaliDonemDetailsViewModel(
             ICommonServices commonServices,
-            IMaliDonemService maliDonemService,
-            ITenantWorkflowService workflowService) : base(commonServices)
+            IMaliDonemService maliDonemService
+,
+            ITenantSQLiteWorkflowService workflowService) : base(commonServices)
         {
             MaliDonemService = maliDonemService;
             WorkflowService = workflowService;
         }
 
         public IMaliDonemService MaliDonemService { get; }
+        public ITenantSQLiteWorkflowService WorkflowService { get; }
 
-        public ITenantWorkflowService WorkflowService { get; }
+
 
         private string Header => "Mali Dönem";
 
@@ -49,7 +51,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
         public override bool ItemIsNew => Item?.IsNew ?? true;
 
         public bool CanEditFirma => Item?.FirmaId <= 0;
-
+        public long FirmaId { get; set; }
         public ICommand FirmaSelectedCommand => new RelayCommand<FirmaModel>(FirmaSelected);
 
         private void FirmaSelected(FirmaModel model)
@@ -64,29 +66,35 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
         public async Task LoadAsync(MaliDonemDetailsArgs args)
         {
             ViewModelArgs = args ?? MaliDonemDetailsArgs.CreateDefault();
-            if(!ViewModelArgs.IsNew)
+            FirmaId = ViewModelArgs.FirmaId;
+            if(ViewModelArgs.IsNew)
             {
-                var item = await MaliDonemService.CreateNewMaliDonemAsync(ViewModelArgs.FirmaId);
-                Item = item?.Data;
+                var item = await MaliDonemService.CreateNewMaliDonemAsync(FirmaId);
+                Item = item?.Data;                
                 IsEditMode = true;
             } else
             {
                 try
                 {
                     var item = await MaliDonemService.GetByMaliDonemIdAsync(ViewModelArgs.MaliDonemId);
-                    Item = item.Data ?? new MaliDonemModel { Id = ViewModelArgs.MaliDonemId, IsEmpty = true };
+                    Item = item.Data ?? new MaliDonemModel
+                    {                       
+                        Id = ViewModelArgs.MaliDonemId,
+                        IsEmpty = true 
+                    };
                 } catch(Exception ex)
                 {
                     StatusError($"{Header} bilgileri yüklenirken beklenmeyen hata");
                     LogSistemException($"{Header}", $"{Header} Detay", ex);
                 }
             }
+            NotifyPropertyChanged(nameof(ItemIsNew));
         }
 
         public void Unload()
         {
-            ViewModelArgs.FirmaId = Item?.FirmaId ?? 0;
-            ViewModelArgs.MaliDonemId = Item?.Id ?? 0;
+            ViewModelArgs.FirmaId = Item?.FirmaId ?? 0;            
+            ViewModelArgs.MaliDonemId = Item?.Id ?? 0;            
         }
 
         public void Subscribe()
@@ -103,9 +111,42 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
         {
             try
             {
-                await MaliDonemService.DeleteMaliDonemAsync(model);
-                LogSistemWarning($"{Header}", "Sil", $"{Header} silindi", $"'{TitleEdit}' silindi");
-                return true;
+                var request = new TenantDeletingRequest
+                {
+                    MaliDonemId = model.Id
+
+                };
+                bool success = false;
+                await ExecuteWithProgressAsync(
+                     action: async () =>
+                     {
+                         var result = await WorkflowService.DeleteTenantCompleteAsync(request);
+                         if (result.Success)
+                         {
+                             success = true;
+                             LogSistemInformation(
+                                 $"{Header}",
+                                 "Sil",
+                                 $"{Header} başarıyla silindi",
+                                 $"{Header} {model.Id} '{model.MaliYil}' başarıyla silindi");
+                             NotificationService.ShowSuccess(Header, "Başarıyla silindi");
+                             IsEditMode = false;
+                         }
+                         else
+                         {                             
+                             NotificationService.ShowError("Veritabanı hatası:", result.Message);
+                             LogSistemError(
+                                 $"{Header}",
+                                 "Sil",
+                                 $"{Header} 'Veritabanı' oluşturulamadı.",
+                                 $"{Header} {model.FirmaModel.FirmaKodu} '{model.MaliYil}' veritabanı oluşturulamadı");
+                         }
+                     },
+                     progressMessage: "Veritabanı siliniyor",
+                     measureTime: true,
+                     successMessage: "Veritabanı silindi",
+                     successAutoHideSeconds: -1);
+                return success;
             } catch(Exception ex)
             {
                 StatusError($"{Header} silinirken beklenmeyen hata");
@@ -118,7 +159,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
         {
             return await DialogService.ShowAsync(
                 "Silme Onayı",
-                $"{Header}'i silmek istediğinize emin misiniz?",
+                $"İlgili {Header}'e ait tüm veriler silinecek! {Header}'i silmek istediğinize emin misiniz?",
                 "Sil",
                 "İptal");
         }
@@ -126,7 +167,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
         protected async override Task<bool> SaveItemAsync(MaliDonemModel model)
         {
             try
-            {
+            {                
                 var request = new TenantCreationRequest
                 {
                     FirmaId = model.FirmaId,

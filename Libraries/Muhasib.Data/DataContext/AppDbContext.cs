@@ -15,8 +15,10 @@ namespace Muhasib.Data.DataContext
         {
 
         }
+       
+        public DbSet<TenantDatabaseVersiyon> TenantDatabaseVersions { get; set; }
 
         public DbSet<AppLog> AppLogs { get; set; }
-        public DbSet<MuhasebeVersiyon> MuhasebeVersiyonlar { get; set; }
+       
     }
 }

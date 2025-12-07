@@ -8,7 +8,6 @@
         public string FirmaKisaUnvani { get; set; }
         public int MaliYil { get; set; }
         public string DatabaseName { get; set; }
-        public bool DbOlusturulduMu { get; set; }
         public bool AktifMi { get; set; }
         public string DisplayText => $"{FirmaKisaUnvani} - {MaliYil}";
     }

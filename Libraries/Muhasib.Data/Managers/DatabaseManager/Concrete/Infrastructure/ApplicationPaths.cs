@@ -2,76 +2,245 @@
 
 namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
 {
+    public static class DatabaseConstants
+    {
+        public const string DATABASE_FOLDER = "Databases";
+        public const string SISTEM_DB_NAME = "Sistem.db";
+        public const string TENANT_DATABASES_FOLDER = "TenantDatabases";
+        public const string BACKUP_FOLDER = "Backups";
+        public const string TENANT_BACKUPS_FOLDER = "TenantBackups";
+        public const string TEMP_FOLDER = "Temp";
+    }
+
     public class ApplicationPaths : IApplicationPaths
     {
         private readonly IEnvironmentDetector _environmentDetector;
         private readonly string _applicationName;
 
+        // Simple cache - thread-safe için Lazy<T>
+        private static readonly Lazy<string> _cachedDevProjectPath = new Lazy<string>(
+            () =>
+            {
+                var currentDir = AppContext.BaseDirectory;
+                var dirInfo = new DirectoryInfo(currentDir);
+
+                // Max 6 levels up (8 fazlaydı)
+                for(int i = 0; i < 6 && dirInfo?.Parent != null; i++)
+                {
+                    if(dirInfo.GetFiles("*.csproj", SearchOption.TopDirectoryOnly).Length > 0 ||
+                        dirInfo.GetFiles("*.sln", SearchOption.TopDirectoryOnly).Length > 0)
+                        return dirInfo.FullName;
+
+                    dirInfo = dirInfo.Parent;
+                }
+
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "MuhasibPro");
+            });
+
         public ApplicationPaths(IEnvironmentDetector environmentDetector, string applicationName = "MuhasibPro")
         {
             _environmentDetector = environmentDetector;
-            _applicationName = applicationName;
+            _applicationName = applicationName ?? "MuhasibPro";
         }
 
-        public string GetDatabasePath()
-        {
-            var basePath = _environmentDetector.IsDevelopment()
-                ? GetDevelopmentProjectPath()
-                : GetAppDataPath();
-
-            var dbPath = Path.Combine(basePath, "Databases");
-            Directory.CreateDirectory(dbPath);
-            return dbPath;
-        }
-
-        public string GetAppDataPath()
+        #region Base Paths
+        public string GetAppDataFolderPath()
         {
             var path = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                _applicationName
-            );
+                _applicationName);
+
+            // Directory.CreateDirectory zaten thread-safe ve idempotent
             Directory.CreateDirectory(path);
             return path;
         }
 
-        public string GetBackupPath()
+        private string GetDevelopmentProjectFolderPath() => _cachedDevProjectPath.Value;
+
+        private string GetRootDataPath()
+        { return _environmentDetector.IsDevelopment() ? GetDevelopmentProjectFolderPath() : GetAppDataFolderPath(); }
+        #endregion
+
+        #region Databases Structure
+        // [ROOT]/Databases/
+        public string GetDatabasesFolderPath()
         {
-            var basePath = GetAppDataPath();
-            var backupPath = Path.Combine(basePath, "Backups");
-            Directory.CreateDirectory(backupPath);
-            return backupPath;
+            var path = Path.Combine(GetRootDataPath(), DatabaseConstants.DATABASE_FOLDER);
+            Directory.CreateDirectory(path);
+            return path;
         }
 
-        public string GetTempPath()
+        // [ROOT]/Databases/Tenant/
+        public string GetTenantDatabasesFolderPath()
         {
-            var basePath = GetAppDataPath();
-            var tempPath = Path.Combine(basePath, "Temp");
-            Directory.CreateDirectory(tempPath);
-            return tempPath;
+            var path = Path.Combine(GetDatabasesFolderPath(), DatabaseConstants.TENANT_DATABASES_FOLDER);
+            Directory.CreateDirectory(path);
+            return path;
         }
 
-        public string GetSistemDbPath()
+        // [ROOT]/Databases/sistem.db
+        public string GetSystemDatabaseFilePath()
+        { return Path.Combine(GetDatabasesFolderPath(), DatabaseConstants.SISTEM_DB_NAME); }
+
+        // [ROOT]/Databases/Tenant/{databaseName}.db
+        public string GetTenantDatabaseFilePath(string databaseName)
         {
-            var dbPath = GetDatabasePath();
-            return Path.Combine(dbPath, "Sistem.db");
+            var sanitizedName = SanitizeDatabaseName(databaseName);
+            var tenantPath = GetTenantDatabasesFolderPath();
+
+            var fileName = sanitizedName.EndsWith(".db", StringComparison.OrdinalIgnoreCase)
+                ? sanitizedName
+                : $"{sanitizedName}.db";
+
+            return Path.Combine(tenantPath, fileName);
         }
 
-        private string GetDevelopmentProjectPath()
+        // Basit ve güvenli sanitize
+        public string SanitizeDatabaseName(string databaseName)
         {
-            var currentDirectory = AppContext.BaseDirectory;
-            var directoryInfo = new DirectoryInfo(currentDirectory);
+            if(string.IsNullOrWhiteSpace(databaseName))
+                throw new ArgumentException("Database adı boş olamaz");
 
-            while (directoryInfo != null)
+            if(databaseName.Length > 100)
+                throw new ArgumentException("Database adı çok uzun");
+
+            // Sadece güvenli olmayan karakterleri temizle
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var sanitized = new string(
+                databaseName
+                .Where(c => !invalidChars.Contains(c))
+                    .ToArray())
+                .Trim();
+
+            // Basit rezerve isim kontrolü
+            var reservedNames = new[] { "CON", "PRN", "AUX", "NUL" };
+            if(reservedNames.Contains(sanitized.ToUpperInvariant()))
+                throw new ArgumentException($"'{sanitized}' rezerve bir dosya adıdır");
+
+            return string.IsNullOrEmpty(sanitized) ? throw new ArgumentException("Database adı geçersiz") : sanitized;
+        }
+        #endregion
+
+        #region Backup Structure
+        // [ROOT]/Backup/
+        public string GetBackupFolderPath()
+        {
+            var path = Path.Combine(GetRootDataPath(), DatabaseConstants.BACKUP_FOLDER);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        // [ROOT]/Backup/Tenant/
+        public string GetTenantBackupFolderPath()
+        {
+            var path = Path.Combine(GetBackupFolderPath(), DatabaseConstants.TENANT_BACKUPS_FOLDER);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+        #endregion
+
+        #region Temp Structure
+        // [ROOT]/Temp/
+        public string GetTempFolderPath()
+        {
+            var path = Path.Combine(GetRootDataPath(), DatabaseConstants.TEMP_FOLDER);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+        #endregion
+
+        #region Helper Methods
+        public bool IsDatabaseSizeValid(string databaseName)
+        {
+            try
             {
-                var projectFiles = directoryInfo.GetFiles("*.csproj");
-                if (projectFiles.Length > 0)
-                {
-                    return directoryInfo.FullName;
-                }
-                directoryInfo = directoryInfo.Parent;
-            }
+                var dbPath = GetTenantDatabaseFilePath(databaseName);
 
-            return GetAppDataPath();
+                if(!File.Exists(dbPath))
+                    return false;
+
+                var fileInfo = new FileInfo(dbPath);
+                return fileInfo.Length > 0;
+            } catch
+            {
+                return false;
+            }
         }
+
+        public long GetDatabaseSize(string databaseName)
+        {
+            try
+            {
+                var dbFilePath = GetTenantDatabaseFilePath(databaseName);
+                if(!File.Exists(dbFilePath))
+                    return 0L;
+
+                var fileInfo = new FileInfo(dbFilePath);
+                return fileInfo.Length;
+            } catch
+            {
+                return 0L;
+            }
+        }
+
+        public bool DatabaseFileExists(string databaseName)
+        {
+            try
+            {
+                var filePath = GetTenantDatabaseFilePath(databaseName);
+                return File.Exists(filePath);
+            } catch
+            {
+                return false;
+            }
+        }
+
+        public string GenerateUniqueTempFilePath(string extension = ".tmp")
+        {
+            var tempDir = GetTempFolderPath();
+            var fileName = $"temp_{Guid.NewGuid():N}{extension}";
+            return Path.Combine(tempDir, fileName);
+        }
+
+        public void CleanupTempFiles(TimeSpan olderThan)
+        {
+            var tempDir = GetTempFolderPath();
+            if(!Directory.Exists(tempDir))
+                return;
+
+            var cutoff = DateTime.UtcNow - olderThan;
+
+            foreach(var file in Directory.GetFiles(tempDir))
+            {
+                try
+                {
+                    if(File.GetLastWriteTimeUtc(file) < cutoff)
+                        File.Delete(file);
+                } catch
+                {
+                    // Temp dosya silinemezse problem değil
+                }
+            }
+        }
+
+        public void CleanupSqliteWalFiles(string databaseName)
+        {
+            var dbPath = GetTenantDatabaseFilePath(databaseName);
+            var walPath = dbPath + "-wal";
+            var shmPath = dbPath + "-shm";
+
+            try
+            {
+                if(File.Exists(walPath))
+                    File.Delete(walPath);
+                if(File.Exists(shmPath))
+                    File.Delete(shmPath);
+            } catch
+            { /* Log ama exception fırlatma */
+            }
+        }
+        #endregion
     }
 }

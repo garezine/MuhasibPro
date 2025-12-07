@@ -64,20 +64,20 @@ namespace Muhasib.Data.DataContext
         private void SeedInitialVersion(ModelBuilder modelBuilder)
         {
             // SistemDbVersiyon için seed
-            var initialSistemDbVersion = new SistemDbVersiyon
+            var initialSistemDbVersion = new AppDbVersion
             {
-                MevcutVersiyon = "1.0.0", // Base class property
-                UygulamaSonGuncellemeTarihi = new DateTime(2025, 09, 22),
-                OncekiUygulamaVersiyon = null,
-                MevcutDbVersiyon = "1.0.0",
-                SistemDBSonGuncellemeTarihi = new DateTime(2025, 09, 22),
-                OncekiSistemDbVersiyon = null
+                CurrentAppVersion = "1.0.0", // Base class property
+                CurrentAppVersionLastUpdate = new DateTime(2025, 09, 22),
+                PreviousAppVersiyon = null,
+                CurrentDatabaseVersion = "1.0.0",
+                CurrentDatabaseLastUpdate = new DateTime(2025, 09, 22),
+                PreviousDatabaseVersion = null
             };
-            modelBuilder.Entity<SistemDbVersiyon>().HasData(initialSistemDbVersion);
+            modelBuilder.Entity<AppDbVersion>().HasData(initialSistemDbVersion);
         }
         public DbSet<SistemLog> SistemLogs { get; set; }
-        public DbSet<AppVersiyon> AppVersiyonlar { get; set; }
-        public DbSet<SistemDbVersiyon> SistemDbVersiyonlar { get; set; }
+        public DbSet<AppVersion> AppVersiyonlar { get; set; }
+        public DbSet<AppDbVersion> AppDbVersiyonlar { get; set; }
         public DbSet<Hesap> Hesaplar { get; set; }
         public DbSet<Kullanici> Kullanicilar { get; set; }
         public DbSet<KullaniciRol> KullaniciRoller { get; set; }

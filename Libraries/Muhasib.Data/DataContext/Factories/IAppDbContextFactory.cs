@@ -2,9 +2,13 @@
 {
     public interface IAppDbContextFactory
     {
-        AppDbContext CreateForTenant(long maliDonemId);
-        Task<AppDbContext> CreateForTenantAsync(long maliDonemId);
-        Task<AppDbContext> CreateForDatabaseAsync(string databaseName);
-        AppDbContext CreateForDatabase(string databaseName);
+        AppDbContext CreateContext(string databaseName);
+        Task<bool> TestConnectionAsync(string databaseName, CancellationToken cancellationToken = default);
+
+        // Opsiyonel - sadece ihtiyaç varsa ekleyin
+        bool TenantDatabaseFileExists(string databaseName);
+        bool IsDatabaseSizeValid(string databaseName);
+        string GetTenantDatabaseFilePath(string databaseName);
+        long GetDatabaseSize(string databaseName);       
     }
 }

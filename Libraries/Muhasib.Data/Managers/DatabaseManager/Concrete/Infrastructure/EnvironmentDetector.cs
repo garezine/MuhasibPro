@@ -6,12 +6,12 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
     {
         public bool IsDevelopment()
         {
+            // DEBUG = Geliştirme = Proje klasörü
+            // RELEASE = Kullanım = AppData
 #if DEBUG
             return true;
 #else
-            var currentDir = AppContext.BaseDirectory;
-            return currentDir.Contains("\\bin\\") && 
-                   (currentDir.Contains("Debug") || currentDir.Contains("Release"));
+    return false;
 #endif
         }
 

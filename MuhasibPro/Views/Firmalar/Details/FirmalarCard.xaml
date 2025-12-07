@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="MuhasibPro.Views.Firmalar.Details.FirmalarCard"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -70,7 +70,7 @@
                          Text="{x:Bind Item.KisaUnvani, Mode=OneWay}"
                          TextWrapping="Wrap" />
 
-                 
+
                     </StackPanel>
                 </Grid>
             </Border>

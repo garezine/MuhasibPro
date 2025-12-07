@@ -1,8 +1,5 @@
-﻿
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
-
-
 
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 
@@ -13,7 +10,6 @@ namespace MuhasibPro.Views.Firmalar.List
         public FirmalarList()
         {
             InitializeComponent();
-
         }
         private void FirmalarList_Loaded(object sender, RoutedEventArgs e)
         {

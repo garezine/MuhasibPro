@@ -47,20 +47,20 @@
                         Text="Veritabanı Bilgileri" />
                     <controls:FormTextBox
                         Header="Veritabanı Adı"
-                        IsReadOnly="True"
-                        Text="{x:Bind Item.DBName}" />
+                        Mode="ReadOnly"
+                        Text="{x:Bind EditableItem.DBName, Mode=TwoWay}" />
                     <controls:FormTextBox
                         Header="Veritabanı Tipi"
-                        IsReadOnly="True"
-                        Text="{x:Bind Item.DatabaseType}" />
+                       Mode="ReadOnly"
+                        Text="{x:Bind EditableItem.DatabaseType, Mode=TwoWay}" />
                     <controls:FormTextBox
                         Header="Veritabanı Klasör"
-                        IsReadOnly="True"
-                        Text="{x:Bind Item.DBPath}" />
+                        Mode="ReadOnly"
+                        Text="{x:Bind EditableItem.DBPath,Mode=TwoWay}" />
                     <controls:FormTextBox
                         Header="Veritabanı Yolu"
-                        IsReadOnly="True"
-                        Text="{x:Bind Item.Directory}" />
+                        Mode="ReadOnly"
+                        Text="{x:Bind EditableItem.Directory, Mode=TwoWay}" />
 
                 </controls:FluidGrid>
 

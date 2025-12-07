@@ -26,7 +26,7 @@ namespace Muhasib.Data.DataContext.DesignTimeFactory
         {
             var environmentDetector = new EnvironmentDetector();
             var applicationPaths = new ApplicationPaths(environmentDetector);
-            return applicationPaths.GetSistemDbPath();
+            return applicationPaths.GetSystemDatabaseFilePath();
         }
     }
 }

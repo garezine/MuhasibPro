@@ -10,13 +10,7 @@ using System.Diagnostics;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
 {
-    public static class DatabaseConstants
-    {
-        public const string SistemDbAdi = "Sistem.db";
-        public const string DatabaseKlasorAdi = "Databases";
-        public const string YedekKlasorAdi = "Backups";
-        public const string GeciciKlasorAdi = "Temp";
-    }
+   
     public class SistemDatabaseManager : ISistemDatabaseManager
     {
         private readonly SistemDbContext _context;
@@ -34,8 +28,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
             _logger = logger;
             _applicationPaths = applicationPaths;
 
-            _databasePath = Path.Combine(_applicationPaths.GetSistemDbPath());
-            _backupPath = Path.Combine(_applicationPaths.GetBackupPath(), "Sistem");
+            _databasePath = _applicationPaths.GetSystemDatabaseFilePath();
+            var backupFolder = _applicationPaths.GetBackupFolderPath();
+            _backupPath = Path.Combine(backupFolder, "Sistem");
 
             Directory.CreateDirectory(_backupPath);
         }
@@ -49,7 +44,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                 // Migration'ları kontrol et
                 var pendingMigrations = await _context.Database.GetPendingMigrationsAsync();
 
-                if (pendingMigrations.Any())
+                if(pendingMigrations.Any())
                 {
                     _logger.LogInformation("Found {Count} pending migrations", pendingMigrations.Count());
                     // Migration öncesi backup al
@@ -59,8 +54,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                     // Migration'ları uygula
                     await _context.Database.MigrateAsync();
                     Debug.Write("Sistem Veritabanı için yeni migrationlar uygulandı");
-                }
-                else
+                } else
                 {
                     await _context.Database.EnsureCreatedAsync();
                 }
@@ -69,8 +63,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
 
                 _logger.LogInformation("System database initialization completed: {Success}", isValid);
                 return isValid;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "System database initialization failed");
                 return false;
@@ -82,19 +75,21 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
             try
             {
                 var canConnect = await _context.Database.CanConnectAsync();
-                if (!canConnect)
+                if(!canConnect)
                     return false;
 
                 // Temel tabloların kontrolü
-                var hasUsers = await _context.Kullanicilar.AnyAsync();
-                _logger.LogInformation(
-                    "System validation - Can connect: {CanConnect}, Has users: {HasUsers}",
-                    canConnect,
-                    hasUsers);
+                var tableCheck = await _context.Database
+                        .ExecuteSqlRawAsync("SELECT 1 FROM sqlite_master WHERE type='table' AND name='Kullanicilar'") >=
+                    0;
 
-                return canConnect;
-            }
-            catch (Exception ex)
+                _logger.LogInformation(
+                    "System validation - Can connect: {CanConnect}, Tables exist: {TablesExist}",
+                    canConnect,
+                    tableCheck);
+
+                return canConnect && tableCheck;
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "System database validation failed");
                 return false;
@@ -108,8 +103,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                 var backupFileName = $"manual_sistem_{DateTime.Now:yyyyMMdd_HHmmss}.db";
                 var backupFilePath = Path.Combine(_backupPath, backupFileName);
 
-                if (File.Exists(_databasePath))
+                if(File.Exists(_databasePath))
                 {
+                    SqliteConnection.ClearAllPools();
+                    await Task.Delay(50);
                     File.Copy(_databasePath, backupFilePath, true);
                     _logger.LogInformation("Manual system backup created: {BackupPath}", backupFilePath);
 
@@ -120,8 +117,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                 }
 
                 return false;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Manual system backup failed");
                 return false;
@@ -133,22 +129,21 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
             try
             {
                 // 1. Database file exists mi?
-                if (!File.Exists(_databasePath))
+                if(!File.Exists(_databasePath))
                     return true;
 
                 // 2. Can connect mi?
                 var canConnect = await _context.Database.CanConnectAsync();
-                if (!canConnect)
+                if(!canConnect)
                     return true;
 
                 // 3. Tüm critical tablolar var mı ve boş mu?
                 var hasUsers = await _context.Kullanicilar.AnyAsync();
-                var hasVersion = await _context.SistemDbVersiyonlar.AnyAsync();
+                var hasVersion = await _context.AppDbVersiyonlar.AnyAsync();
 
                 // Tablolar var ama boşsa first-run (seed gerekiyor)
                 return !hasUsers || !hasVersion;
-            }
-            catch
+            } catch
             {
                 return true; // Hata durumunda first-run kabul et
             }
@@ -174,8 +169,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                     DatabaseSize = File.Exists(_databasePath) ? new FileInfo(_databasePath).Length : 0,
                     LastBackupDate = GetLastBackupDate()
                 };
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Failed to get database health info");
                 return new DatabaseHealthInfo { HasError = true, ErrorMessage = ex.Message };
@@ -186,7 +180,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
         {
             try
             {
-                if (!Directory.Exists(_backupPath))
+                if(!Directory.Exists(_backupPath))
                     return Task.FromResult(new List<BackupFileInfo>());
 
                 var backupFiles = Directory.GetFiles(_backupPath, "*.db")
@@ -199,14 +193,12 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                             FileName = f.Name,
                             FilePath = f.FullName,
                             CreatedDate = f.CreationTime,
-                            SizeBytes = f.Length,
-                            SizeFormatted = FormatFileSize(f.Length)
+                            FileSizeBytes = f.Length,
                         })
                     .ToList();
 
                 return Task.FromResult(backupFiles);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Failed to get backup history");
                 return Task.FromResult(new List<BackupFileInfo>());
@@ -218,8 +210,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
             var backupFileName = $"safety_sistem_{DateTime.Now:yyyyMMdd_HHmmss}.db";
             var backupFilePath = Path.Combine(_backupPath, backupFileName);
 
-            if (File.Exists(_databasePath))
+            if(File.Exists(_databasePath))
             {
+                SqliteConnection.ClearAllPools();
+                await Task.Delay(50);
                 File.Copy(_databasePath, backupFilePath, true);
                 _logger.LogInformation("Safety backup created: {BackupPath}", backupFilePath);
             }
@@ -235,21 +229,19 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                     .OrderByDescending(f => f.CreationTime)
                     .Skip(keepCount);
 
-                foreach (var file in backupFiles)
+                foreach(var file in backupFiles)
                 {
                     try
                     {
                         file.Delete();
                         _logger.LogInformation("Deleted old backup: {FileName}", file.Name);
-                    }
-                    catch (Exception ex)
+                    } catch(Exception ex)
                     {
                         _logger.LogWarning(ex, "Failed to delete old backup: {FileName}", file.Name);
                     }
                 }
                 await Task.CompletedTask;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to clean old backups");
             }
@@ -259,7 +251,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
         {
             try
             {
-                if (!Directory.Exists(_backupPath))
+                if(!Directory.Exists(_backupPath))
                     return null;
 
                 var lastBackup = Directory.GetFiles(_backupPath, "*.db")
@@ -268,64 +260,52 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                     .FirstOrDefault();
 
                 return lastBackup?.CreationTime;
-            }
-            catch
+            } catch
             {
                 return null;
             }
         }
 
-        private string FormatFileSize(long bytes)
-        {
-            string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
-            int counter = 0;
-            decimal number = bytes;
-
-            while (Math.Round(number / 1024) >= 1)
-            {
-                number /= 1024;
-                counter++;
-            }
-
-            return $"{number:n1}{suffixes[counter]}";
-        }
 
         public async Task<bool> CheckSistemDatabaseConnectionAsync()
         {
-            var dbPath = Path.Combine(_applicationPaths.GetSistemDbPath());
-            using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+            try
             {
-                try
-                {
-                    await connection.OpenAsync(); // Bağlantıyı aç
+                var dbPath = _applicationPaths.GetSystemDatabaseFilePath();
 
-                    using (var command = connection.CreateCommand())
+                if(!File.Exists(dbPath))
+                    return false;
+
+                using(var connection = new SqliteConnection($"Data Source={dbPath}"))
+                {
+                    await connection.OpenAsync();
+
+                    using(var command = connection.CreateCommand())
                     {
                         command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1";
                         var result = await command.ExecuteScalarAsync();
                         return result != null;
                     }
                 }
-                catch
-                {
-                    return false;
-                }
-                // using bloğu çıkışında connection otomatik kapanır
+            } catch(Exception ex)
+            {
+                _logger.LogWarning(ex, "Sistem database bağlantı kontrolü başarısız");
+                return false;
             }
         }
 
-        public async Task<AppVersiyon> GetCurrentAppVersionAsync()
+        public async Task<AppVersion> GetCurrentAppVersionAsync()
         {
             return await _context.AppVersiyonlar
-                .OrderByDescending(v => v.UygulamaSonGuncellemeTarihi)
+                .OrderByDescending(v => v.CurrentAppVersionLastUpdate)
                 .AsNoTracking() // Performance için
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<SistemDbVersiyon> GetCurrentSistemDbVersionAsync()
+        public async Task<AppDbVersion> GetCurrentSistemDbVersionAsync()
         {
-            return await _context.SistemDbVersiyonlar
-                .OrderByDescending(v => v.SistemDBSonGuncellemeTarihi)
+            return await _context.AppDbVersiyonlar
+                .OrderByDescending(v => v.CurrentAppVersionLastUpdate)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
         }

@@ -26,6 +26,13 @@ namespace Muhasib.Data.Repositories.SistemRepositories
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
         }
+        public async Task<MaliDonem> GetByMaliDonemIdWithFirmaAsync(long id, long firmaId)
+        {
+            return await DbSet.Where(r => r.Id == id && r.FirmaId == firmaId)
+                .Include(r => r.Firma)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
+        }
         public MaliDonem GetByMaliDonemId(long id)
         {
             return DbSet.Where(r => r.Id == id)

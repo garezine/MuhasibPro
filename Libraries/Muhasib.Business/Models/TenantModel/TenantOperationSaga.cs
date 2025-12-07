@@ -2,13 +2,13 @@
 
 namespace Muhasib.Business.Models.TenantModel
 {
-    public class TenantCreationSaga
+    public class TenantOperationSaga
     {
         private readonly ILogger _logger;
         private readonly List<SagaStep> _executedSteps = new List<SagaStep>();
         private readonly object _lock = new object();
 
-        public TenantCreationSaga(ILogger logger)
+        public TenantOperationSaga(ILogger logger)
         {
             _logger = logger;
         }

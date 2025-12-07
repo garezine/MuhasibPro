@@ -8,9 +8,10 @@
         public string FirmaUnvani { get; set; }
         public int MaliYil { get; set; }
         public string DatabaseName { get; set; }
-        public string DatabasePath { get; set; }
-        public bool DbOlusturulduMu { get; set; }
+        public string Directory { get; set; }
+        public string DatabasePath { get; set; }        
         public DateTime? LastBackupDate { get; set; }
+        
         public int PendingMigrations { get; set; }
         public bool IsHealthy { get; set; }
     }

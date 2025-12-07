@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 using Muhasib.Business.Infrastructure.Extensions;
 using Muhasib.Business.Models.SistemModel;
 using Muhasib.Business.Models.TenantModel;
@@ -13,35 +14,41 @@ using Muhasib.Domain.Enum;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 {
-    public class TenantWorkflowService : ITenantWorkflowService
+    public class TenantSQLiteWorkflowService : ITenantSQLiteWorkflowService
     {
-        public ITenantDatabaseLifecycleService _lifecycleService { get; }
-        private readonly ITenantDatabaseOperationService _operationService;
+        private readonly ITenantSQLiteDatabaseLifecycleService _lifecycleService;
+        private readonly ITenantSQLiteDatabaseOperationService _operationService;
+        private readonly ITenantSQLiteInfoService _selectionService;
+        private readonly ITenantSQLiteConnectionService _connectionService;
         private readonly IFirmaService _firmaService;
-        private readonly IMaliDonemService _maliDonemService;        
+        private readonly IMaliDonemService _maliDonemService;
         private readonly IApplicationPaths _applicationPaths;
         private readonly IUnitOfWork<SistemDbContext> _unitOfWork;
         private readonly ILogService _logService;
-        private readonly ILogger<TenantWorkflowService> _logger;
+        private readonly ILogger<TenantSQLiteWorkflowService> _logger;
 
-        public TenantWorkflowService(
-            ITenantDatabaseLifecycleService lifecycleService,
-            ITenantDatabaseOperationService operationService,
+        public TenantSQLiteWorkflowService(
+            ITenantSQLiteDatabaseLifecycleService lifecycleService,
+            ITenantSQLiteDatabaseOperationService operationService,
+            ITenantSQLiteInfoService selectionService,
+            ITenantSQLiteConnectionService connectionService,
             IFirmaService firmaService,
-            IMaliDonemService maliDonemService,            
+            IMaliDonemService maliDonemService,
             IApplicationPaths applicationPaths,
             IUnitOfWork<SistemDbContext> unitOfWork,
             ILogService logService,
-            ILogger<TenantWorkflowService> logger)
+            ILogger<TenantSQLiteWorkflowService> logger)
         {
             _lifecycleService = lifecycleService;
             _operationService = operationService;
+            _selectionService = selectionService;
             _firmaService = firmaService;
-            _maliDonemService = maliDonemService;            
+            _maliDonemService = maliDonemService;
             _applicationPaths = applicationPaths;
             _unitOfWork = unitOfWork;
             _logService = logService;
             _logger = logger;
+            _connectionService = connectionService;
         }
 
         public async Task<ApiDataResponse<TenantCreationResult>> CreateNewTenantAsync(TenantCreationRequest request)
@@ -52,7 +59,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 request.MaliYil);
 
             var result = new TenantCreationResult();
-            var saga = new TenantCreationSaga(_logger);
+            var saga = new TenantOperationSaga(_logger);
 
             try
             {
@@ -96,7 +103,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 // ============================================
                 _logger.LogInformation(" Step 3/7: Database adı oluşturuluyor...");
 
-                var dbNameResponse = _lifecycleService.GenerateDatabaseNameAsync(firma.FirmaKodu, request.MaliYil);
+                var dbNameResponse = _lifecycleService.GenerateDatabaseName(firma.FirmaKodu, request.MaliYil);
                 if (!dbNameResponse.Success || string.IsNullOrEmpty(dbNameResponse.Data))
                 {
                     _logger.LogError("Database adı oluşturulamadı");
@@ -108,10 +115,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 }
 
                 result.DatabaseName = dbNameResponse.Data;
-                var databasePath = Path.Combine(
-                    _applicationPaths.GetDatabasePath(),
-                    "Muhasebe",
-                    result.DatabaseName);
+                var databasePath = _applicationPaths.GetTenantDatabaseFilePath(result.DatabaseName);
 
                 _logger.LogInformation("Database adı oluşturuldu: {DatabaseName}", result.DatabaseName);
 
@@ -123,11 +127,11 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 var maliDonem = new MaliDonemModel
                 {
                     FirmaId = request.FirmaId,
-                    MaliYil = request.MaliYil,                    
+                    MaliYil = request.MaliYil,
                     DBName = result.DatabaseName,
-                    Directory = Path.GetDirectoryName(databasePath),
+                    Directory = _applicationPaths.GetTenantDatabasesFolderPath(),
                     DBPath = databasePath,
-                    DatabaseType = DatabaseType.SqlServer,
+                    DatabaseType = DatabaseType.SQLite,
                     AktifMi = true
                 };
 
@@ -164,7 +168,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                             using (var transaction = await _unitOfWork.BeginTransactionAsync())
                             {
                                 var deleteMaliDonem = new MaliDonemModel { Id = maliDonemId };
-                                 await _maliDonemService.DeleteMaliDonemAsync(deleteMaliDonem);
+                                await _maliDonemService.DeleteMaliDonemAsync(deleteMaliDonem);
                                 await _unitOfWork.SaveChangesAsync();
                                 await transaction.CommitAsync();
                                 _logger.LogInformation("MaliDonem silindi: {MaliDonemId}", maliDonemId);
@@ -237,7 +241,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                         stepName: "RunMigrations",
                         action: async () =>
                         {
-                            var migrationResponse = await _operationService.RunMigrationsAsync(maliDonem.Id);
+                            var migrationResponse = await _operationService.InitializeDatabaseAsync(maliDonem.DBName);
                             if (!migrationResponse.Success)
                             {
                                 throw new InvalidOperationException(
@@ -256,28 +260,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 }
 
                 // ============================================
-                // STEP 7: MaliDonem Güncelle (DB Flag)
-                // ============================================
-                _logger.LogInformation("Step 7/7: MaliDonem kaydı güncelleniyor...");
-
-                using (var updateTransaction = await _unitOfWork.BeginTransactionAsync())
-                {
-                    try
-                    {                        
-                        await _maliDonemService.UpdateMaliDonemAsync(maliDonem);
-                        await _unitOfWork.SaveChangesAsync();
-                        await updateTransaction.CommitAsync();
-                        _logger.LogInformation("MaliDonem güncellendi");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "MaliDonem güncelleme hatası");
-                        await updateTransaction.RollbackAsync();
-                        throw new InvalidOperationException($"MaliDonem güncellenemedi: {ex.Message}", ex);
-                    }
-                }
-
-                // ============================================
                 // BONUS: İsteğe Bağlı Backup
                 // ============================================
                 if (request.CreateInitialBackup && result.MigrationsRun)
@@ -285,7 +267,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                     _logger.LogInformation("Initial backup oluşturuluyor...");
                     try
                     {
-                        await _operationService.CreateBackupAsync(maliDonem.Id);
+                        await _operationService.CreateBackupAsync(maliDonem.DBName);
                         _logger.LogInformation("Initial backup oluşturuldu");
                     }
                     catch (Exception backupEx)
@@ -300,7 +282,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 result.Message = "Tenant başarıyla oluşturuldu";
 
                 await _logService.SistemLogService.SistemLogInformation(
-                    nameof(TenantWorkflowService),
+                    nameof(TenantSQLiteWorkflowService),
                     nameof(CreateNewTenantAsync),
                     $"Yeni tenant oluşturuldu. Firma: {firma.FirmaKodu}, Yıl: {request.MaliYil}, DB: {result.DatabaseName}, MaliDonemId: {result.MaliDonemId}",
                     string.Empty);
@@ -340,7 +322,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 }
 
                 await _logService.SistemLogService.SistemLogException(
-                    nameof(TenantWorkflowService),
+                    nameof(TenantSQLiteWorkflowService),
                     nameof(CreateNewTenantAsync),
                     ex);
 
@@ -352,77 +334,236 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             }
         }
 
-
-
-        public async Task<ApiDataResponse<bool>> DeleteTenantCompleteAsync(long maliDonemId)
+        public async Task<ApiDataResponse<TenantDeletingResult>> DeleteTenantCompleteAsync(TenantDeletingRequest request)
         {
-            _logger.LogInformation("Starting complete tenant deletion for MaliDonemId: {MaliDonemId}", maliDonemId);
+            _logger.LogInformation("Tenant silme başlatıldı - MaliDonemId: {MaliDonemId}", request.MaliDonemId);
+
+            var result = new TenantDeletingResult();
+            var saga = new TenantOperationSaga(_logger);
 
             try
             {
-                // 1. MaliDonemDb bilgisini al
-                var maliDonemDb = await _maliDonemService.GetByMaliDonemIdAsync(maliDonemId);
-                if (maliDonemDb == null)
+                // Step 1: Mali dönem kontrolü
+                var tenantResponse = await _selectionService.GetTenantDetailsAsync(request.MaliDonemId);
+                if (!tenantResponse.Success || tenantResponse.Data == null)
                 {
-                    return new ErrorApiDataResponse<bool>(false, "Mali dönem veritabanı kaydı bulunamadı");
-                }
-                var databaseName = maliDonemDb.Data.DBName;
-
-                // 2. SQL Server database'i sil
-                var dbDeleteResponse = await _lifecycleService.DeleteDatabaseAsync(databaseName);
-                if (!dbDeleteResponse.Success)
-                {
-                    _logger.LogWarning("Database deletion failed but continuing: {DatabaseName}", databaseName);
-                }
-                using var transaction = await _unitOfWork.BeginTransactionAsync();
-                // 3. MaliDonemDb kaydını sil (SQLite)
-                await _maliDonemService.DeleteMaliDonemAsync(maliDonemDb.Data);
-
-
-                // 4. MaliDonem kaydını sil (SQLite) - Cascade delete olmalı
-                var maliDonem = await _maliDonemService.GetByMaliDonemIdAsync(maliDonemId);
-                if (maliDonem != null)
-                {
-                    await _maliDonemService.DeleteMaliDonemAsync(maliDonem.Data);
+                    return new ErrorApiDataResponse<TenantDeletingResult>(
+                        null,
+                        $"Mali Dönem bulunamadı (MaliDonemId: {request.MaliDonemId})",
+                        false,
+                        ResultCodes.HATA_Bulunamadi);
                 }
 
-                await _unitOfWork.SaveChangesAsync();
-                await transaction.CommitAsync();
-                await _logService.SistemLogService
-                    .SistemLogInformation(
-                        nameof(TenantWorkflowService),
-                        nameof(DeleteTenantCompleteAsync),
-                        $"Tenant tamamen silindi. MaliDonemId: {maliDonemId}, Database: {databaseName}",
-string.Empty);
+                var tenantDetails = tenantResponse.Data;
+                result.DatabaseName = tenantDetails.DatabaseName;
+                result.MaliDonemId = tenantDetails.MaliDonemId;
 
-                return new SuccessApiDataResponse<bool>(true, "Tenant başarıyla silindi");
+                // ✅ Aktif tenant kontrolü
+                bool isCurrentTenantDeleting = false;
+
+                if (_connectionService.IsConnected)
+                {
+                    var currentTenantResponse = _connectionService.GetCurrentTenant();
+                    if (currentTenantResponse.Success && currentTenantResponse.Data != null)
+                    {
+                        isCurrentTenantDeleting = currentTenantResponse.Data.DatabaseName == tenantDetails.DatabaseName;
+
+                        _logger.LogInformation(
+                            "Aktif tenant kontrolü: Silinen={TenantToDelete}, Aktif={CurrentTenant}, Sonuç={IsCurrent}",
+                            tenantDetails.DatabaseName,
+                            currentTenantResponse.Data.DatabaseName,
+                            isCurrentTenantDeleting);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("Aktif tenant bağlantısı yok, normal silme işlemi devam ediyor");
+                }
+
+                // Step 2: Veritabanı silme (önce)
+                if (request.IsDeleteDatabase)
+                {
+                    await saga.ExecuteStepAsync(
+                        stepName: "DatabaseSil",
+                        action: async () =>
+                        {
+                            // ✅ Aktif tenant siliniyorsa backup al
+                            if (isCurrentTenantDeleting)
+                            {
+                                var sourceDbPath = _applicationPaths.GetTenantDatabaseFilePath(tenantDetails.DatabaseName);
+                                if (File.Exists(sourceDbPath))
+                                {
+                                    var backupPath = _applicationPaths.GetBackupFolderPath();
+                                    var backupFileName = $"safety_{tenantDetails.DatabaseName}_{DateTime.Now:yyyyMMdd_HHmmss}.db";
+                                    var backupFilePath = Path.Combine(backupPath, backupFileName);
+
+                                    SqliteConnection.ClearAllPools();
+                                    await Task.Delay(50);
+
+                                    await SafeFileCopyAsync(sourceDbPath, backupFilePath);
+                                    request.BackupFilePath = backupFilePath;
+
+                                    _logger.LogInformation("Aktif tenant silinmeden önce backup alındı: {BackupPath}", backupFilePath);
+                                }
+                            }
+
+                            var dbDeleteResponse = await _lifecycleService.DeleteDatabaseAsync(tenantDetails.DatabaseName);
+                            if (!dbDeleteResponse.Success)
+                            {
+                                throw new InvalidOperationException($"Database silinemedi: {dbDeleteResponse.Message}");
+                            }
+
+                            result.DatabaseDeleted = true;
+                            _logger.LogInformation("Veritabanı silindi: {DatabaseName}", tenantDetails.DatabaseName);
+
+                            return tenantDetails.DatabaseName;
+                        },
+                        compensate: async (dbName) =>
+                        {
+                            if (!string.IsNullOrEmpty(request.BackupFilePath) && File.Exists(request.BackupFilePath))
+                            {
+                                _logger.LogWarning("Rollback: Database geri yükleniyor: {DatabaseName}", dbName);
+                                try
+                                {
+                                    var restoreResponse = await _operationService.RestoreBackupAsync(
+                                        tenantDetails.DatabaseName,
+                                        request.BackupFilePath);
+
+                                    if (restoreResponse.Success)
+                                    {
+                                        _logger.LogInformation("Database geri yüklendi: {DatabaseName}", dbName);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "Database restore hatası: {DatabaseName}", dbName);
+                                }
+                            }
+                        }
+                    );
+                }
+
+                // Step 3: MaliDonem kaydını sil (sonra)
+                await saga.ExecuteStepAsync(
+                    stepName: "MaliDonemSil",
+                    action: async () =>
+                    {
+                        using (var transaction = await _unitOfWork.BeginTransactionAsync())
+                        {
+                            try
+                            {
+                                var deleteMaliDonem = new MaliDonemModel { Id = tenantDetails.MaliDonemId };
+                                await _maliDonemService.DeleteMaliDonemAsync(deleteMaliDonem);
+                                await _unitOfWork.SaveChangesAsync();
+                                await transaction.CommitAsync();
+
+                                _logger.LogInformation("MaliDonem kaydı silindi: {MaliDonemId}", tenantDetails.MaliDonemId);
+                                return tenantDetails.MaliDonemId;
+                            }
+                            catch (Exception ex)
+                            {
+                                await transaction.RollbackAsync();
+                                throw new InvalidOperationException($"MaliDonem silinemedi: {ex.Message}", ex);
+                            }
+                        }
+                    },
+                    compensate: async (maliDonemId) =>
+                    {
+                        _logger.LogWarning("Rollback: MaliDonem kaydı yeniden oluşturuluyor: {MaliDonemId}", maliDonemId);
+                        try
+                        {
+                            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+                            {
+                                var maliDonem = new MaliDonemModel
+                                {
+                                    FirmaId = tenantDetails.FirmaId,
+                                    MaliYil = tenantDetails.MaliYil,
+                                    DBName = tenantDetails.DatabaseName,
+                                    Directory = tenantDetails.Directory,
+                                    DBPath = tenantDetails.DatabasePath,
+                                    DatabaseType = DatabaseType.SQLite,
+                                    AktifMi = true
+                                };
+                                await _maliDonemService.UpdateMaliDonemAsync(maliDonem);
+                                await _unitOfWork.SaveChangesAsync();
+                                await transaction.CommitAsync();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "MaliDonem restore hatası: {MaliDonemId}", maliDonemId);
+                        }
+                    }
+                );
+
+                // ✅ KRİTİK: Aktif tenant silindiyse bağlantıyı kes
+                if (isCurrentTenantDeleting)
+                {
+                    _connectionService.ClearCurrentTenant();
+                    _logger.LogWarning("Aktif tenant silindi, bağlantı kesildi: {DatabaseName}", tenantDetails.DatabaseName);
+                }
+
+                result.Message = "Tenant başarıyla silindi";
+
+                await _logService.SistemLogService.SistemLogInformation(
+                    nameof(TenantSQLiteWorkflowService),
+                    nameof(DeleteTenantCompleteAsync),
+                    $"Tenant silindi. DB: {tenantDetails.DatabaseName}, MaliDonemId: {tenantDetails.MaliDonemId}",
+                    string.Empty);
+                if (!string.IsNullOrEmpty(request.BackupFilePath))
+                {
+                    await saga.ExecuteStepAsync(
+                        stepName: "BackupTemizle",
+                        action: async () =>
+                        {
+                            await CleanupBackupFileAsync(request.BackupFilePath);
+                            return request.BackupFilePath;
+                        },
+                        compensate: null // Geri alınacak bir şey yok
+                    );
+                }
+                return new SuccessApiDataResponse<TenantDeletingResult>(
+                    result,
+                    "Tenant başarıyla silindi",
+                    true,
+                    ResultCodes.BASARILI_Silindi,
+                    1);
+
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Complete tenant deletion failed for MaliDonemId: {MaliDonemId}", maliDonemId);
+                _logger.LogError(ex, "Tenant silme başarısız - MaliDonemId: {MaliDonemId}", request.MaliDonemId);
 
-                await _logService.SistemLogService
-                    .SistemLogException(nameof(TenantWorkflowService), nameof(DeleteTenantCompleteAsync), ex);
+                await saga.CompensateAllAsync();
 
-                return new ErrorApiDataResponse<bool>(false, $"Tenant silme hatası: {ex.Message}");
+                await _logService.SistemLogService.SistemLogException(
+                    nameof(TenantSQLiteWorkflowService),
+                    nameof(DeleteTenantCompleteAsync),
+                    ex);
+
+                return new ErrorApiDataResponse<TenantDeletingResult>(
+                    result,
+                    $"Tenant silme hatası: {ex.Message}",
+                    false,
+                    ResultCodes.HATA_Silinemedi);
             }
         }
 
-        public async Task<ApiDataResponse<bool>> PrepareTenantForFirstUseAsync(long maliDonemId)
+        public async Task<ApiDataResponse<bool>> PrepareTenantForFirstUseAsync(string databaseName)
         {
             try
             {
-                _logger.LogInformation("Preparing tenant for first use. MaliDonemId: {MaliDonemId}", maliDonemId);
+                _logger.LogInformation("Preparing tenant for first use. DatabaseName: {DatabaseName}", databaseName);
 
                 // 1. Database hazırla (migration check)
-                var prepareResponse = await _operationService.PrepareDatabaseAsync(maliDonemId);
+                var prepareResponse = await _operationService.RunMigrationsAsync(databaseName);
                 if (!prepareResponse.Success)
                 {
                     return new ErrorApiDataResponse<bool>(false, $"Veritabanı hazırlanamadı: {prepareResponse.Message}");
                 }
 
                 // 2. Health check
-                var healthResponse = await _operationService.GetHealthStatusAsync(maliDonemId);
+                var healthResponse = await _operationService.GetHealthStatusAsync(databaseName);
                 if (!healthResponse.Success || !healthResponse.Data.CanConnect)
                 {
                     return new ErrorApiDataResponse<bool>(false, "Veritabanı sağlık kontrolü başarısız");
@@ -430,19 +571,66 @@ string.Empty);
 
                 await _logService.SistemLogService
                     .SistemLogInformation(
-                        nameof(TenantWorkflowService),
+                        nameof(TenantSQLiteWorkflowService),
                         nameof(PrepareTenantForFirstUseAsync),
-                        $"Tenant ilk kullanıma hazırlandı. MaliDonemId: {maliDonemId}",
+                        $"Tenant ilk kullanıma hazırlandı. DatabaseName: {databaseName}",
 string.Empty);
 
                 return new SuccessApiDataResponse<bool>(true, "Tenant başarıyla hazırlandı");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Prepare tenant for first use failed for MaliDonemId: {MaliDonemId}", maliDonemId);
+                _logger.LogError(ex, "Prepare tenant for first use failed for DatabaseName: {DatabaseName}", databaseName);
 
                 return new ErrorApiDataResponse<bool>(false, ex.Message);
             }
         }
+        private async Task SafeFileCopyAsync(string source, string dest)
+        {
+            SqliteConnection.ClearAllPools();
+            await Task.Delay(100);
+
+            using (var sourceStream = new FileStream(source, FileMode.Open,
+                   FileAccess.Read, FileShare.ReadWrite))
+            using (var destStream = new FileStream(dest, FileMode.Create))
+            {
+                await sourceStream.CopyToAsync(destStream);
+            }
+        }
+        private async Task CleanupBackupFileAsync(string backupFilePath)
+        {
+            if (string.IsNullOrEmpty(backupFilePath) || !File.Exists(backupFilePath))
+            {
+                return;
+            }
+
+            try
+            {
+                // 3 defa deneyelim (file lock olabilir)
+                for (int i = 0; i < 3; i++)
+                {
+                    try
+                    {
+                        File.Delete(backupFilePath);
+                        _logger.LogInformation("Backup dosyası silindi: {BackupPath}", backupFilePath);
+                        return;
+                    }
+                    catch (IOException ioEx) when (i < 2) // Son deneme değilse
+                    {
+                        _logger.LogDebug("Backup dosyası silinemedi, tekrar denenecek ({Attempt}/3): {Error}",
+                            i + 1, ioEx.Message);
+                        await Task.Delay(100 * (i + 1)); // Artan gecikme
+                    }
+                }
+
+                _logger.LogWarning("Backup dosyası silinemedi (son deneme): {BackupPath}", backupFilePath);
+            }
+            catch (Exception ex)
+            {
+                // Kritik olmayan hata, sadece logla
+                _logger.LogWarning(ex, "Backup dosyası temizleme hatası: {BackupPath}", backupFilePath);
+            }
+        }
     }
+
 }

@@ -69,7 +69,15 @@
     <None Remove="Styles\FontSizes.xaml" />
     <None Remove="Styles\TextBlock.xaml" />
     <None Remove="Styles\Thickness.xaml" />
+    <None Remove="Views\Firmalar\Details\FirmalarCard.xaml" />
+    <None Remove="Views\Firmalar\Details\FirmalarDetails.xaml" />
     <None Remove="Views\Firmalar\Details\FirmaMaliDonemler.xaml" />
+    <None Remove="Views\Firmalar\FirmalarView.xaml" />
+    <None Remove="Views\Firmalar\List\FirmalarList.xaml" />
+    <None Remove="Views\Firma\FirmaCard.xaml" />
+    <None Remove="Views\Firma\FirmaDetails.xaml" />
+    <None Remove="Views\Firma\FirmaView.xaml" />
+    <None Remove="Views\MaliDonem\MaliDonemCard.xaml" />
     <None Remove="Views\MaliDonem\MaliDonemDetails.xaml" />
     <None Remove="Views\MaliDonem\MaliDonemView.xaml" />
   </ItemGroup>
@@ -120,11 +128,6 @@
     <Content Update="Assets\Images\LoginBackground.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Page Update="Views\MaliDonem\MaliDonemView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Styles\FontSizes.xaml">
@@ -185,12 +188,60 @@
     </PRIResource>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="Views\Firmalar\Details\FirmaMaliDonemler.xaml">
+    <Folder Include="Views\Firma\Details\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\MaliDonem\MaliDonemView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
     <Page Update="Views\MaliDonem\MaliDonemDetails.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\MaliDonem\MaliDonemCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firmalar\FirmalarView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firmalar\List\FirmalarList.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firma\FirmaView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firma\FirmaDetails.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firmalar\Details\FirmaMaliDonemler.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firmalar\Details\FirmalarDetails.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firmalar\Details\FirmalarCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Update="Views\Firma\FirmaCard.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

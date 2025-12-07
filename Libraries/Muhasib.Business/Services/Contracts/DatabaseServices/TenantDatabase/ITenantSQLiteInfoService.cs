@@ -5,11 +5,10 @@ using Muhasib.Domain.Entities.SistemEntity;
 
 namespace Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase
 {
-    public interface ITenantSelectionService
+    public interface ITenantSQLiteInfoService
     {
-        Task<ApiDataResponse<List<TenantSelectionModel>>> GetTenantsForSelectionAsync(long? firmaId = null,DataRequest<MaliDonem> request = null);
+        Task<ApiDataResponse<List<TenantSelectionModel>>> GetTenantsForSelectionAsync(long? firmaId = null, DataRequest<MaliDonem> request = null);
         Task<ApiDataResponse<List<TenantSelectionModel>>> SearchTenantsAsync(string searchTerm);
-        Task<ApiDataResponse<TenantDetailsModel>> GetTenantDetailsAsync(long maliDonemId);
-        
+        Task<ApiDataResponse<TenantDetailsModel>> GetTenantDetailsAsync(long maliDonemId);        
     }
 }

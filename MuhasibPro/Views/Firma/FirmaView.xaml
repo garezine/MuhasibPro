@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="MuhasibPro.Views.Firma.FirmaView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -11,9 +11,9 @@
     mc:Ignorable="d">
 
     <Grid>
-        <controls:WindowTitle Title="{x:Bind ViewModel.Title, Mode=OneWay}"/>
+        <controls:WindowTitle Title="{x:Bind ViewModel.FirmaDetails.Title, Mode=OneWay}"/>
         <controls:Section
-            IsEnabled="{x:Bind ViewModel.IsEnabled, Mode=OneWay}"
+            IsEnabled="{x:Bind ViewModel.FirmaDetails.IsEnabled, Mode=OneWay}"
             Style="{StaticResource DetailsViewSection}">
             <views:FirmaDetails x:Name="details" ViewModel="{x:Bind ViewModel, Mode=OneWay}"/>
         </controls:Section>

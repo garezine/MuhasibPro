@@ -1,7 +1,8 @@
-using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
-
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
+
+using MuhasibPro.Controls;
+using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
 
 namespace MuhasibPro.Views.MaliDonem
 {
@@ -24,6 +25,5 @@ namespace MuhasibPro.Views.MaliDonem
         {
             details.SetFocus();
         }
-
     }
 }

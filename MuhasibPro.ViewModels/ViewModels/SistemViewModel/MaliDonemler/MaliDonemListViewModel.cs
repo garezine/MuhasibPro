@@ -181,50 +181,48 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
         protected async override void OnDeleteSelection()
         {
             StatusReady();
-            if(await DialogService.ShowAsync(
-                "Silmeyi Onayla",
-                $"Seçili {Header}(ler) silmek istediğinize emin misiniz?",
-                "Evet",
-                "İptal"))
-            {
-                int count = 0;
-                try
-                {
-                    if(SelectedIndexRanges != null)
-                    {
-                        count = SelectedIndexRanges.Sum(r => r.Length);
-                        StartProgressWithPercent($"{count} {Header} siliniyor...");
+            await DialogService.ShowInfoAsync(
+                "Bilgilendirme",
+                "Bu işlem kritik! Çoklu silme tarafında bu işlem yapılamaz.");
+            
+                
+                //try
+                //{
+                //    if(SelectedIndexRanges != null)
+                //    {
+                //        count = SelectedIndexRanges.Sum(r => r.Length);
+                //        StartProgressWithPercent($"{count} {Header} siliniyor...");
 
-                        await DeleteRangesAsync(SelectedIndexRanges);
-                        MessageService.Send(this, "ItemRangesDeleted", SelectedIndexRanges);
-                        await RemoveFromUIWithAnimationAsync(SelectedIndexRanges);
-                    } else if(SelectedItems != null)
-                    {
-                        count = SelectedItems.Count();
-                        StartProgressWithPercent($"{count} {Header} siliniyor...");
+                //        await DeleteRangesAsync(SelectedIndexRanges);
+                //        MessageService.Send(this, "ItemRangesDeleted", SelectedIndexRanges);
+                //        await RemoveFromUIWithAnimationAsync(SelectedIndexRanges);
+                //    } else if(SelectedItems != null)
+                //    {
+                //        count = SelectedItems.Count();
+                //        StartProgressWithPercent($"{count} {Header} siliniyor...");
 
-                        await DeleteItemsAsync(SelectedItems);
-                        MessageService.Send(this, "ItemsDeleted", SelectedItems);
+                //        await DeleteItemsAsync(SelectedItems);
+                //        MessageService.Send(this, "ItemsDeleted", SelectedItems);
 
-                        await RemoveItemsFromUIWithAnimationAsync(SelectedItems);
-                    }
-                }  catch(Exception ex)
-                {
-                    StatusError($"{Header} silinirken beklenmeyen hata");
-                    LogSistemException($"{Header}", "Sil", ex);
-                    StopProgress();
-                    count = 0;
-                }
+                //        await RemoveItemsFromUIWithAnimationAsync(SelectedItems);
+                //    }
+                //}  catch(Exception ex)
+                //{
+                //    StatusError($"{Header} silinirken beklenmeyen hata");
+                //    LogSistemException($"{Header}", "Sil", ex);
+                //    StopProgress();
+                //    count = 0;
+                
                 await RefreshAsync();
                 SelectedIndexRanges = null;
                 SelectedItems = null;
                 StopProgress();
-                if(count > 0)
-                {
-                    StatusActionMessage($"{count} {Header} silindi", StatusMessageType.Deleting, autoHide: -1);
-                }
+                //if(count > 0)
+                //{
+                //    StatusActionMessage($"{count} {Header} silindi", StatusMessageType.Deleting, autoHide: -1);
+                //}
             }
-        }
+        
 
         private async Task DeleteItemsAsync(IEnumerable<MaliDonemModel> models)
         {

@@ -17,18 +17,18 @@ namespace Muhasib.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.10");
 
-            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.AppVersiyon", b =>
+            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.AppVersion", b =>
                 {
-                    b.Property<string>("MevcutVersiyon")
+                    b.Property<string>("CurrentAppVersion")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("OncekiUygulamaVersiyon")
+                    b.Property<DateTime>("CurrentAppVersionLastUpdate")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("UygulamaSonGuncellemeTarihi")
+                    b.Property<string>("PreviousAppVersiyon")
                         .HasColumnType("TEXT");
 
-                    b.HasKey("MevcutVersiyon");
+                    b.HasKey("CurrentAppVersion");
 
                     b.ToTable("AppVersiyonlar");
 
@@ -420,29 +420,29 @@ namespace Muhasib.Data.Migrations
                     b.ToTable("SistemLogs");
                 });
 
-            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.SistemDbVersiyon", b =>
+            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.AppDbVersion", b =>
                 {
-                    b.HasBaseType("Muhasib.Domain.Entities.SistemEntity.AppVersiyon");
+                    b.HasBaseType("Muhasib.Domain.Entities.SistemEntity.AppVersion");
 
-                    b.Property<string>("MevcutDbVersiyon")
+                    b.Property<DateTime>("CurrentDatabaseLastUpdate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurrentDatabaseVersion")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("OncekiSistemDbVersiyon")
+                    b.Property<string>("PreviousDatabaseVersion")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("SistemDBSonGuncellemeTarihi")
-                        .HasColumnType("TEXT");
-
-                    b.ToTable("SistemDbVersiyonlar");
+                    b.ToTable("AppDbVersiyonlar");
 
                     b.HasData(
                         new
                         {
-                            MevcutVersiyon = "1.0.0",
-                            UygulamaSonGuncellemeTarihi = new DateTime(2025, 9, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            MevcutDbVersiyon = "1.0.0",
-                            SistemDBSonGuncellemeTarihi = new DateTime(2025, 9, 22, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            CurrentAppVersion = "1.0.0",
+                            CurrentAppVersionLastUpdate = new DateTime(2025, 9, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CurrentDatabaseLastUpdate = new DateTime(2025, 9, 22, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CurrentDatabaseVersion = "1.0.0"
                         });
                 });
 
@@ -479,11 +479,11 @@ namespace Muhasib.Data.Migrations
                     b.Navigation("Firma");
                 });
 
-            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.SistemDbVersiyon", b =>
+            modelBuilder.Entity("Muhasib.Domain.Entities.SistemEntity.AppDbVersion", b =>
                 {
-                    b.HasOne("Muhasib.Domain.Entities.SistemEntity.AppVersiyon", null)
+                    b.HasOne("Muhasib.Domain.Entities.SistemEntity.AppVersion", null)
                         .WithOne()
-                        .HasForeignKey("Muhasib.Domain.Entities.SistemEntity.SistemDbVersiyon", "MevcutVersiyon")
+                        .HasForeignKey("Muhasib.Domain.Entities.SistemEntity.AppDbVersion", "CurrentAppVersion")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

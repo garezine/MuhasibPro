@@ -14,13 +14,15 @@ public class FirmalarViewModel : ViewModelBase
 
         FirmaList = new FirmaListViewModel(commonServices, FirmaService);
         FirmaDetails = new FirmaDetailsViewModel(commonServices, filePickerService, FirmaService);
-        FirmaMaliDonemler = new MaliDonemListViewModel(commonServices,MaliDonemService);
+        MaliDonemList = new MaliDonemListViewModel(commonServices,MaliDonemService);
+        
     }
     public IFirmaService FirmaService { get; }
     public IMaliDonemService MaliDonemService { get; }
     public FirmaListViewModel FirmaList { get; set; }
     public FirmaDetailsViewModel FirmaDetails { get; set; }
-    public MaliDonemListViewModel FirmaMaliDonemler { get; set; }
+    public MaliDonemListViewModel MaliDonemList { get; set; }
+    
 
     private string Header = "Firma";
     public async Task LoadAsync(FirmaListArgs args)
@@ -37,14 +39,14 @@ public class FirmalarViewModel : ViewModelBase
         MessageService.Subscribe<FirmaListViewModel>(this, OnMessage);
         FirmaList.Subscribe();
         FirmaDetails.Subscribe();
-        FirmaMaliDonemler.Subscribe();
+        MaliDonemList.Subscribe();
     }
     public void Unsubscribe()
     {
         MessageService.Unsubscribe(this);
         FirmaList.Unsubscribe();
         FirmaDetails.Unsubscribe();
-        FirmaMaliDonemler.Unsubscribe();
+        MaliDonemList.Unsubscribe();
 
     }
     private async void OnMessage(FirmaListViewModel viewModel, string message, object args)
@@ -96,7 +98,7 @@ public class FirmalarViewModel : ViewModelBase
         {
             if(selectedItem != null)
             {
-                await FirmaMaliDonemler.LoadAsync(new MaliDonemListArgs { FirmaId = selectedItem.Id },silent:true);
+                await MaliDonemList.LoadAsync(new MaliDonemListArgs { FirmaId = selectedItem.Id },silent:true);
             }
         }
         catch (Exception ex)

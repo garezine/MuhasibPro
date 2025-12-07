@@ -12,8 +12,8 @@ namespace Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase
         Task<DatabaseHealthInfo> GetHealthInfoAsync();
         Task<List<BackupFileInfo>> GetBackupHistoryAsync();
         Task<bool> CheckSistemDatabaseConnectionAsync();
-        Task<AppVersiyon> GetCurrentAppVersionAsync();
-        Task<SistemDbVersiyon> GetCurrentSistemDbVersionAsync();
+        Task<AppVersion> GetCurrentAppVersionAsync();
+        Task<AppDbVersion> GetCurrentSistemDbVersionAsync();
 
     }
 }

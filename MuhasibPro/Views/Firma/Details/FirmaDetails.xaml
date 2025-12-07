@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="MuhasibPro.Views.Firma.FirmaDetails"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -9,6 +9,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="using:MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar"
     xmlns:views="using:MuhasibPro.Views.Firma"
+    xmlns:viewMali="using:MuhasibPro.Views.Firmalar.Details"
     mc:Ignorable="d"
     d:DesignHeight="600"
     d:DesignWidth="800">
@@ -118,28 +119,40 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MaxWidth="360" />
+            <ColumnDefinition Width="*" MaxWidth="320" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Border>
             <views:FirmaCard
                 Margin="6"
-                Item="{x:Bind ViewModel.Item, Mode=OneWay}"
-                ViewModel="{x:Bind ViewModel}" />
+                Item="{x:Bind ViewModel.FirmaDetails.Item, Mode=OneWay}"
+                ViewModel="{x:Bind ViewModel.FirmaDetails}" />
         </Border>
-
-        <controls:Details
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="auto"/>
+            </Grid.RowDefinitions>
+            <controls:Details
             x:Name="details"
             Grid.Column="1"
             Margin="6"
-            BackCommand="{x:Bind ViewModel.BackCommand}"
-            CancelCommand="{x:Bind ViewModel.CancelCommand}"
-            CanGoBack="{x:Bind ViewModel.CanGoBack}"
-            DeleteCommand="{x:Bind ViewModel.DeleteCommand}"
-            DetailsContent="{x:Bind ViewModel}"
+                
+            BackCommand="{x:Bind ViewModel.FirmaDetails.BackCommand}"
+            CancelCommand="{x:Bind ViewModel.FirmaDetails.CancelCommand}"
+            CanGoBack="{x:Bind ViewModel.FirmaDetails.CanGoBack}"
+            DeleteCommand="{x:Bind ViewModel.FirmaDetails.DeleteCommand}"
+            DetailsContent="{x:Bind ViewModel.FirmaDetails}"
             DetailsTemplate="{StaticResource DetailsTemplate}"
-            EditCommand="{x:Bind ViewModel.EditCommand}"
-            IsEditMode="{x:Bind ViewModel.IsEditMode, Mode=OneWay}"
-            SaveCommand="{x:Bind ViewModel.SaveCommand}" />
+                
+            EditCommand="{x:Bind ViewModel.FirmaDetails.EditCommand}"
+            IsEditMode="{x:Bind ViewModel.FirmaDetails.IsEditMode, Mode=OneWay}"
+            SaveCommand="{x:Bind ViewModel.FirmaDetails.SaveCommand}" />
+            <!--<Border Grid.Row="1" BorderThickness="0,1,0,0" Visibility="{x:Bind ViewModel.FirmaDetails.ItemIsNew, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                <controls:Section Header="Mali Dönemler" >
+                    <viewMali:FirmaMaliDonemler ViewModel="{x:Bind ViewModel.MaliDonemList}" />
+                </controls:Section>
+            </Border>-->
+        </Grid>
     </Grid>
 </UserControl>

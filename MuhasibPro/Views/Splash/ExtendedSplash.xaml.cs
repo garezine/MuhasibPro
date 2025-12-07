@@ -153,7 +153,7 @@ namespace MuhasibPro.Views.Splash
         {
             if(!_isProcessingComplete)
             {
-                _isProcessingComplete = true;
+                _isProcessingComplete = true;                
                 await CompleteInitializationAsync();
             }
         }
@@ -162,8 +162,11 @@ namespace MuhasibPro.Views.Splash
         {
             try
             {
+                await ExecuteStep("Hazırlanıyor", 400, async () =>
+                {
+                    await LoadMainApplicationAsync();
+                });
                 await HideSplash();
-                await LoadMainApplicationAsync();
             } catch(Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Complete initialization error: {ex.Message}");

@@ -13,9 +13,9 @@
     <Grid>
         <controls:WindowTitle Title="{x:Bind ViewModel.Title, Mode=OneWay}"/>
         <controls:Section
-        IsEnabled="{x:Bind ViewModel.MaliDonemDetails.IsEnabled, Mode=OneWay}"
+        IsEnabled="{x:Bind ViewModel.IsEnabled, Mode=OneWay}"
         Style="{StaticResource DetailsViewSection}">
-            <views:MaliDonemDetails x:Name="details" ViewModel="{x:Bind ViewModel.MaliDonemDetails, Mode=OneWay}"/>
+            <views:MaliDonemDetails x:Name="details" ViewModel="{x:Bind ViewModel, Mode=OneWay}"/>
         </controls:Section>
     </Grid>
 </Page>

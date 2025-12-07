@@ -1,20 +1,18 @@
-﻿using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
-using Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
-using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.DataContext.Factories;
 using Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure;
 using Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase;
-using Muhasib.Data.Managers.DatabaseManager.Concrete.TenantManagers;
+using Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.Infrastructure;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase;
-using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager;
+using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager;
 using Muhasib.Data.Managers.UpdataManager;
+using Muhasib.Domain.Enum;
 
 namespace Muhasib.Business.HostBuilders
 {
@@ -29,8 +27,8 @@ namespace Muhasib.Business.HostBuilders
                         options =>
                         {
                             var paths = services.BuildServiceProvider().GetRequiredService<IApplicationPaths>();
-                            var dbPath = paths.GetDatabasePath();
-                            var connectionString = $"Data Source={Path.Combine(dbPath, "Sistem.db")};Mode=ReadWriteCreate;";
+                            var dbPath = paths.GetDatabasesFolderPath();
+                            var connectionString = $"Data Source={Path.Combine(dbPath, DatabaseConstants.SISTEM_DB_NAME)};Mode=ReadWriteCreate;";
                             options.UseSqlite(
                                 connectionString,
                                 sqliteOptions =>
@@ -39,107 +37,55 @@ namespace Muhasib.Business.HostBuilders
                                 });
                         });
 
-                    services.AddScoped<AppDbContext>(factory =>
+                    services.AddScoped<AppDbContext>(provider =>
                     {
-                        var tenantManager = factory.GetRequiredService<ITenantSelectionManager>();
-                        var contextFactory = factory.GetRequiredService<IAppDbContextFactory>();
+                        var factory = provider.GetRequiredService<IAppDbContextFactory>();
+                        var tenantManager = provider.GetService<ITenantSQLiteSelectionManager>();
 
-                        var currentTenant = tenantManager.GetCurrentTenant();
-
-                        // 1. Kontrol: Aktif ve Yüklü bir Tenant var mı?
-                        if (currentTenant == null || !currentTenant.IsLoaded || currentTenant.MaliDonemId <= 0)
+                        // Eğer aktif tenant varsa onun context'ini ver
+                        if (tenantManager?.IsTenantLoaded == true)
                         {
-                            // 2. Aktif Tenant yoksa: Boş bir DbContextOptions ile context oluştur.
-                            // Bu, hiçbir veritabanına bağlanmayan, sadece Entity Framework'ün çalışabilmesi için 
-                            // gerekli minimum yapılandırmayı içerir (Memory veya boşa ayarlanmış).
-
-                            // Boş bir options objesi oluştur:
-                            var emptyOptions = new DbContextOptionsBuilder<AppDbContext>()
-                                .UseInMemoryDatabase(databaseName: "Tenant_NOT_SELECTED")
-                                .Options;
-
-                            // Loglama yaparak uyarı verebilirsiniz.
-                            // factory.GetRequiredService<ILogger<AppDbContext>>().LogWarning("AppDbContext, aktif tenant olmadan oluşturuldu (In-Memory).");
-
-                            return new AppDbContext(emptyOptions);
+                            var currentTenant = tenantManager.GetCurrentTenant();
+                            return factory.CreateContext(
+                                currentTenant.DatabaseName);
                         }
 
-                        // 3. Aktif Tenant varsa: Tenant'a özel Context'i oluştur.
-                        return contextFactory.CreateForTenant(currentTenant.MaliDonemId);
+                        // Yoksa sistem context'i
+                        return factory.CreateContext("Sistem");
                     });
 
-                    // Sistem Database Managers
+
+                    //Sistem Database Managers
                     services.AddSingleton<ISistemDatabaseManager, SistemDatabaseManager>();
                     services.AddSingleton<ISistemDatabaseService, SistemDatabaseService>();
                     services.AddSingleton<ISistemDatabaseUpdateService, SistemDatabaseUpdateService>();
 
-                    // Sql Database Yöneticisi
-                    // Factories
+                    services.AddScoped<ILocalUpdateManager, LocalUpdateManager>();
                     services.AddSingleton<IAppDbContextFactory, AppDbContextFactory>();
-                    services.AddSingleton<ISqlConnectionStringFactory>(provider =>
-                    {
-                        // Dinamik olarak server bul
-                        var serverName = FindWorkingSqlServer();
-                        return new SqlConnectionStringFactory(
-                            serverName: serverName,
-                            integratedSecurity: true,
-                            trustServerCertificate: true
-                        );
-                    });
+                                    
 
 
                     // Managers
-                    services.AddSingleton<ITenantDbContextAccessor, TenantDbContextAccessor>();
-                    services.AddSingleton<ITenantConnectionManager, TenantConnectionManager>();
-                    services.AddSingleton<ITenantSelectionManager, TenantSelectionManager>();
-                    services.AddSingleton<ITenantMigrationManager, TenantMigrationManager>();
-                    services.AddSingleton<IAppSqlDatabaseManager, AppSqlDatabaseManager>();
+                    
+                    
+                    services.AddSingleton<ISQLiteConnectionStringFactory, SQLiteConnectionStringFactory>();
+                    services.AddSingleton<ITenantSQLiteBackupManager, TenantSQLiteBackupManager>();
+                    services.AddSingleton<ITenantSQLiteSelectionManager, TenantSQLiteSelectionManager>();
+                    
+                    services.AddSingleton<ISQLiteDatabaseManager, SQLiteDatabaseManager>();
 
-                    services.AddScoped<ILocalUpdateManager, LocalUpdateManager>();
 
                     //Tenant Database Services                    
-                    services.AddSingleton<ITenantDatabaseLifecycleService, TenantDatabaseLifecycleService>();
-                    services.AddSingleton<ITenantDatabaseOperationService, TenantDatabaseOperationService>();
-                    services.AddSingleton<ITenantConnectionService, TenantConnectionService>();
-                    services.AddSingleton<ITenantSelectionService, TenantSelectionService>();
-                    services.AddSingleton<ITenantWorkflowService, TenantWorkflowService>();
+                    
 
                     //Database Infrastructure Services
                     services.AddSingleton<IEnvironmentDetector, EnvironmentDetector>();
                     services.AddSingleton<IApplicationPaths, ApplicationPaths>();
                     services.AddSingleton<IDatabaseNamingService, DatabaseNamingService>();
 
-
+                   
                 });
             return host;
         }
-        private static string FindWorkingSqlServer()
-        {
-            var servers = new[] { "(localdb)\\mssqllocaldb", ".\\SQLEXPRESS", ".", "localhost" };
-
-            foreach (var server in servers)
-            {
-                if (TestConnection(server))
-                    return server;
-            }
-            return "(localdb)\\mssqllocaldb";
-        }
-
-        private static bool TestConnection(string server)
-        {
-            try
-            {
-                var connectionString = $"Data Source={server};Integrated Security=true;TrustServerCertificate=true;Initial Catalog=master;";
-                using var connection = new SqlConnection(connectionString);
-                connection.Open();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
     }
-
 }

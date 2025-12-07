@@ -2,11 +2,11 @@
 
 namespace Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase
 {
-    public interface ITenantDatabaseLifecycleService
+    public interface ITenantSQLiteDatabaseLifecycleService
     {
         Task<ApiDataResponse<string>> CreateDatabaseAsync(string databaseName);
         Task<ApiDataResponse<bool>> DeleteDatabaseAsync(string databaseName);
         Task<ApiDataResponse<bool>> DatabaseExistsAsync(string databaseName);
-        ApiDataResponse<string> GenerateDatabaseNameAsync(string firmaKodu, int maliYil);
+        ApiDataResponse<string> GenerateDatabaseName(string firmaKodu, int maliYil);
     }
 }

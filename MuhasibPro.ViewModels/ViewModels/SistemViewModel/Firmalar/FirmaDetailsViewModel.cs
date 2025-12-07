@@ -1,10 +1,8 @@
 ﻿using FluentValidation;
 using Muhasib.Business.Models.SistemModel;
-using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Business.Validations.SistemValidations;
 using Muhasib.Domain.Enum;
-using Muhasib.Domain.Exceptions;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
@@ -68,6 +66,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
                 StatusError($"{Header} bilgileri yüklenirken beklenmeyen hata");
                 LogSistemException($"{Header}", $"{Header} Detay", ex);
             }
+            NotifyPropertyChanged(nameof(ItemIsNew));
         }
     }
 

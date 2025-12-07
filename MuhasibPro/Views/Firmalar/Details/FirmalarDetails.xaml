@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="MuhasibPro.Views.Firmalar.Details.FirmalarDetails"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -72,14 +72,14 @@
             <ColumnDefinition Width="*" MaxWidth="360" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        
-            <Border>
-                <views:FirmalarCard
+
+        <Border>
+            <views:FirmalarCard
                 Margin="6"
                 Item="{x:Bind ViewModel.Item, Mode=OneWay}"
                 ViewModel="{x:Bind ViewModel}" />
-            </Border>
-        
+        </Border>
+
         <controls:Details
             x:Name="details"
             Grid.Column="1"

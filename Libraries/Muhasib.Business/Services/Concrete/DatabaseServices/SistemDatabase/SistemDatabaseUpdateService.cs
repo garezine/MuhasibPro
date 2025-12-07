@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
-using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantManager;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
 {
@@ -11,16 +10,16 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
     public class SistemDatabaseUpdateService : ISistemDatabaseUpdateService
     {
         private readonly ISistemDatabaseService _sistemService;
-        private readonly IAppSqlDatabaseManager _sqlDatabaseManager;
+        
         private readonly ILogger<SistemDatabaseUpdateService> _logger;
 
         public SistemDatabaseUpdateService(
             ISistemDatabaseService sistemService,
-            IAppSqlDatabaseManager sqlDatabaseManager,
+           
             ILogger<SistemDatabaseUpdateService> logger)
         {
             _sistemService = sistemService;
-            _sqlDatabaseManager = sqlDatabaseManager;
+            
             _logger = logger;
         }
 
@@ -93,7 +92,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
                 _logger.LogInformation("Initializing system database with version check: {DatabaseName}", databaseName);
 
                 // Database'i initialize et
-                var success = await _sqlDatabaseManager.InitializeDatabaseAsync(databaseName);
+                var success = await _sistemService.ApplyDatabaseUpdatesAsync();
 
                 if (success)
                 {
@@ -124,7 +123,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
                     databaseName, systemVersion);
 
                 // Sistem versiyonunu database'e senkronize et
-                return await _sqlDatabaseManager.UpdateMuhasebeVersionAsync(databaseName, systemVersion);
+                return await _sistemService.UpdateSistemDbVersionAsync(systemVersion);
             }
             catch (Exception ex)
             {

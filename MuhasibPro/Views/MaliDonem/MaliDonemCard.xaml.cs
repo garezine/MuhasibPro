@@ -1,7 +1,7 @@
+using Muhasib.Business.Models.SistemModel;
+
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
-
-using Muhasib.Business.Models.SistemModel;
 
 namespace MuhasibPro.Views.MaliDonem
 {
@@ -11,8 +11,6 @@ namespace MuhasibPro.Views.MaliDonem
         {
             InitializeComponent();
         }
-       
-
         #region Item
         public MaliDonemModel Item
         {

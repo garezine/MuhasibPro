@@ -21,13 +21,13 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
         public async Task<string> GetCurrentAppVersionAsync()
         {
             var version = await _databaseManager.GetCurrentAppVersionAsync();
-            return version?.MevcutVersiyon ?? "1.0.0";
+            return version?.CurrentAppVersion ?? "1.0.0";
         }
 
         public async Task<string> GetCurrentSistemDbVersionAsync()
         {
             var version = await _databaseManager.GetCurrentSistemDbVersionAsync();
-            return version?.MevcutDbVersiyon ?? "1.0.0";
+            return version?.CurrentDatabaseVersion ?? "1.0.0";
         }
 
         public async Task<bool> UpdateAppVersionAsync(string newVersion)

@@ -16,16 +16,16 @@ namespace MuhasibPro.Views.MaliDonem
         public MaliDonemView()
         {
             InitializeComponent();
-            ViewModel = ServiceLocator.Current.GetService<MaliDonemViewModel>();
+            ViewModel = ServiceLocator.Current.GetService<MaliDonemDetailsViewModel>();
             NavigationService = ServiceLocator.Current.GetService<INavigationService>();
         }
-        public MaliDonemViewModel ViewModel { get; }
-        public INavigationService NavigationService { get;}
+        public MaliDonemDetailsViewModel ViewModel { get; }
+        public INavigationService NavigationService { get; }
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             ViewModel.Subscribe();
             await ViewModel.LoadAsync(e.Parameter as MaliDonemDetailsArgs);
-            if (ViewModel.MaliDonemDetails.IsEditMode)
+            if (ViewModel.IsEditMode)
             {
                 await Task.Delay(100);
                 details.SetFocus();
@@ -36,6 +36,5 @@ namespace MuhasibPro.Views.MaliDonem
             ViewModel.Unload();
             ViewModel.Unsubscribe();
         }
-       
     }
 }

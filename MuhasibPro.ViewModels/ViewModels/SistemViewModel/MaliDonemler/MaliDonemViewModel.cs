@@ -8,29 +8,31 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
 {
     public class MaliDonemViewModel : ViewModelBase
     {
-        public MaliDonemViewModel(ICommonServices commonServices, IMaliDonemService maliDonemService, ITenantWorkflowService workflowService) : base(commonServices)
+        public MaliDonemViewModel(ICommonServices commonServices, IMaliDonemService maliDonemService, ITenantSQLiteWorkflowService workflowService) : base(commonServices)
         {
             MaliDonemService = maliDonemService;
-            WorkflowService = workflowService;
+            //WorkflowService = workflowService;
+
             MaliDonemList = new MaliDonemListViewModel(commonServices, maliDonemService);
             MaliDonemDetails = new MaliDonemDetailsViewModel(commonServices, maliDonemService,workflowService);
         }
         public IMaliDonemService MaliDonemService { get; }
-        public ITenantWorkflowService WorkflowService { get; }
+        //public ITenantWorkflowService WorkflowService { get; }
         public MaliDonemListViewModel MaliDonemList { get; set; }
         public MaliDonemDetailsViewModel MaliDonemDetails { get; set; }
         
         public async Task LoadAsync(MaliDonemDetailsArgs args)
         {
+            //await MaliDonemList.LoadAsync(args);
             await MaliDonemDetails.LoadAsync(args);
             long firmaID = args?.FirmaId ?? 0;
-            if (firmaID > 0) 
+            if (firmaID > 0)
             {
-                await MaliDonemList.LoadAsync(new MaliDonemListArgs { FirmaId = args.FirmaId },silent:true);
+                await MaliDonemList.LoadAsync(new MaliDonemListArgs { FirmaId = args.FirmaId }, silent: true);
             }
             else
             {
-                await MaliDonemList.LoadAsync(new MaliDonemListArgs { IsEmpty =true}, silent:false);
+                await MaliDonemList.LoadAsync(new MaliDonemListArgs { IsEmpty = true }, silent: false);
             }
         }
         public void Unload()
@@ -41,7 +43,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
 
         public void Subscribe()
         {
-            MessageService.Subscribe<MaliDonemDetailsViewModel,MaliDonemModel>(this, OnMessage);
+            MessageService.Subscribe<MaliDonemListViewModel>(this, OnMessage);
             MaliDonemList.Subscribe();
             MaliDonemDetails.Subscribe();
            
@@ -54,18 +56,48 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
             
         }
 
-        private async void OnMessage(MaliDonemDetailsViewModel viewModel, string message, MaliDonemModel maliDonem)
+        private async void OnMessage(MaliDonemListViewModel viewModel, string message, object args)
         {
-            if (viewModel == MaliDonemDetails && message == "ItemSelected")
+            if (viewModel == MaliDonemList && message == "ItemSelected")
             {
-                await ContextService.RunAsync(async () =>
+                await ContextService.RunAsync(() =>
                 {
-                    await MaliDonemList.LoadAsync(new MaliDonemListArgs { FirmaId = maliDonem.FirmaId });
+                    OnItemSelected();
                 });
             }
         }
+        private async void OnItemSelected()
+        {
+            if (MaliDonemDetails.IsEditMode)
+            {
+                StatusReady();
+                MaliDonemDetails.CancelEdit();
+            }
+            var selected = MaliDonemList.SelectedItem;
+            if (!MaliDonemList.IsMultipleSelection)
+            {
+                if (selected != null && !selected.IsEmpty)
+                {
+                    await PopulateDetails(selected);
+                }
+            }
+            MaliDonemDetails.Item = selected;
+        }
 
-      
+        private async Task PopulateDetails(MaliDonemModel selected)
+        {
+            try
+            {
+                var model = await MaliDonemService.GetByMaliDonemIdAsync(selected.Id);
+                selected.Merge(model.Data);
+            }
+            catch (Exception ex)
+            {
+                LogSistemException("Mali Dönem", "Detaylar", ex);
+            }
+        }
+
+
     }
 
 }

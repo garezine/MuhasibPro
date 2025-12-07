@@ -39,18 +39,35 @@ namespace Muhasib.Business.Services.Concrete.SistemServices
         {
             try
             {
-                var item = await _firmaRepository.GetByFirmaId(id);
-                if(item == null)
+                var item = await GetByFirmaIdAsync(_firmaRepository,_bitmapTools, id);
+                if(item.Data == null)
                 {
                     return new ErrorApiDataResponse<FirmaModel>(data: null, message: $"Firma bulunamadı. ID: {id}");
                 }
-
-                var model = await CreateFirmaModelAsync(item, includeAllFields: true, bitmapToolsService: _bitmapTools);
-                return new SuccessApiDataResponse<FirmaModel>(model, "Firma verileri işlemi başarılı");
+                
+                return new SuccessApiDataResponse<FirmaModel>(item.Data, "Firma verileri işlemi başarılı");
             } catch(Exception ex)
             {
                 await _logService.SistemLogService
                     .SistemLogException(nameof(FirmaService), nameof(GetByFirmaIdAsync), ex);
+                return new ErrorApiDataResponse<FirmaModel>(data: null, message: ex.Message);
+            }
+        }
+        private static async Task<ApiDataResponse<FirmaModel>> GetByFirmaIdAsync(IFirmaRepository repository, IBitmapToolsService bitmapTools, long id)
+        {
+            try
+            {
+                var item = await repository.GetByFirmaId(id);
+                if (item == null)
+                {
+                    return new ErrorApiDataResponse<FirmaModel>(data: null, message: $"Firma bulunamadı. ID: {id}");
+                }
+
+                var model = await CreateFirmaModelAsync(item, includeAllFields: true, bitmapTools);
+                return new SuccessApiDataResponse<FirmaModel>(model, "Firma verileri işlemi başarılı");
+            }
+            catch (Exception ex)
+            {               
                 return new ErrorApiDataResponse<FirmaModel>(data: null, message: ex.Message);
             }
         }
@@ -216,7 +233,7 @@ namespace Muhasib.Business.Services.Concrete.SistemServices
         public static async Task<FirmaModel> CreateFirmaModelAsync(
             Firma source,
             bool includeAllFields,
-            IBitmapToolsService bitmapToolsService = null)
+            IBitmapToolsService bitmapToolsService)
         {
             if(source == null)
             {
@@ -232,7 +249,7 @@ namespace Muhasib.Business.Services.Concrete.SistemServices
                     Adres = source.Adres,
                     Eposta = source.Eposta,
                     KisaUnvani = source.KisaUnvani,
-                    LogoOnizleme = source.LogoOnizleme,
+                    LogoOnizleme = source.LogoOnizleme,                    
                     LogoOnizlemeSource = await bitmapToolsService.LoadBitmapAsync(source.LogoOnizleme),
                     PostaKodu = source.PostaKodu,
                     TamUnvani = source.TamUnvani,
@@ -244,8 +261,7 @@ namespace Muhasib.Business.Services.Concrete.SistemServices
                     AktifMi = source.AktifMi,
                     KaydedenId = source.KaydedenId,
                     KayitTarihi = source.KayitTarihi,
-                    GuncelleyenId = source.GuncelleyenId,
-                    GuncellemeTarihi = source.GuncellemeTarihi,
+                    
                 };
 
                 if(includeAllFields)
@@ -292,7 +308,7 @@ namespace Muhasib.Business.Services.Concrete.SistemServices
 
             //Base fields
             target.AktifMi = source.AktifMi;
-            target.KaydedenId = source.KaydedenId;
+            target.GuncellemeTarihi = source.GuncellemeTarihi;
             target.GuncelleyenId = source.GuncelleyenId;
         }
 

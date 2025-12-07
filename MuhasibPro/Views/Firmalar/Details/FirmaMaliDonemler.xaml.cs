@@ -11,12 +11,12 @@ namespace MuhasibPro.Views.Firmalar.Details
         {
             InitializeComponent();
         }
-        private void MaliDonemList_Loaded(object sender, RoutedEventArgs e)
+        private void OnLoadFirmaMaliDonemler(object sender, RoutedEventArgs e)
         {
-            if (pageTableView != null && dataList.ConfigControl != null)
-            {
-                dataList.ConfigControl.AttachTableView(pageTableView);
-            }
+            //if (pageTableView != null && dataList.ConfigControl != null)
+            //{
+            //    dataList.ConfigControl.AttachTableView(pageTableView);
+            //}
         }
         #region ViewModel
         public MaliDonemListViewModel ViewModel
@@ -27,6 +27,5 @@ namespace MuhasibPro.Views.Firmalar.Details
 
         public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register("ViewModel", typeof(MaliDonemListViewModel), typeof(FirmaMaliDonemler), new PropertyMetadata(null));
         #endregion 
-    
     }
 }

@@ -25,9 +25,10 @@ public static class AddAppViewModelHostBuilderExtensions
 
             services.AddTransient<FirmalarViewModel>();
             services.AddTransient<FirmaDetailsViewModel>();
+            services.AddTransient<FirmaDetailsWithMaliDonemlerViewModel>();
 
             services.AddTransient<MaliDonemViewModel>();
-            services.AddTransient<MaliDonemDetailsViewModel>();            
+            services.AddTransient<MaliDonemDetailsViewModel>();
 
             services.AddTransient<SistemLogsViewModel>();
 

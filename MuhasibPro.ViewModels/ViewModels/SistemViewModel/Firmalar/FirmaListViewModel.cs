@@ -3,7 +3,6 @@ using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Data.Common;
 using Muhasib.Domain.Entities.SistemEntity;
 using Muhasib.Domain.Enum;
-using Muhasib.Domain.Exceptions;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
@@ -17,7 +16,10 @@ public class FirmaListArgs
 {
     public static FirmaListArgs CreateEmpty() => new() { IsEmpty = true };
 
-    public FirmaListArgs() { OrderBy = r => r.KisaUnvani; }
+    public FirmaListArgs() 
+    { 
+        OrderBy = r => r.KisaUnvani;        
+    }
 
     public bool IsEmpty { get; set; }
 
