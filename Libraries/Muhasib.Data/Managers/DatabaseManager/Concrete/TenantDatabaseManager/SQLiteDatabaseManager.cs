@@ -95,12 +95,13 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                     // Attempt sayısına göre bekleme süresi
                     await Task.Delay(100 * attempt, cancellationToken);
 
-                    File.Delete(_dbContextFactory.GetTenantDatabaseFilePath(databaseName));
+                    File.Delete(_dbContextFactory.GetTenantDatabaseFilePath(databaseName));                    
 
                     _logger.LogInformation(
                         "Database deleted: {DatabaseName} (attempt {Attempt})",
                         databaseName,
                         attempt);
+                    await _backupManager.CleanupSqliteWalFilesAsync(databaseName);
                     return true;
                 } catch(IOException ex) when (attempt < 3)
                 {

@@ -227,18 +227,29 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
 
         public void CleanupSqliteWalFiles(string databaseName)
         {
-            var dbPath = GetTenantDatabaseFilePath(databaseName);
-            var walPath = dbPath + "-wal";
-            var shmPath = dbPath + "-shm";
-
             try
             {
-                if(File.Exists(walPath))
+                var dbPath = GetTenantDatabaseFilePath(databaseName);
+
+                // WAL ve SHM dosyalarını sil
+                var walPath = dbPath + "-wal";
+                var shmPath = dbPath + "-shm";
+
+                if (File.Exists(walPath))
+                {
                     File.Delete(walPath);
-                if(File.Exists(shmPath))
+                    
+                }
+
+                if (File.Exists(shmPath))
+                {
                     File.Delete(shmPath);
-            } catch
-            { /* Log ama exception fırlatma */
+                    
+                }
+            }
+            catch
+            {
+                
             }
         }
         #endregion

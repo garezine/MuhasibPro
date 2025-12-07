@@ -1,4 +1,5 @@
 ﻿using Muhasib.Data.Managers.DatabaseManager.Models;
+using System.Threading.Tasks;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
 {
@@ -29,5 +30,6 @@ namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
         /// </summary>
         Task<bool> IsValidBackupFileAsync(string backupFileName);
         DateTime? GetLastBackupDate(string databaseName);
+        Task CleanupSqliteWalFilesAsync(string databaseName, CancellationToken cancellationToken = default);
     }
 }

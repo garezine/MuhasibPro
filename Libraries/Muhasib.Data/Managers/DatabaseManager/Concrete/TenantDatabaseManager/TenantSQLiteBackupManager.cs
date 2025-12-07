@@ -33,13 +33,25 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                     return false;
                 }
 
+                // ⭐ 1. ÖNCE WAL CHECKPOINT YAP
+                await ExecuteWalCheckpointAsync(databaseName, cancellationToken);
+
+                // ⭐ 2. WAL dosyalarını temizle
+                await CleanupSqliteWalFilesAsync(databaseName,cancellationToken);
+
+                // ⭐ 3. Kısa bekle (file lock'lar temizlensin)
+                await Task.Delay(50, cancellationToken);
+
                 var backupDir = _applicationPaths.GetTenantBackupFolderPath();
                 var backupFileName = GenerateBackupFileName(databaseName);
                 var backupPath = Path.Combine(backupDir, backupFileName);
-                
+
+                // ⭐ 4. ŞİMDİ backup al (temiz database dosyası)
                 await SafeFileCopyAsync(sourcePath, backupPath, cancellationToken);
 
-                _logger?.LogInformation("Backup oluşturuldu: {DatabaseName} -> {BackupPath}", databaseName, backupFileName);
+                _logger?.LogInformation(
+                    "Backup oluşturuldu: {DatabaseName} -> {BackupPath}",
+                    databaseName, backupFileName);
                 return true;
             }
             catch (Exception ex)
@@ -50,9 +62,40 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
         }
 
         /// <summary>
+        /// WAL checkpoint yapar (transaction'ları ana dosyaya yazar)
+        /// </summary>
+        private async Task ExecuteWalCheckpointAsync(string databaseName, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var dbPath = _applicationPaths.GetTenantDatabaseFilePath(databaseName);
+                var connectionString = $"Data Source={dbPath};Pooling=False"; // ⭐ Pooling kapalı
+
+                await using var connection = new SqliteConnection(connectionString);
+                await connection.OpenAsync(cancellationToken);
+
+                // WAL checkpoint komutu - transaction'ları ana dosyaya yazar
+                await using var command = connection.CreateCommand();
+                command.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+                var result = await command.ExecuteScalarAsync(cancellationToken);
+
+                _logger?.LogDebug("WAL checkpoint tamamlandı: {DatabaseName}, Result: {Result}",
+                    databaseName, result);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "WAL checkpoint başarısız: {DatabaseName}", databaseName);
+                // Kritik değil, devam et (backup hala alınabilir)
+            }
+        }
+
+        /// <summary>
         /// Backup'tan geri yükler
         /// </summary>
-        public async Task<bool> RestoreBackupAsync(string databaseName, string backupFileName, CancellationToken cancellationToken = default)
+        public async Task<bool> RestoreBackupAsync(
+            string databaseName,
+            string backupFileName,
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -67,16 +110,28 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
 
                 var targetPath = _applicationPaths.GetTenantDatabaseFilePath(databaseName);
 
-                // Hedef dosya varsa yedek al (opsiyonel)
+                // Hedef dosya varsa safety backup al
                 if (File.Exists(targetPath))
                 {
                     var tempBackup = $"{databaseName}_before_restore_{DateTime.Now:yyyyMMdd_HHmmss}.temp";
-                    await SafeFileCopyAsync(targetPath, Path.Combine(backupDir, tempBackup), cancellationToken);
+                    var tempBackupPath = Path.Combine(backupDir, tempBackup);
+
+                    // ⭐ Mevcut DB'nin WAL checkpoint'ini yap
+                    await ExecuteWalCheckpointAsync(databaseName, cancellationToken);
+                    await SafeFileCopyAsync(targetPath, tempBackupPath, cancellationToken);
+
+                    _logger?.LogInformation("Safety backup alındı: {TempBackup}", tempBackup);
                 }
 
+                // Backup'ı geri yükle
                 await SafeFileCopyAsync(backupPath, targetPath, cancellationToken);
 
-                _logger?.LogInformation("Backup geri yüklendi: {BackupFileName} -> {DatabaseName}", backupFileName, databaseName);
+                // ⭐ Geri yükleme sonrası WAL dosyalarını temizle
+                await CleanupSqliteWalFilesAsync(databaseName,cancellationToken);
+
+                _logger?.LogInformation(
+                    "Backup geri yüklendi: {BackupFileName} -> {DatabaseName}",
+                    backupFileName, databaseName);
                 return true;
             }
             catch (Exception ex)
@@ -171,7 +226,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
         }
 
         /// <summary>
-        //Backup dosyasını doğrular
+        /// Backup dosyasını doğrular
         /// </summary>
         public Task<bool> IsValidBackupFileAsync(string backupFileName)
         {
@@ -199,7 +254,6 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
         {
             try
             {
-
                 var backupDir = _applicationPaths.GetTenantBackupFolderPath();
                 if (!Directory.Exists(backupDir))
                     return null;
@@ -208,7 +262,6 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                     .Select(filePath => new FileInfo(filePath))
                     .OrderByDescending(f => f.CreationTime)
                     .FirstOrDefault();
-               
 
                 return lastBackup?.CreationTime;
             }
@@ -217,37 +270,42 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                 return null;
             }
         }
-       
+
+        /// <summary>
+        /// Güvenli dosya kopyalama
+        /// </summary>
         private async Task SafeFileCopyAsync(string source, string dest, CancellationToken cancellationToken)
         {
             // SQLite bağlantılarını temizle
             SqliteConnection.ClearAllPools();
 
-            // Kısa bekleme
+            // Kısa bekleme (file lock'lar temizlensin)
             await Task.Delay(100, cancellationToken);
 
             // Dosyayı kopyala
             await using var sourceStream = new FileStream(
-                source, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
+                source, FileMode.Open, FileAccess.Read, FileShare.Read,
+                bufferSize: 4096, useAsync: true);
 
             await using var destStream = new FileStream(
-                dest, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true);
+                dest, FileMode.Create, FileAccess.Write, FileShare.None,
+                bufferSize: 4096, useAsync: true);
 
             await sourceStream.CopyToAsync(destStream, cancellationToken);
         }
+
         private string GenerateBackupFileName(string databaseName)
         {
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            var guid = Guid.NewGuid().ToString("N").Substring(0, 4); // 4 karakter yeterli
+            var guid = Guid.NewGuid().ToString("N").Substring(0, 4);
             return $"{databaseName}_{timestamp}_{guid}.backup";
         }
+
         private BackupType DetermineBackupType(string fileName)
         {
-            // Dosya adı pattern'lerine göre backup tipini belirle
             if (string.IsNullOrEmpty(fileName))
                 return BackupType.Manual;
 
-            // Küçük/büyük harf duyarsız kontrol
             var lowerFileName = fileName.ToLowerInvariant();
 
             if (lowerFileName.Contains("before_restore") ||
@@ -271,8 +329,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                 lowerFileName.Contains("_internal_"))
                 return BackupType.System;
 
-            // Default: Manuel backup
             return BackupType.Manual;
         }
+
+        public Task CleanupSqliteWalFilesAsync(string databaseName, CancellationToken cancellationToken = default)
+         => Task.Run(() => _applicationPaths.CleanupSqliteWalFiles(databaseName), cancellationToken);
     }
 }

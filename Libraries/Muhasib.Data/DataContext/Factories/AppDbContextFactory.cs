@@ -124,5 +124,7 @@ namespace Muhasib.Data.DataContext.Factories
 
 
         public long GetDatabaseSize(string databaseName) => _applicationPaths.GetDatabaseSize(databaseName);
+
+        
     }
 }
