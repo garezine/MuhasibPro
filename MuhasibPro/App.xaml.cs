@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.Globalization;
 using Muhasib.Business.HostBuilders;
-using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
+using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
 using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase;
 using MuhasibPro.Contracts.CoreServices;
@@ -120,8 +120,8 @@ public partial class App : Application
         try
         {
             var systemService = _host.Services.GetRequiredService<ISistemDatabaseService>();
-            var success = await systemService.ApplyDatabaseUpdatesAsync();
-            if (!success)
+            var success = await systemService.InitializeDatabaseAsync();
+            if (!success.Success)
             {
                 Debug.WriteLine("Database initialization completed with warnings");
                 // FALLBACK: Database servisi kullanılamazsa direkt manager'ı dene
@@ -155,7 +155,7 @@ public partial class App : Application
         try
         {
             var sistemService = ServiceLocator.Current.GetService<ISistemDatabaseService>();
-            var systemStatus = await sistemService.GetSystemStatusAsync();
+            var systemStatus = await sistemService.TestConnectionAsync();
             Debug.WriteLine($"System Status: {systemStatus}");
         }
         catch (Exception ex)

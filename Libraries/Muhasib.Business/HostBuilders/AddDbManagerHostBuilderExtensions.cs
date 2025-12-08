@@ -16,7 +16,6 @@ using Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantDatabaseManager;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager;
 using Muhasib.Data.Managers.UpdataManager;
-using Muhasib.Domain.Enum;
 
 namespace Muhasib.Business.HostBuilders
 {
@@ -29,15 +28,15 @@ namespace Muhasib.Business.HostBuilders
                 {
                     services.AddDbContext<SistemDbContext>((provider, options) =>
                     {
-                        var paths = provider.GetRequiredService<IApplicationPaths>();
-                        var dbPath = paths.GetDatabasesFolderPath();
-                        var connectionString = $"Data Source={Path.Combine(dbPath, DatabaseConstants.SISTEM_DB_NAME)};Mode=ReadWriteCreate;";
+                        var dbPath = provider.GetRequiredService<IApplicationPaths>();
+                        var connectionString = $"Data Source={dbPath};Mode=ReadWriteCreate;";                       
 
                         options.UseSqlite(connectionString, sqliteOptions =>
                         {
                             sqliteOptions.CommandTimeout(30);
-                            sqliteOptions.MigrationsAssembly("Muhasib.Data"); // ⭐ Migration assembly belirt
+                            //sqliteOptions.MigrationsAssembly("Muhasib.Data"); // ⭐ Migration assembly belirt
                         });
+                      
 
 #if DEBUG
                         options.EnableSensitiveDataLogging();
@@ -64,16 +63,22 @@ namespace Muhasib.Business.HostBuilders
 
                     //Sistem Database Managers
                     services.AddSingleton<ISistemDatabaseManager, SistemDatabaseManager>();
+                    services.AddSingleton<ISistemBackupManager, SistemBackupManager>();                    
+                    services.AddSingleton<ISistemMigrationManager, SistemMigrationManager>();
+                    
+
                     services.AddSingleton<ISistemDatabaseService, SistemDatabaseService>();
-                    services.AddSingleton<ISistemDatabaseUpdateService, SistemDatabaseUpdateService>();
+                    services.AddSingleton<ISistemDatabaseOperationService, SistemDatabaseOperationService>();
+                    
+                    
                     services.AddScoped<ILocalUpdateManager, LocalUpdateManager>();
 
 
                     // Managers
 
                     services.AddSingleton<IAppDbContextFactory, AppDbContextFactory>();
-                    services.AddSingleton<ISQLiteConnectionStringFactory, SQLiteConnectionStringFactory>();
-                    services.AddSingleton<ISQLiteDatabaseManager, SQLiteDatabaseManager>();
+                    services.AddSingleton<ITenantSQLiteConnectionStringFactory, TenantSQLiteConnectionStringFactory>();
+                    services.AddSingleton<ITenantSQLiteDatabaseManager, TenantSQLiteDatabaseManager>();
                     services.AddSingleton<ITenantSQLiteBackupManager, TenantSQLiteBackupManager>();
                     services.AddSingleton<ITenantSQLiteConnectionManager, TenantSQLiteConnectionManager>();
                     services.AddSingleton<ITenantSQLiteMigrationManager, TenantSQLiteMigrationManager>();

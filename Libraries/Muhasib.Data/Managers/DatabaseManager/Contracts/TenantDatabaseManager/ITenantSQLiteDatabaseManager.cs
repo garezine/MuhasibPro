@@ -2,7 +2,7 @@
 
 namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
 {
-    public interface ISQLiteDatabaseManager
+    public interface ITenantSQLiteDatabaseManager
     {
         /// <summary>
         /// Yeni database oluşturur (migration'ları çalıştırır)

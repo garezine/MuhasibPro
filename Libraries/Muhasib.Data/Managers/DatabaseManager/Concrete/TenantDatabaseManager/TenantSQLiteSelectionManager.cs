@@ -9,7 +9,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
     public class TenantSQLiteSelectionManager : ITenantSQLiteSelectionManager
     {
         private readonly IAppDbContextFactory _dbContextFactory;
-        private readonly ISQLiteConnectionStringFactory _connectionStringFactory;
+        private readonly ITenantSQLiteConnectionStringFactory _connectionStringFactory;
         private TenantContext _currentTenant;
         private readonly ILogger<TenantSQLiteSelectionManager> _logger;
         private readonly object _tenantLock = new object();
@@ -17,7 +17,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
         // ⭐ Constructor düzeltildi: Kullanılmayan dependency çıkarıldı
         public TenantSQLiteSelectionManager(
             IAppDbContextFactory dbContextFactory,
-            ISQLiteConnectionStringFactory connectionStringFactory,
+            ITenantSQLiteConnectionStringFactory connectionStringFactory,
             ILogger<TenantSQLiteSelectionManager> logger) // ⭐ connectionManager ÇIKARILDI
         {
             _currentTenant = TenantContext.Empty;

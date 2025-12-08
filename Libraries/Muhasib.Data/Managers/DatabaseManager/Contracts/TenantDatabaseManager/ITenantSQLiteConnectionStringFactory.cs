@@ -3,7 +3,7 @@ using Muhasib.Domain.Enum;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
 {
-    public interface ISQLiteConnectionStringFactory
+    public interface ITenantSQLiteConnectionStringFactory
     {
         /// <summary>
         /// Database adı ve tip'e göre connection string oluşturur

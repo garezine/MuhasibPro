@@ -1,72 +1,82 @@
 ﻿using Microsoft.Extensions.Logging;
 using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
+using Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase;
-using System.Diagnostics;
+using Muhasib.Data.Utilities.Responses;
+using Muhasib.Domain.Enum;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
 {
     public class SistemDatabaseService : ISistemDatabaseService
     {
+        public ISistemDatabaseOperationService SistemDatabaseOperation { get; }
         private readonly ISistemDatabaseManager _databaseManager;
         private readonly ILogger<SistemDatabaseService> _logger;
-
+        private const string databaseName = DatabaseConstants.SISTEM_DB_NAME;
         public SistemDatabaseService(
+            ISistemDatabaseOperationService operationService,
             ISistemDatabaseManager databaseManager,
             ILogger<SistemDatabaseService> logger)
         {
+            SistemDatabaseOperation = operationService;
             _databaseManager = databaseManager;
             _logger = logger;
         }
+        public async Task<ApiDataResponse<bool>> InitializeDatabaseAsync()
+        { 
+            try
+            {
+                // ✅ Önce database'in var olup OLMADIĞINI kontrol et
+                var existsResponse = await ValidateConnectionAsync();
+                if (!existsResponse.Success && !existsResponse.Data) // Data=true ise database VAR
+                {
+                    return new ErrorApiDataResponse<bool>(
+                        existsResponse.Success,
+                        $"'{databaseName}' veritabanı bulunamadı mevcut",
+                        false,
+                        ResultCodes.HATA_Bulunamadi); // Özel result code
+                }
 
-        public async Task<string> GetCurrentAppVersionAsync()
-        {
-            var version = await _databaseManager.GetCurrentAppVersionAsync();
-            return version?.CurrentAppVersion ?? "1.0.0";
-        }
+                // ✅ Create database
+                var created = await _databaseManager.InitializeDatabaseAsync();
+                if (!created)
+                    return new ErrorApiDataResponse<bool>(created, "Veritabanı oluşturulamadı");
 
-        public async Task<string> GetCurrentSistemDbVersionAsync()
-        {
-            var version = await _databaseManager.GetCurrentSistemDbVersionAsync();
-            return version?.CurrentDatabaseVersion ?? "1.0.0";
-        }
+                // ✅ Double-check: Database gerçekten oluştu mu?
+                var verifyResponse = await ValidateConnectionAsync();
+                if (!verifyResponse.Success || !verifyResponse.Data)
+                {
+                    _logger.LogWarning("Database oluşturuldu ama doğrulama başarısız: {DatabaseName}", databaseName);
+                    // Kritik değil, sadece warning
+                }
+                return new SuccessApiDataResponse<bool>(
+                    verifyResponse.Success,
+                    "Veritabanı başarıyla oluşturuldu",
+                    true,
+                    ResultCodes.BASARILI_Olusturuldu); // Özel result code
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Database creation failed: {DatabaseName}", databaseName);                
 
-        public async Task<bool> UpdateAppVersionAsync(string newVersion)
-        {
-            // İleride implement edilecek
-            _logger.LogInformation("UpdateAppVersionAsync called with version: {Version}", newVersion);
-            return await Task.FromResult(true);
+                return new ErrorApiDataResponse<bool>(
+                    false,
+                    $"Veritabanı oluşturma hatası: {ex.Message}",
+                    false,
+                    ResultCodes.HATA_Olusturulamadi);
+            }
         }
+       
+        #region Connection Service
+       
 
-        public async Task<bool> UpdateSistemDbVersionAsync(string newVersion)
-        {
-            // İleride implement edilecek
-            _logger.LogInformation("UpdateSistemDbVersionAsync called with version: {Version}", newVersion);
-            return await Task.FromResult(true);
-        }
 
-        public async Task<bool> CheckForUpdatesAsync()
-        {
-            // Velopack integration - ileride
-            return await Task.FromResult(false);
-        }
+        public Task<ApiDataResponse<string>> TestConnectionAsync()
+            => SistemDatabaseOperation.TestConnectionAsync();
 
-        public async Task<bool> ApplyDatabaseUpdatesAsync()
-        {
-            return await _databaseManager.InitializeDatabaseAsync();
-        }
 
-        public async Task<bool> IsSystemHealthyAsync()
-        {
-            return await _databaseManager.ValidateDatabaseAsync();
-        }
-
-        public async Task<string> GetSystemStatusAsync()
-        {
-            var isHealthy = await IsSystemHealthyAsync();
-            var appVersion = await GetCurrentAppVersionAsync();
-            var dbVersion = await GetCurrentSistemDbVersionAsync();
-            Debug.Write($"System: {(isHealthy ? "Healthy" : "Unhealthy")}, App: {appVersion}, DB: {dbVersion}");
-            return $"System: {(isHealthy ? "Healthy" : "Unhealthy")}, App: {appVersion}, DB: {dbVersion}";
-        }
+        public Task<ApiDataResponse<bool>> ValidateConnectionAsync()
+            => SistemDatabaseOperation.ValidateConnectionAsync(); 
+        #endregion
     }
 }

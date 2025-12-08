@@ -1,4 +1,5 @@
-﻿using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
+﻿using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
+using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.Services.Infrastructure.CommonServices;
 using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
@@ -71,18 +72,18 @@ namespace MuhasibPro.Configurations
                     return false;
 
                 System.Diagnostics.Debug.WriteLine("4. IsSystemHealthyAsync çağrılıyor...");
-                var connection = await sistemDbService.IsSystemHealthyAsync();
+                var connection = await sistemDbService.TestConnectionAsync();
 
                 System.Diagnostics.Debug.WriteLine($"5. Connection sonucu: {connection}");
 
-                if (connection && statusBarService != null)
+                if (connection.Success && statusBarService != null)
                 {
                     System.Diagnostics.Debug.WriteLine("6. Status bar güncelleniyor...");
-                    statusBarService.SetDatabaseStatus(connection, "Sistem Db");
+                    statusBarService.SetDatabaseStatus(connection.Success, "Sistem Db");
                 }
 
                 System.Diagnostics.Debug.WriteLine("7. Test tamamlandı");
-                return connection;
+                return connection.Success;
             }
             catch (Exception ex)
             {

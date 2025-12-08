@@ -7,12 +7,12 @@ namespace Muhasib.Data.DataContext.Factories
 {
     public class AppDbContextFactory : IAppDbContextFactory
     {
-        private readonly ISQLiteConnectionStringFactory _connectionStringFactory;
+        private readonly ITenantSQLiteConnectionStringFactory _connectionStringFactory;
         private readonly IApplicationPaths _applicationPaths;
         private readonly ILogger<AppDbContextFactory> _logger;
 
         public AppDbContextFactory(
-            ISQLiteConnectionStringFactory connectionStringFactory,
+            ITenantSQLiteConnectionStringFactory connectionStringFactory,
             IApplicationPaths applicationPaths,
             ILogger<AppDbContextFactory> logger = null)
         {
@@ -111,7 +111,7 @@ namespace Muhasib.Data.DataContext.Factories
             }
         }
 
-        public bool TenantDatabaseFileExists(string databaseName) => _applicationPaths.DatabaseFileExists(databaseName);
+        public bool TenantDatabaseFileExists(string databaseName) => _applicationPaths.TenantDatabaseFileExists(databaseName);
 
 
         public string GetTenantDatabaseFilePath(string databaseName) => _applicationPaths.GetTenantDatabaseFilePath(
@@ -120,10 +120,10 @@ namespace Muhasib.Data.DataContext.Factories
         /// <summary>
         /// Database dosyası var mı ve boş değil mi kontrol eder
         /// </summary>
-        public bool IsDatabaseSizeValid(string databaseName) => _applicationPaths.IsDatabaseSizeValid(databaseName);
+        public bool IsDatabaseSizeValid(string databaseName) => _applicationPaths.IsTenantDatabaseSizeValid(databaseName);
 
 
-        public long GetDatabaseSize(string databaseName) => _applicationPaths.GetDatabaseSize(databaseName);
+        public long GetDatabaseSize(string databaseName) => _applicationPaths.GetTenantDatabaseSize(databaseName);
 
         
     }

@@ -8,13 +8,13 @@ using Muhasib.Data.Managers.DatabaseManager.Models;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
 {
-    public class SQLiteDatabaseManager : ISQLiteDatabaseManager
+    public class TenantSQLiteDatabaseManager : ITenantSQLiteDatabaseManager
     {
-        private readonly ILogger<SQLiteDatabaseManager> _logger;
+        private readonly ILogger<TenantSQLiteDatabaseManager> _logger;
         private readonly IAppDbContextFactory _dbContextFactory;
         private readonly ITenantSQLiteMigrationManager _migrationManager;
         private readonly ITenantSQLiteBackupManager _backupManager;
-        public SQLiteDatabaseManager(ILogger<SQLiteDatabaseManager> logger, IAppDbContextFactory dbContextFactory, ITenantSQLiteMigrationManager migrationManager, ITenantSQLiteBackupManager backupManager)
+        public TenantSQLiteDatabaseManager(ILogger<TenantSQLiteDatabaseManager> logger, IAppDbContextFactory dbContextFactory, ITenantSQLiteMigrationManager migrationManager, ITenantSQLiteBackupManager backupManager)
         {
             _logger = logger;
             _dbContextFactory = dbContextFactory;

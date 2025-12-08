@@ -14,14 +14,14 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         private readonly ILogService _logService;
         private readonly ILogger<TenantSQLiteDatabaseLifecycleService> _logger;        
         private readonly IDatabaseNamingService _databaseNamingService;
-        private readonly ISQLiteDatabaseManager _sqliteDatabaseManager;
+        private readonly ITenantSQLiteDatabaseManager _sqliteDatabaseManager;
         
 
         public TenantSQLiteDatabaseLifecycleService(
             ILogService logService,
             ILogger<TenantSQLiteDatabaseLifecycleService> logger,
             IDatabaseNamingService databaseNamingService,                       
-            ISQLiteDatabaseManager sqliteDatabaseManager)
+            ITenantSQLiteDatabaseManager sqliteDatabaseManager)
         {
             _logService = logService;
             _logger = logger;

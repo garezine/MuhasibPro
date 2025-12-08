@@ -1,19 +1,13 @@
-﻿namespace Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase
+﻿using Muhasib.Data.Utilities.Responses;
+
+namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
 {
     public interface ISistemDatabaseService
     {
-        // Version Management
-        Task<string> GetCurrentAppVersionAsync();
-        Task<string> GetCurrentSistemDbVersionAsync();
-        Task<bool> UpdateAppVersionAsync(string newVersion);
-        Task<bool> UpdateSistemDbVersionAsync(string newVersion);
-
-        // Velopack Integration (ileride)
-        Task<bool> CheckForUpdatesAsync();
-        Task<bool> ApplyDatabaseUpdatesAsync();
-
-        // System Status
-        Task<bool> IsSystemHealthyAsync();
-        Task<string> GetSystemStatusAsync();
+        Task<ApiDataResponse<bool>> InitializeDatabaseAsync();
+        //connection methods
+        Task<ApiDataResponse<bool>> ValidateConnectionAsync();
+        Task<ApiDataResponse<string>> TestConnectionAsync();
+        
     }
 }

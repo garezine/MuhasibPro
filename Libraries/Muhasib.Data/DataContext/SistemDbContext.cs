@@ -66,6 +66,7 @@ namespace Muhasib.Data.DataContext
             // SistemDbVersiyon için seed
             var initialSistemDbVersion = new AppDbVersion
             {
+                DatabaseName = "Sistem.db",
                 CurrentAppVersion = "1.0.0", // Base class property
                 CurrentAppVersionLastUpdate = new DateTime(2025, 09, 22),
                 PreviousAppVersiyon = null,

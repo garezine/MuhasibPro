@@ -13,7 +13,7 @@ public class UpdateService : IUpdateService
     private UpdateSettingsModel? _cachedSettings;
     private UpdateInfo _updateInfo;
 
-    private readonly ISistemDatabaseUpdateService _databaseUpdateService;
+    //private readonly ISistemDatabaseUpdateService _databaseUpdateService;
     private readonly ILocalUpdateManager _localUpdateManager;
 
     private const string REPO_URL = "https://github.com/garezine/MuhasibPro";
@@ -21,9 +21,9 @@ public class UpdateService : IUpdateService
 
     public bool IsUpdatePendingRestart => _updateManager?.UpdatePendingRestart != null;
 
-    public UpdateService(ISistemDatabaseUpdateService databaseUpdateService, ILocalUpdateManager localUpdateManager)
+    public UpdateService(ILocalUpdateManager localUpdateManager)
     {
-        _databaseUpdateService = databaseUpdateService;
+        //_databaseUpdateService = databaseUpdateService;
         _localUpdateManager = localUpdateManager;
         EnsureManager(true);
     }
@@ -150,41 +150,41 @@ public class UpdateService : IUpdateService
     }
 
     #region Veritabanı Güncelleme İşlemleri
-    public async Task<bool> PrepareForUpdateAsync()
+    public Task<bool> PrepareForUpdateAsync()
     {
         try
         {
             Debug.WriteLine("Güncelleme öncesi database hazırlığı başlatılıyor...");
 
             // Mevcut veritabanlarının durumunu kontrol et
-            var systemStatus = await _databaseUpdateService.GetOverallSystemStatusAsync();
-            Debug.WriteLine($"Database durumu: {systemStatus}");
+            //var systemStatus = await _databaseUpdateService.GetOverallSystemStatusAsync();
+            Debug.WriteLine($"Database durumunda hata");
 
             // Kritik: Güncelleme öncesi backup
             // Bu metodu DatabaseUpdateService'e ekleyeceğiz
 
-            return true;
+            return Task.FromResult(false);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Database hazırlık hatası: {ex}");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
-    public async Task<bool> PostUpdateDatabaseSyncAsync()
+    public Task<bool> PostUpdateDatabaseSyncAsync()
     {
         try
         {
             Debug.WriteLine("Güncelleme sonrası database senkronizasyonu başlatılıyor...");
 
             // Tüm veritabanlarını yeni versiyona göre güncelle
-            return await _databaseUpdateService.UpdateAllSystemDatabasesAsync();
+            return Task.FromResult(false);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Post-update database sync hatası: {ex}");
-            return false;
+            return Task.FromResult(false);
         }
     }
 

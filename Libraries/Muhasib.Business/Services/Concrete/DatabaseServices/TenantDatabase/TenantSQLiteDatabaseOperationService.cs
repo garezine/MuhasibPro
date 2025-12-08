@@ -12,7 +12,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 {
     public class TenantSQLiteDatabaseOperationService : ITenantSQLiteDatabaseOperationService
     {        
-        private readonly ISQLiteDatabaseManager _sqliteDatabaseManager;
+        private readonly ITenantSQLiteDatabaseManager _sqliteDatabaseManager;
         private readonly ITenantSQLiteBackupManager _sqliteBackupManager;
         private readonly ITenantSQLiteMigrationManager _sqlitemigrationManager;
         private readonly ILogService _logService;
@@ -20,7 +20,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 
         public TenantSQLiteDatabaseOperationService(
 
-            ISQLiteDatabaseManager sqliteDatabaseManager,
+            ITenantSQLiteDatabaseManager sqliteDatabaseManager,
             ILogService logService,
             ILogger<TenantSQLiteDatabaseOperationService> logger,
             ITenantSQLiteBackupManager sqliteBackupManager,

@@ -8,10 +8,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
     /// <summary>
     /// SADECE SQLite için connection string oluşturur
     /// </summary>
-    public class SQLiteConnectionStringFactory : ISQLiteConnectionStringFactory
+    public class TenantSQLiteConnectionStringFactory : ITenantSQLiteConnectionStringFactory
     {
         private readonly IApplicationPaths _applicationPaths;
-        private readonly ILogger<SQLiteConnectionStringFactory> _logger;
+        private readonly ILogger<TenantSQLiteConnectionStringFactory> _logger;
 
         // SQLite için optimal ayarlar
         private const SqliteOpenMode DefaultOpenMode = SqliteOpenMode.ReadWriteCreate;
@@ -19,9 +19,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
         private const int DefaultBusyTimeout = 5000;
         private const bool DefaultPooling = true;
 
-        public SQLiteConnectionStringFactory(
+        public TenantSQLiteConnectionStringFactory(
             IApplicationPaths applicationPaths,
-            ILogger<SQLiteConnectionStringFactory> logger)
+            ILogger<TenantSQLiteConnectionStringFactory> logger)
         {
             _applicationPaths = applicationPaths ?? throw new ArgumentNullException(nameof(applicationPaths));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -43,11 +43,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                     Mode = DefaultOpenMode,
                     Cache = DefaultCacheMode,
                     Pooling = DefaultPooling,
-                    ForeignKeys = true
+                    ForeignKeys = true,
+                    DefaultTimeout = DefaultBusyTimeout
                 };
-
-                builder.Add("Timeout", DefaultBusyTimeout);
-
                 var connectionString = builder.ToString();
 
                 _logger.LogDebug(

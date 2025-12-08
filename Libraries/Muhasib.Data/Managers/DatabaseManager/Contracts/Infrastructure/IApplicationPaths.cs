@@ -6,18 +6,20 @@
         // BASE PATHS - ROOT Determination
         // ============================================
         string SanitizeDatabaseName(string databaseName);
+
         /// <summary>
-        /// Kullanıcının AppData\Local\{appName} yolunu döndürür
-        /// Production ortamında kullanılır
+        /// Kullanıcının AppData\Local\{appName} yolunu döndürür Production ortamında kullanılır
         /// </summary>
         string GetAppDataFolderPath();
 
         /// <summary>
-        /// Geliştirme projesinin kök dizinini döndürür
-        /// Development ortamında kullanılır
+        /// Geliştirme projesinin kök dizinini döndürür Development ortamında kullanılır
         /// </summary>
-        
+        bool SistemDatabaseFileExists();
 
+        long GetSistemDatabaseSize();
+
+        bool IsSistemDatabaseSizeValid();
 
         // ============================================
         // DATABASE STRUCTURE PATHS
@@ -37,11 +39,10 @@
         /// <summary>
         /// [ROOT]/Databases/sistem.db dosya yolunu döndürür
         /// </summary>
-        string GetSystemDatabaseFilePath();
+        string GetSistemDatabaseFilePath();
 
         /// <summary>
-        /// [ROOT]/Databases/Tenant/{databaseName}.db dosya yolunu döndürür
-        /// Database adı güvenlik kontrollerinden geçer
+        /// [ROOT]/Databases/Tenant/{databaseName}.db dosya yolunu döndürür Database adı güvenlik kontrollerinden geçer
         /// </summary>
         /// <exception cref="ArgumentException">Geçersiz database adı</exception>
         string GetTenantDatabaseFilePath(string databaseName);
@@ -53,8 +54,8 @@
         // ============================================
 
         /// <summary>
-        /// [ROOT]/Backup/ klasör yolunu döndürür
-        /// </summary>
+/// [ROOT]/Backup/ klasör yolunu döndürür
+/// </summary>
         string GetBackupFolderPath();
 
         /// <summary>
@@ -69,8 +70,8 @@
         // ============================================
 
         /// <summary>
-        /// [ROOT]/Temp/ klasör yolunu döndürür
-        /// </summary>
+/// [ROOT]/Temp/ klasör yolunu döndürür
+/// </summary>
         string GetTempFolderPath();
 
 
@@ -79,11 +80,14 @@
         // ============================================
 
         /// <summary>
-        /// Verilen database adının dosyasının var olup olmadığını kontrol eder
-        /// </summary>
-        bool DatabaseFileExists(string databaseName);
-        bool IsDatabaseSizeValid(string databaseName);
-        long GetDatabaseSize(string databaseName);
+/// Verilen database adının dosyasının var olup olmadığını kontrol eder
+/// </summary>
+        bool TenantDatabaseFileExists(string databaseName);
+
+        bool IsTenantDatabaseSizeValid(string databaseName);
+
+        long GetTenantDatabaseSize(string databaseName);
+
         /// <summary>
         /// Temp klasöründe benzersiz bir dosya yolu oluşturur
         /// </summary>
@@ -95,6 +99,7 @@
         /// </summary>
         /// <param name="olderThan">Bu süreden eski dosyalar silinir</param>
         void CleanupTempFiles(TimeSpan olderThan);
+
         /// <summary>
         /// Database adını valide eder, geçersizse exception fırlatır
         /// </summary>

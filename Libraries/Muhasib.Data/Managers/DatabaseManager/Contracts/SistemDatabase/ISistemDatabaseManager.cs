@@ -1,19 +1,15 @@
 ﻿using Muhasib.Data.Managers.DatabaseManager.Models;
-using Muhasib.Domain.Entities.SistemEntity;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase
 {
     public interface ISistemDatabaseManager
     {
-        Task<bool> InitializeDatabaseAsync();
-        Task<bool> ValidateDatabaseAsync();
-        Task<bool> CreateManualBackupAsync();
-        Task<bool> IsFirstRunAsync();
-        Task<DatabaseHealthInfo> GetHealthInfoAsync();
-        Task<List<BackupFileInfo>> GetBackupHistoryAsync();
-        Task<bool> CheckSistemDatabaseConnectionAsync();
-        Task<AppVersion> GetCurrentAppVersionAsync();
-        Task<AppDbVersion> GetCurrentSistemDbVersionAsync();
+        Task<bool> InitializeDatabaseAsync(CancellationToken cancellationToken = default);
+        Task<DatabaseHealthInfo> GetHealthStatusAsync(CancellationToken cancellationToken = default);
+        Task<ConnectionTestResult> TestConnectionDetailedAsync(CancellationToken cancellationToken = default);
+        Task<(bool IsValid, string Message)> ValidateSistemDatabaseAsync(CancellationToken cancellationToken = default);
+
+
 
     }
 }

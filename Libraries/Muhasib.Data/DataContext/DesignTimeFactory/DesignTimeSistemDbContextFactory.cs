@@ -9,10 +9,10 @@ namespace Muhasib.Data.DataContext.DesignTimeFactory
         public SistemDbContext CreateDbContext(string[] args)
         {
             var dbPath = DesignTimePathResolver.GetDatabasePath();
-            var fullDbPath = Path.Combine(dbPath, "Sistem.db");
-            var connectionString = $"Data Source={fullDbPath};Mode=ReadWriteCreate;";
+            
+            var connectionString = $"Data Source={dbPath};Mode=ReadWriteCreate;";
 
-            Console.WriteLine($"Design Time - Database Path: {fullDbPath}");
+            Console.WriteLine($"Design Time - Database Path: {dbPath}");
 
             var optionsBuilder = new DbContextOptionsBuilder<SistemDbContext>();
             optionsBuilder.UseSqlite(connectionString);
@@ -23,10 +23,10 @@ namespace Muhasib.Data.DataContext.DesignTimeFactory
     public static class DesignTimePathResolver
     {
         public static string GetDatabasePath()
-        {
+        {            
             var environmentDetector = new EnvironmentDetector();
             var applicationPaths = new ApplicationPaths(environmentDetector);
-            return applicationPaths.GetSystemDatabaseFilePath();
+            return applicationPaths.GetSistemDatabaseFilePath();
         }
     }
 }

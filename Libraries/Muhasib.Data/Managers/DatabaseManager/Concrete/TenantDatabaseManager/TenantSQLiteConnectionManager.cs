@@ -9,12 +9,12 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
 {
     public class TenantSQLiteConnectionManager : ITenantSQLiteConnectionManager
     {
-        private readonly ISQLiteConnectionStringFactory _connectionStringFactory;
+        private readonly ITenantSQLiteConnectionStringFactory _connectionStringFactory;
         private readonly IAppDbContextFactory _dbContextFactory;
         private readonly ILogger<TenantSQLiteConnectionManager> _logger;
 
         public TenantSQLiteConnectionManager(
-            ISQLiteConnectionStringFactory connectionStringFactory,
+            ITenantSQLiteConnectionStringFactory connectionStringFactory,
             IAppDbContextFactory dbContextFactory,
             ILogger<TenantSQLiteConnectionManager> logger)
         {

@@ -25,9 +25,9 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
                 var dirInfo = new DirectoryInfo(currentDir);
 
                 // Max 6 levels up (8 fazlaydı)
-                for(int i = 0; i < 6 && dirInfo?.Parent != null; i++)
+                for (int i = 0; i < 6 && dirInfo?.Parent != null; i++)
                 {
-                    if(dirInfo.GetFiles("*.csproj", SearchOption.TopDirectoryOnly).Length > 0 ||
+                    if (dirInfo.GetFiles("*.csproj", SearchOption.TopDirectoryOnly).Length > 0 ||
                         dirInfo.GetFiles("*.sln", SearchOption.TopDirectoryOnly).Length > 0)
                         return dirInfo.FullName;
 
@@ -81,7 +81,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
         }
 
         // [ROOT]/Databases/sistem.db
-        public string GetSystemDatabaseFilePath()
+        public string GetSistemDatabaseFilePath()
         { return Path.Combine(GetDatabasesFolderPath(), DatabaseConstants.SISTEM_DB_NAME); }
 
         // [ROOT]/Databases/Tenant/{databaseName}.db
@@ -100,10 +100,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
         // Basit ve güvenli sanitize
         public string SanitizeDatabaseName(string databaseName)
         {
-            if(string.IsNullOrWhiteSpace(databaseName))
+            if (string.IsNullOrWhiteSpace(databaseName))
                 throw new ArgumentException("Database adı boş olamaz");
 
-            if(databaseName.Length > 100)
+            if (databaseName.Length > 100)
                 throw new ArgumentException("Database adı çok uzun");
 
             // Sadece güvenli olmayan karakterleri temizle
@@ -116,7 +116,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
 
             // Basit rezerve isim kontrolü
             var reservedNames = new[] { "CON", "PRN", "AUX", "NUL" };
-            if(reservedNames.Contains(sanitized.ToUpperInvariant()))
+            if (reservedNames.Contains(sanitized.ToUpperInvariant()))
                 throw new ArgumentException($"'{sanitized}' rezerve bir dosya adıdır");
 
             return string.IsNullOrEmpty(sanitized) ? throw new ArgumentException("Database adı geçersiz") : sanitized;
@@ -124,21 +124,22 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
         #endregion
 
         #region Backup Structure
-        // [ROOT]/Backup/
+        // [ROOT]/Databases/Backup/
         public string GetBackupFolderPath()
         {
-            var path = Path.Combine(GetRootDataPath(), DatabaseConstants.BACKUP_FOLDER);
+            var path = Path.Combine(GetDatabasesFolderPath(), DatabaseConstants.BACKUP_FOLDER);
             Directory.CreateDirectory(path);
             return path;
         }
 
-        // [ROOT]/Backup/Tenant/
+        // [ROOT]/Databases/Backup/Tenant/
         public string GetTenantBackupFolderPath()
         {
             var path = Path.Combine(GetBackupFolderPath(), DatabaseConstants.TENANT_BACKUPS_FOLDER);
             Directory.CreateDirectory(path);
             return path;
         }
+
         #endregion
 
         #region Temp Structure
@@ -151,51 +152,105 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
         }
         #endregion
 
-        #region Helper Methods
-        public bool IsDatabaseSizeValid(string databaseName)
+        #region DatabaseExists
+
+        public long GetSistemDatabaseSize()
+        {
+            try
+            {
+                var dbFilePath = GetSistemDatabaseFilePath();
+                if (!File.Exists(dbFilePath))
+                    return 0L;
+
+                var fileInfo = new FileInfo(dbFilePath);
+                return fileInfo.Length;
+            }
+            catch
+            {
+                return 0L;
+            }
+        }
+        public bool IsSistemDatabaseSizeValid()
+        {
+            try
+            {
+                var dbPath = GetSistemDatabaseFilePath();
+
+                if (!File.Exists(dbPath))
+                    return false;
+
+                var fileInfo = new FileInfo(dbPath);
+                return fileInfo.Length > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        public bool SistemDatabaseFileExists()
+        {
+            try
+            {
+                var filePath = GetSistemDatabaseFilePath();
+                return File.Exists(filePath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        //Tenant Database
+        public bool IsTenantDatabaseSizeValid(string databaseName)
         {
             try
             {
                 var dbPath = GetTenantDatabaseFilePath(databaseName);
 
-                if(!File.Exists(dbPath))
+                if (!File.Exists(dbPath))
                     return false;
 
                 var fileInfo = new FileInfo(dbPath);
                 return fileInfo.Length > 0;
-            } catch
+            }
+            catch
             {
                 return false;
             }
         }
-
-        public long GetDatabaseSize(string databaseName)
-        {
-            try
-            {
-                var dbFilePath = GetTenantDatabaseFilePath(databaseName);
-                if(!File.Exists(dbFilePath))
-                    return 0L;
-
-                var fileInfo = new FileInfo(dbFilePath);
-                return fileInfo.Length;
-            } catch
-            {
-                return 0L;
-            }
-        }
-
-        public bool DatabaseFileExists(string databaseName)
+        public bool TenantDatabaseFileExists(string databaseName)
         {
             try
             {
                 var filePath = GetTenantDatabaseFilePath(databaseName);
                 return File.Exists(filePath);
-            } catch
+            }
+            catch
             {
                 return false;
             }
         }
+        public long GetTenantDatabaseSize(string databaseName)
+        {
+            try
+            {
+                var dbFilePath = GetTenantDatabaseFilePath(databaseName);
+                if (!File.Exists(dbFilePath))
+                    return 0L;
+
+                var fileInfo = new FileInfo(dbFilePath);
+                return fileInfo.Length;
+            }
+            catch
+            {
+                return 0L;
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
 
         public string GenerateUniqueTempFilePath(string extension = ".tmp")
         {
@@ -207,18 +262,19 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
         public void CleanupTempFiles(TimeSpan olderThan)
         {
             var tempDir = GetTempFolderPath();
-            if(!Directory.Exists(tempDir))
+            if (!Directory.Exists(tempDir))
                 return;
 
             var cutoff = DateTime.UtcNow - olderThan;
 
-            foreach(var file in Directory.GetFiles(tempDir))
+            foreach (var file in Directory.GetFiles(tempDir))
             {
                 try
                 {
-                    if(File.GetLastWriteTimeUtc(file) < cutoff)
+                    if (File.GetLastWriteTimeUtc(file) < cutoff)
                         File.Delete(file);
-                } catch
+                }
+                catch
                 {
                     // Temp dosya silinemezse problem değil
                 }
@@ -238,18 +294,18 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure
                 if (File.Exists(walPath))
                 {
                     File.Delete(walPath);
-                    
+
                 }
 
                 if (File.Exists(shmPath))
                 {
                     File.Delete(shmPath);
-                    
+
                 }
             }
             catch
             {
-                
+
             }
         }
         #endregion
