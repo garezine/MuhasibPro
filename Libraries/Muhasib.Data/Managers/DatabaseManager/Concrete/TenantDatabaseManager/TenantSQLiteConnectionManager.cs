@@ -78,14 +78,15 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
                 // 4. Schema validation (Doğru yöntemle)
                 try
                 {
-                    // ⭐ DÜZELTİLDİ: ExecuteSqlRawAsync → SqlQueryRaw
-                    int tableCount = await tenantDbContext.Database
-                        .SqlQueryRaw<int>(
-                            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name={0}",
+                    var result = await tenantDbContext.Database
+                        .SqlQueryRaw<TableExistsResult>(
+                            @"SELECT COUNT(*) as TableCount 
+          FROM sqlite_master 
+          WHERE type='table' AND name = @p0",
                             "TenantDatabaseVersions")
                         .FirstOrDefaultAsync();
 
-                    if (tableCount == 0)
+                    if (result?.TableCount == 0)
                     {
                         _logger.LogWarning("TenantDatabaseVersions tablosu bulunamadı: {DatabaseName}", databaseName);
                         return ConnectionTestResult.InvalidSchema;

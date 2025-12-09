@@ -204,7 +204,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             }
         }
 
-        public async Task<ApiDataResponse<bool>> InitializeDatabaseAsync(string databaseName)
+        public async Task<ApiDataResponse<bool>> CreateDatabaseAsync(string databaseName)
         {
             try
             {                
@@ -214,7 +214,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 }
 
                 _logger.LogInformation("Preparing database for dbName: {dbName}", databaseName);
-                var result = await _sqlitemigrationManager.InitializeDatabaseAsync(databaseName);
+                var result = await _sqliteDatabaseManager.CreateDatabaseAsync(databaseName);
                 if (!result)
                 {
                     return new ErrorApiDataResponse<bool>(false, "Veritabanı hazırlanamadı");

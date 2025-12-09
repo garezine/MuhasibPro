@@ -82,7 +82,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
 
                 // ⚠️ Backup yavaşlatıyor - ilk oluşturmada gereksiz
                 // Sadece mevcut DB'de migration yapılıyorsa yap
-                var tableExists = await TableExistsAsync(_dbContext, "AppDbVersiyonlar");
+                var tableExists = await TableExistsAsync(_dbContext, "Kullanicilar");
 
                 if(tableExists)
                     await _backupManager.CreateBackupAsync();

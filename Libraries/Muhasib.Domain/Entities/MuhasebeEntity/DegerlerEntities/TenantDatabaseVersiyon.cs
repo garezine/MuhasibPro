@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Muhasib.Domain.Entities.MuhasebeEntity.DegerlerEntities
 {
-    [Table("DatabaseVersiyonlar")]
+    [Table("TenantDatabaseVersions")]
     public class TenantDatabaseVersiyon
     {
         [Key]

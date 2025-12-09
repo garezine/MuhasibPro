@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure;
@@ -12,11 +11,12 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
     public class SistemDatabaseManager : ISistemDatabaseManager
     {
         private readonly SistemDbContext _dbContext;
-        private readonly ILogger<SistemDatabaseManager> _logger;        
+        private readonly ILogger<SistemDatabaseManager> _logger;
         private readonly ISistemMigrationManager _migrationManager;
         private readonly ISistemBackupManager _backupManager;
         private readonly IApplicationPaths _applicationPaths;
         private const string databaseName = DatabaseConstants.SISTEM_DB_NAME;
+
         public SistemDatabaseManager(
             ILogger<SistemDatabaseManager> logger,
             ISistemMigrationManager migrationManager,
@@ -30,15 +30,15 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
             _applicationPaths = applicationPaths;
             _dbContext = dbContext;
         }
-        
+
         public async Task<DatabaseHealthInfo> GetHealthStatusAsync(CancellationToken cancellationToken = default)
         {
             try
             {
                 var healthInfo = new DatabaseHealthInfo();
                 var testResult = await ValidateSistemDatabaseAsync(cancellationToken);
-                if (testResult.IsValid)
-                {                    
+                if(testResult.IsValid)
+                {
                     var canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
                     var pendingMigrations = await _dbContext.Database.GetPendingMigrationsAsync(cancellationToken);
                     var appliedMigrations = await _dbContext.Database.GetAppliedMigrationsAsync(cancellationToken);
@@ -59,22 +59,20 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                     healthInfo = healtStatus;
                 }
                 return healthInfo;
-
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 return new DatabaseHealthInfo { HasError = true, ErrorMessage = ex.Message };
             }
         }
+
         public async Task<bool> InitializeDatabaseAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var databaseExists = await ValidateSistemDatabaseAsync(cancellationToken);
+                var databaseExists = _applicationPaths.SistemDatabaseFileExists();
 
-                if (!databaseExists.IsValid)
+                if(!databaseExists)
                     return false;
-
 
                 _logger.LogInformation("Creating new database or update database: {DatabaseName}", databaseName);
 
@@ -82,15 +80,15 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
 
                 _logger.LogInformation("Database created or updated successfully: {DatabaseName}", databaseName);
                 return intializeDatabase;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Failed to create database: {DatabaseName}", databaseName);
                 return false;
             }
         }
 
-        public async Task<ConnectionTestResult> TestConnectionDetailedAsync(CancellationToken cancellationToken = default)
+        private async Task<ConnectionTestResult> TestConnectionDetailedAsync(
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -99,7 +97,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                 // 1. Database varlığını kontrol et
                 bool dbExists = _applicationPaths.SistemDatabaseFileExists();
 
-                if (!dbExists)
+                if(!dbExists)
                 {
                     _logger.LogWarning("Tenant database not found: {DatabaseName}", databaseName);
                     return ConnectionTestResult.DatabaseNotFound;
@@ -107,13 +105,13 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
 
                 // 2. Dosya boş mu kontrol et
                 bool isValidSize = _applicationPaths.IsSistemDatabaseSizeValid();
-                if (!isValidSize)
+                if(!isValidSize)
                 {
                     _logger.LogWarning("Database file is empty: {DatabaseName}", databaseName);
                     return ConnectionTestResult.InvalidSchema;
                 }
                 bool canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
-                if (!canConnect)
+                if(!canConnect)
                 {
                     _logger.LogWarning("Connection failed: {DatabaseName}", databaseName);
                     return ConnectionTestResult.ConnectionFailed;
@@ -123,19 +121,20 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
                 try
                 {
                     // ⭐ DÜZELTİLDİ: ExecuteSqlRawAsync → SqlQueryRaw
-                    int tableCount = await _dbContext.Database
-                        .SqlQueryRaw<int>(
-                            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name={0}",
-                            "TenantDatabaseVersions")
+                    var result = await _dbContext.Database
+                        .SqlQueryRaw<TableExistsResult>(
+                            @"SELECT COUNT(*) as TableCount 
+          FROM sqlite_master 
+          WHERE type='table' AND name = @p0",
+                            "AppDbVersiyonlar")
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    if (tableCount == 0)
+                    if(result?.TableCount == 0)
                     {
-                        _logger.LogWarning("TenantDatabaseVersions tablosu bulunamadı: {DatabaseName}", databaseName);
+                        _logger.LogWarning("AppDbVersiyonlar tablosu bulunamadı: {DatabaseName}", databaseName);
                         return ConnectionTestResult.InvalidSchema;
                     }
-                }
-                catch (Exception ex)
+                } catch(Exception ex)
                 {
                     _logger.LogWarning(ex, "Schema validation başarısız: {DatabaseName}", databaseName);
                     return ConnectionTestResult.InvalidSchema;
@@ -143,15 +142,15 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
 
                 _logger.LogInformation("Connection test successful: {DatabaseName}", databaseName);
                 return ConnectionTestResult.Success;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Connection test error: {DatabaseName}", databaseName);
                 return ConnectionTestResult.UnknownError;
             }
         }
 
-        public async Task<(bool IsValid, string Message)> ValidateSistemDatabaseAsync(CancellationToken cancellationToken = default)
+        public async Task<(bool IsValid, string Message)> ValidateSistemDatabaseAsync(
+            CancellationToken cancellationToken = default)
         {
             var result = await TestConnectionDetailedAsync(cancellationToken);
 
@@ -166,4 +165,6 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
             };
         }
     }
+
+   
 }

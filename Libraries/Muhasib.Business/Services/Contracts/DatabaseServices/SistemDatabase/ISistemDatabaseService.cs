@@ -1,4 +1,5 @@
-﻿using Muhasib.Data.Utilities.Responses;
+﻿using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
+using Muhasib.Data.Utilities.Responses;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
 {
@@ -7,7 +8,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
         Task<ApiDataResponse<bool>> InitializeDatabaseAsync();
         //connection methods
         Task<ApiDataResponse<bool>> ValidateConnectionAsync();
-        Task<ApiDataResponse<string>> TestConnectionAsync();
-        
+        ISistemDatabaseOperationService SistemDatabaseOperation { get; }
+
     }
 }

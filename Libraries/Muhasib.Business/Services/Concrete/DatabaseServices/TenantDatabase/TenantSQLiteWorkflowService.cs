@@ -241,7 +241,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                         stepName: "RunMigrations",
                         action: async () =>
                         {
-                            var migrationResponse = await _operationService.InitializeDatabaseAsync(maliDonem.DBName);
+                            var migrationResponse = await _operationService.RunMigrationsAsync(maliDonem.DBName);
                             if (!migrationResponse.Success)
                             {
                                 throw new InvalidOperationException(
@@ -343,7 +343,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 
             try
             {
-                // Step 1: Mali dönem kontrolü
+                // Step 1: Tenant Veritabanı (Mali dönem) kontrolü
                 var tenantResponse = await _selectionService.GetTenantDetailsAsync(request.MaliDonemId);
                 if (!tenantResponse.Success || tenantResponse.Data == null)
                 {
@@ -357,6 +357,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 var tenantDetails = tenantResponse.Data;
                 result.DatabaseName = tenantDetails.DatabaseName;
                 result.MaliDonemId = tenantDetails.MaliDonemId;
+                result.DatabaseFilePath = tenantResponse.Data.DatabasePath;
 
                 // ✅ Aktif tenant kontrolü
                 bool isCurrentTenantDeleting = false;
@@ -393,7 +394,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                                 var sourceDbPath = _applicationPaths.GetTenantDatabaseFilePath(tenantDetails.DatabaseName);
                                 if (File.Exists(sourceDbPath))
                                 {
-                                    var backupPath = _applicationPaths.GetBackupFolderPath();
+                                    var backupPath = _applicationPaths.GetTenantBackupFolderPath();
                                     var backupFileName = $"safety_{tenantDetails.DatabaseName}_{DateTime.Now:yyyyMMdd_HHmmss}.db";
                                     var backupFilePath = Path.Combine(backupPath, backupFileName);
 

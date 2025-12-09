@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
-using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Data.Managers.DatabaseManager.Concrete.Infrastructure;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase;
 using Muhasib.Data.Managers.DatabaseManager.Models;
@@ -39,33 +37,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
                 return new ErrorApiDataResponse<DatabaseHealthInfo>(null, ex.Message);
             }
         }
-
-        public async Task<ApiDataResponse<string>> TestConnectionAsync()
-        {
-            try
-            {
-                var testResult = await _sistemDatabaseManager.TestConnectionDetailedAsync();
-
-                var message = testResult switch
-                {
-                    ConnectionTestResult.Success => "Bağlantı başarılı",
-                    ConnectionTestResult.SqlServerUnavailable => "SQL Server'a erişilemiyor",
-                    ConnectionTestResult.DatabaseNotFound => "Veritabanı bulunamadı",
-                    ConnectionTestResult.ConnectionFailed => "Bağlantı başarısız",
-                    _ => "Bilinmeyen hata"
-                };
-
-                var success = testResult == ConnectionTestResult.Success;
-                return success
-                    ? new SuccessApiDataResponse<string>(message, message)
-                    : new ErrorApiDataResponse<string>(message, message);
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Connection test failed for Sistem database: {DatabaseName}", databaseName);
-                return new ErrorApiDataResponse<string>(null, ex.Message);
-            }
-        }
-
         public async Task<ApiDataResponse<bool>> ValidateConnectionAsync()
         {
             try

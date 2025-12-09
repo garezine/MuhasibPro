@@ -5,7 +5,6 @@ using Microsoft.Windows.Globalization;
 using Muhasib.Business.HostBuilders;
 using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
 using Muhasib.Business.Services.Contracts.LogServices;
-using Muhasib.Data.Managers.DatabaseManager.Contracts.SistemDatabase;
 using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.Helpers;
 using MuhasibPro.HostBuilders;
@@ -17,7 +16,7 @@ namespace MuhasibPro;
 public partial class App : Application
 {
     private readonly IHost _host;
-    private bool _isInitialized = false;
+   
     private DispatcherQueue _dispatcherQueue;
     public App()
     {
@@ -69,101 +68,17 @@ public partial class App : Application
             // DispatcherQueue'yu al
             _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
             // 1. ÖNCE ARAYÜZÜ HEMEN GÖSTER
-            await ActivateAsync(args);
-            // 2. SONRA ARKA PLANDA DATABASE İŞLEMLERİNİ BAŞLAT
-            _ = InitializeApplicationAsync();
+            await ActivateAsync(args);          
         }
-        catch (Exception ex)
-        {
-            // 3. KRİTİK: ASLA Exit() ÇAĞIRMA!
-            await ShowStartupErrorAsync(ex, isFatal: false);
-            // 4. HATA OLSA BİLE ARAYÜZÜ GÖSTERMEYE DEVAM ET
+        catch (Exception)
+        {            
+            
             await ActivateAsync(args);
         }
-    }
-    private async Task InitializeApplicationAsync()
-    {
-        try
-        {
-            if (_isInitialized)
-                return;
-            _isInitialized = true;
-            // 1. DATABASE INIT (BLOKLAMAYAN, GÜVENLİ VERSİYON)
-            var databaseSuccess = await InitializeSystemDatabaseAsync();
-            if (!databaseSuccess)
-            {
-                // DATABASE HATASI - UYGULAMAYI KAPATMA, SADECE BİLDİR
-                await ShowNotificationAsync(
-                    "Veritabanı başlatılırken bazı sorunlar oluştu. " +
-                        "Uygulama çalışmaya devam edecek ancak bazı özellikler kısıtlı olabilir.",
-                    "Bilgi");
-            }
-            // 2. SİSTEM SERVİSLERİNİ KONTROL ET (NON-BLOCKING)
-            await CheckSystemServicesAsync();
-            // 3. TEMA AYARLARINI UYGULA
-            await SetThemeAsync();
-            Debug.WriteLine("Application initialization completed successfully");
-        }
-        catch (Exception ex)
-        {
-            // 4. HATA YÖNETİMİ - UYGULAMAYI ASLA KAPATMA!
-            Debug.WriteLine($"Application initialization completed with warnings: {ex.Message}");
-            await ShowNotificationAsync(
-                "Uygulama başlatılırken bazı sorunlar oluştu, " +
-                    "ancak temel işlevlerle çalışmaya devam edebilirsiniz.",
-                "Uyarı");
-        }
-    }
-    public ILogService LogService => _host.Services.GetRequiredService<ILogService>();
-    private async Task<bool> InitializeSystemDatabaseAsync()
-    {
-        try
-        {
-            var systemService = _host.Services.GetRequiredService<ISistemDatabaseService>();
-            var success = await systemService.InitializeDatabaseAsync();
-            if (!success.Success)
-            {
-                Debug.WriteLine("Database initialization completed with warnings");
-                // FALLBACK: Database servisi kullanılamazsa direkt manager'ı dene
-                return await TryFallbackDatabaseInitializationAsync();
-            }
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Database initialization failed: {ex.Message}");
-            // FALLBACK mekanizması
-            return await TryFallbackDatabaseInitializationAsync();
-        }
-    }
-    private async Task<bool> TryFallbackDatabaseInitializationAsync()
-    {
-        try
-        {
-            // Direkt database manager ile dene
-            var databaseManager = _host.Services.GetRequiredService<ISistemDatabaseManager>();
-            return await databaseManager.InitializeDatabaseAsync();
-        }
-        catch (Exception fallbackEx)
-        {
-            Debug.WriteLine($"Fallback database initialization also failed: {fallbackEx.Message}");
-            return false; // Başarısız ama uygulama yine de çalışsın
-        }
-    }
-    private async Task CheckSystemServicesAsync()
-    {
-        try
-        {
-            var sistemService = ServiceLocator.Current.GetService<ISistemDatabaseService>();
-            var systemStatus = await sistemService.TestConnectionAsync();
-            Debug.WriteLine($"System Status: {systemStatus}");
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"System service check failed: {ex.Message}");
-            // Servis hatası uygulamayı durdurmamalı
-        }
-    }
+    }    
+    
+    public ILogService LogService => _host.Services.GetRequiredService<ILogService>();    
+    
     private async Task SetThemeAsync()
     {
         try
@@ -192,6 +107,7 @@ public partial class App : Application
     {
         try
         {
+            await SetThemeAsync();
             CustomWindowHelper.SetMainWindow(MainWindow);
             var activationService = _host.Services.GetRequiredService<IActivationService>();
             if (activationService != null)
@@ -209,6 +125,13 @@ public partial class App : Application
             Debug.WriteLine($"Activation failed: {ex.Message}");
             // Activation başarısız olsa bile pencereyi göster
             MainWindow?.Activate();
+            _dispatcherQueue.TryEnqueue(
+                async () =>
+                {
+                    await ShowNotificationAsync(
+                        "Sistem başlatma hatası",
+                        "Sistem Hatası");
+                });
         }
     }
     private async Task ShowNotificationAsync(string message, string title = "Bilgi")
@@ -251,22 +174,7 @@ public partial class App : Application
             Debug.WriteLine($"Notification failed: {ex.Message}");
         }
     }
-    private async Task ShowStartupErrorAsync(Exception ex, bool isFatal = false)
-    {
-        Debug.WriteLine($"Startup error: {ex}");
-        // DEBUG modda detaylı hata göster, RELEASE'de basit mesaj
-#if DEBUG
-        await ShowNotificationAsync(
-            $"Uygulama başlatılırken hata oluştu:\n{ex.Message}\n\n" +
-                "Uygulama çalışmaya devam edecek ancak bazı özellikler kısıtlı olabilir.",
-            "Başlangıç Hatası");
-#else
-            await ShowNotificationAsync(
-                "Uygulama başlatılırken beklenmedik bir hata oluştu. " +
-                "Çalışmaya devam edebilirsiniz, ancak sorun devam ederse uygulamayı yeniden başlatın.",
-                "Sistem Uyarısı");
-#endif
-    }
+    
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         // KRİTİK: Exception'ı handled olarak işaretle - uygulama çökmeyecek

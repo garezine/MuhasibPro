@@ -9,7 +9,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
 {
     public class SistemDatabaseService : ISistemDatabaseService
     {
-        public ISistemDatabaseOperationService SistemDatabaseOperation { get; }
         private readonly ISistemDatabaseManager _databaseManager;
         private readonly ILogger<SistemDatabaseService> _logger;
         private const string databaseName = DatabaseConstants.SISTEM_DB_NAME;
@@ -22,6 +21,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
             _databaseManager = databaseManager;
             _logger = logger;
         }
+        public ISistemDatabaseOperationService SistemDatabaseOperation { get; }
         public async Task<ApiDataResponse<bool>> InitializeDatabaseAsync()
         { 
             try
@@ -68,12 +68,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase
         }
        
         #region Connection Service
-       
-
-
-        public Task<ApiDataResponse<string>> TestConnectionAsync()
-            => SistemDatabaseOperation.TestConnectionAsync();
-
 
         public Task<ApiDataResponse<bool>> ValidateConnectionAsync()
             => SistemDatabaseOperation.ValidateConnectionAsync(); 

@@ -1,5 +1,9 @@
 ﻿namespace Muhasib.Data.Managers.DatabaseManager.Models
 {
+    public class TableExistsResult
+    {
+        public int TableCount { get; set; }
+    }
     public class DatabaseHealthInfo
     {
         public string DatabaseName { get; set; }

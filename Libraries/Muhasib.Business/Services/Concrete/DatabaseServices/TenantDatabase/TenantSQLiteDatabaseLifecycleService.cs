@@ -15,18 +15,21 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         private readonly ILogger<TenantSQLiteDatabaseLifecycleService> _logger;        
         private readonly IDatabaseNamingService _databaseNamingService;
         private readonly ITenantSQLiteDatabaseManager _sqliteDatabaseManager;
-        
+        private readonly ITenantSQLiteDatabaseOperationService _tenantSQLiteDatabaseOperationService;
+
 
         public TenantSQLiteDatabaseLifecycleService(
             ILogService logService,
             ILogger<TenantSQLiteDatabaseLifecycleService> logger,
-            IDatabaseNamingService databaseNamingService,                       
-            ITenantSQLiteDatabaseManager sqliteDatabaseManager)
+            IDatabaseNamingService databaseNamingService,
+            ITenantSQLiteDatabaseManager sqliteDatabaseManager,
+            ITenantSQLiteDatabaseOperationService tenantSQLiteDatabaseOperationService)
         {
             _logService = logService;
             _logger = logger;
-            _databaseNamingService = databaseNamingService;            
+            _databaseNamingService = databaseNamingService;
             _sqliteDatabaseManager = sqliteDatabaseManager;
+            _tenantSQLiteDatabaseOperationService = tenantSQLiteDatabaseOperationService;
         }
 
         public async Task<ApiDataResponse<string>> CreateDatabaseAsync(string databaseName)
@@ -37,8 +40,8 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                     return new ErrorApiDataResponse<string>(null, "Database adı boş olamaz");
 
                 // ✅ Önce database'in var olup OLMADIĞINI kontrol et
-                var existsResponse = await DatabaseExistsAsync(databaseName);
-                if (existsResponse.Success && existsResponse.Data) // Data=true ise database VAR
+                var existsResponse = await _sqliteDatabaseManager.DatabaseExists(databaseName);
+                if (existsResponse) // Data=true ise database VAR
                 {
                     return new ErrorApiDataResponse<string>(
                         databaseName,
@@ -48,13 +51,13 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 }
 
                 // ✅ Create database
-                var created = await _sqliteDatabaseManager.CreateDatabaseAsync(databaseName);
-                if (!created)
+                var created = await _tenantSQLiteDatabaseOperationService.CreateDatabaseAsync(databaseName);
+                if (!created.Success)
                     return new ErrorApiDataResponse<string>(null, "Veritabanı oluşturulamadı");
 
                 // ✅ Double-check: Database gerçekten oluştu mu?
-                var verifyResponse = await DatabaseExistsAsync(databaseName);
-                if (!verifyResponse.Success || !verifyResponse.Data)
+                var verifyResponse = await _sqliteDatabaseManager.DatabaseExists(databaseName);
+                if (!verifyResponse)
                 {
                     _logger.LogWarning("Database oluşturuldu ama doğrulama başarısız: {DatabaseName}", databaseName);
                     // Kritik değil, sadece warning
@@ -88,22 +91,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             }
         }
 
-        public async Task<ApiDataResponse<bool>> DatabaseExistsAsync(string databaseName)
-        {
-            try
-            {
-                bool canConnect = await _sqliteDatabaseManager.DatabaseExists(databaseName);
-
-                return new SuccessApiDataResponse<bool>(
-                    canConnect,  // ⭐ exists direkt kullan
-                    canConnect ? "Database dosyası mevcut" : "Database dosyası bulunamadı");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Database existence check failed: {DatabaseName}", databaseName);
-                return new ErrorApiDataResponse<bool>(false, ex.Message);
-            }
-        }
+       
 
         public async Task<ApiDataResponse<bool>> DeleteDatabaseAsync(string databaseName)
         {

@@ -25,7 +25,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
         {
             try
             {
-                bool databaseExists = _dbContextFactory.TenantDatabaseFileExists(databaseName);
+                bool databaseExists = await DatabaseExists(databaseName);
 
                 if (databaseExists)
                 {
@@ -53,8 +53,13 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                 }
 
                 _logger.LogInformation("Creating new database: {DatabaseName}", databaseName);
-
-                await _migrationManager.InitializeDatabaseAsync(databaseName);
+                using var context = _dbContextFactory.CreateContext(databaseName);
+                var canConnect = await context.Database.CanConnectAsync(cancellationToken);
+                if(!canConnect)
+                {
+                    _logger.LogInformation("First created database: {DatabaseName}", databaseName);
+                    await context.Database.MigrateAsync();                    
+                }
 
                 _logger.LogInformation("Database created successfully: {DatabaseName}", databaseName);
                 return true;
@@ -66,8 +71,8 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
             }
         }
 
-        public async Task<bool> DatabaseExists(string databaseName, CancellationToken cancellationToken = default)
-        => await _dbContextFactory.TestConnectionAsync(databaseName, cancellationToken);
+        public async Task<bool> DatabaseExists(string databaseName)
+        => await Task.Run(() => _dbContextFactory.TenantDatabaseFileExists(databaseName));
 
         public async Task<bool> DeleteDatabaseAsync(string databaseName, CancellationToken cancellationToken = default)
         {

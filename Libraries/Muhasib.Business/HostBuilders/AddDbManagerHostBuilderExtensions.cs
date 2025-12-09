@@ -26,23 +26,31 @@ namespace Muhasib.Business.HostBuilders
             host.ConfigureServices(
                 (context, services) =>
                 {
-                    services.AddDbContext<SistemDbContext>((provider, options) =>
-                    {
-                        var dbPath = provider.GetRequiredService<IApplicationPaths>();
-                        var connectionString = $"Data Source={dbPath};Mode=ReadWriteCreate;";                       
-
-                        options.UseSqlite(connectionString, sqliteOptions =>
+                    services.AddDbContext<SistemDbContext>(
+                        (provider, options) =>
                         {
-                            sqliteOptions.CommandTimeout(30);
-                            //sqliteOptions.MigrationsAssembly("Muhasib.Data"); // ⭐ Migration assembly belirt
-                        });
-                      
+                            // ⭐ DOĞRUSU: IApplicationPaths'den METOD çağır
+                            var appPaths = provider.GetRequiredService<IApplicationPaths>();
+                            var sistemDbPath = appPaths.GetSistemDatabaseFilePath();
+
+                            var connectionString = $"Data Source={sistemDbPath};Mode=ReadWriteCreate;";
+
+
+                            options.UseSqlite(
+                                connectionString,
+                                sqliteOptions =>
+                                {
+                                    sqliteOptions.CommandTimeout(30);
+                                    sqliteOptions.MigrationsAssembly("Muhasib.Data");
+                                });
 
 #if DEBUG
                         options.EnableSensitiveDataLogging();
-                        options.EnableDetailedErrors();
+                            options.EnableDetailedErrors();
+
 #endif
                     });
+
 
                     services.AddScoped<AppDbContext>(
                         provider =>
@@ -63,14 +71,14 @@ namespace Muhasib.Business.HostBuilders
 
                     //Sistem Database Managers
                     services.AddSingleton<ISistemDatabaseManager, SistemDatabaseManager>();
-                    services.AddSingleton<ISistemBackupManager, SistemBackupManager>();                    
+                    services.AddSingleton<ISistemBackupManager, SistemBackupManager>();
                     services.AddSingleton<ISistemMigrationManager, SistemMigrationManager>();
-                    
+
 
                     services.AddSingleton<ISistemDatabaseService, SistemDatabaseService>();
                     services.AddSingleton<ISistemDatabaseOperationService, SistemDatabaseOperationService>();
-                    
-                    
+
+
                     services.AddScoped<ILocalUpdateManager, LocalUpdateManager>();
 
 

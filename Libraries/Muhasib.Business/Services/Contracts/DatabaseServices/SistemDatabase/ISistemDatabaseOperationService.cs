@@ -5,8 +5,7 @@ namespace Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase
 {
     public interface ISistemDatabaseOperationService
     {
-        Task<ApiDataResponse<bool>> ValidateConnectionAsync();
-        Task<ApiDataResponse<string>> TestConnectionAsync();
+        Task<ApiDataResponse<bool>> ValidateConnectionAsync();       
         Task<ApiDataResponse<DatabaseHealthInfo>> GetHealthStatusAsync();
         Task<ApiDataResponse<bool>> CreateBackupAsync();
         Task<ApiDataResponse<bool>> RestoreBackupAsync(string backupFilePath);

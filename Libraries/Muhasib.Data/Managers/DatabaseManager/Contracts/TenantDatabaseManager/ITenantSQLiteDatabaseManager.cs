@@ -14,7 +14,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
         /// </summary>
         Task<bool> DeleteDatabaseAsync(string databaseName, CancellationToken cancellationToken = default);
         Task<DatabaseHealthInfo> GetHealthStatusAsync(string databaseName, CancellationToken cancellationToken = default);
-        Task<bool> DatabaseExists(string databaseName, CancellationToken cancellationToken = default);
+        Task<bool> DatabaseExists(string databaseName);
 
 
     }

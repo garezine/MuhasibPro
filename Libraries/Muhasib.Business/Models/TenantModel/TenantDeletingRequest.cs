@@ -4,9 +4,9 @@
     {
         public long MaliDonemId { get; set; } 
         public string DatabaseName { get; set; }
-        public bool DisconnectTenant { get; set; } = false;
+        public bool DisconnectTenant { get; set; } = true;
         public bool DeletedTenantBackup { get; set; } = true;
-        public bool IsDeleteDatabase { get; set; } = false;
+        public bool IsDeleteDatabase { get; set; } = true;
         public string BackupFilePath { get; set; }
     }
 }
