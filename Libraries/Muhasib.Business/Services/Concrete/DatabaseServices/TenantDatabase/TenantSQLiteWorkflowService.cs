@@ -228,53 +228,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 else
                 {
                     _logger.LogInformation("Step 5/7: Database oluşturma atlandı (AutoCreateDatabase=false)");
-                }
-
-                // ============================================
-                // STEP 6: Migration Çalıştır
-                // ============================================
-                if (request.RunMigrations && result.DatabaseCreated)
-                {
-                    _logger.LogInformation("Step 6/7: Migration çalıştırılıyor...");
-
-                    await saga.ExecuteStepAsync(
-                        stepName: "RunMigrations",
-                        action: async () =>
-                        {
-                            var migrationResponse = await _operationService.RunMigrationsAsync(maliDonem.DBName);
-                            if (!migrationResponse.Success)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Migration başarısız: {migrationResponse.Message}");
-                            }
-                            result.MigrationsRun = true;
-                            _logger.LogInformation("Migration tamamlandı");
-                            return true;
-                        },
-                        compensate: null // Database zaten silinecek, ayrı compensate gerekmez
-                    );
-                }
-                else
-                {
-                    _logger.LogInformation("Step 6/7: Migration atlandı");
-                }
-
-                // ============================================
-                // BONUS: İsteğe Bağlı Backup
-                // ============================================
-                if (request.CreateInitialBackup && result.MigrationsRun)
-                {
-                    _logger.LogInformation("Initial backup oluşturuluyor...");
-                    try
-                    {
-                        await _operationService.CreateBackupAsync(maliDonem.DBName);
-                        _logger.LogInformation("Initial backup oluşturuldu");
-                    }
-                    catch (Exception backupEx)
-                    {
-                        _logger.LogWarning(backupEx, "Initial backup oluşturulamadı (kritik değil)");
-                    }
-                }
+                }                
 
                 // ============================================
                 // BAŞARILI SONUÇ
@@ -550,42 +504,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             }
         }
 
-        public async Task<ApiDataResponse<bool>> PrepareTenantForFirstUseAsync(string databaseName)
-        {
-            try
-            {
-                _logger.LogInformation("Preparing tenant for first use. DatabaseName: {DatabaseName}", databaseName);
-
-                // 1. Database hazırla (migration check)
-                var prepareResponse = await _operationService.RunMigrationsAsync(databaseName);
-                if (!prepareResponse.Success)
-                {
-                    return new ErrorApiDataResponse<bool>(false, $"Veritabanı hazırlanamadı: {prepareResponse.Message}");
-                }
-
-                // 2. Health check
-                var healthResponse = await _operationService.GetHealthStatusAsync(databaseName);
-                if (!healthResponse.Success || !healthResponse.Data.CanConnect)
-                {
-                    return new ErrorApiDataResponse<bool>(false, "Veritabanı sağlık kontrolü başarısız");
-                }
-
-                await _logService.SistemLogService
-                    .SistemLogInformation(
-                        nameof(TenantSQLiteWorkflowService),
-                        nameof(PrepareTenantForFirstUseAsync),
-                        $"Tenant ilk kullanıma hazırlandı. DatabaseName: {databaseName}",
-string.Empty);
-
-                return new SuccessApiDataResponse<bool>(true, "Tenant başarıyla hazırlandı");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Prepare tenant for first use failed for DatabaseName: {DatabaseName}", databaseName);
-
-                return new ErrorApiDataResponse<bool>(false, ex.Message);
-            }
-        }
+     
         private async Task SafeFileCopyAsync(string source, string dest)
         {
             SqliteConnection.ClearAllPools();

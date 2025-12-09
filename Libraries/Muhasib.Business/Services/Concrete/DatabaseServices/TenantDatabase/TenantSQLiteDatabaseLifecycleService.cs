@@ -15,21 +15,21 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         private readonly ILogger<TenantSQLiteDatabaseLifecycleService> _logger;        
         private readonly IDatabaseNamingService _databaseNamingService;
         private readonly ITenantSQLiteDatabaseManager _sqliteDatabaseManager;
-        private readonly ITenantSQLiteDatabaseOperationService _tenantSQLiteDatabaseOperationService;
+        
 
 
         public TenantSQLiteDatabaseLifecycleService(
             ILogService logService,
             ILogger<TenantSQLiteDatabaseLifecycleService> logger,
             IDatabaseNamingService databaseNamingService,
-            ITenantSQLiteDatabaseManager sqliteDatabaseManager,
-            ITenantSQLiteDatabaseOperationService tenantSQLiteDatabaseOperationService)
+            ITenantSQLiteDatabaseManager sqliteDatabaseManager
+        )
         {
             _logService = logService;
             _logger = logger;
             _databaseNamingService = databaseNamingService;
             _sqliteDatabaseManager = sqliteDatabaseManager;
-            _tenantSQLiteDatabaseOperationService = tenantSQLiteDatabaseOperationService;
+        
         }
 
         public async Task<ApiDataResponse<string>> CreateDatabaseAsync(string databaseName)
@@ -51,8 +51,8 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 }
 
                 // ✅ Create database
-                var created = await _tenantSQLiteDatabaseOperationService.CreateDatabaseAsync(databaseName);
-                if (!created.Success)
+                var created = await _sqliteDatabaseManager.CreateDatabaseAsync(databaseName);
+                if (!created)
                     return new ErrorApiDataResponse<string>(null, "Veritabanı oluşturulamadı");
 
                 // ✅ Double-check: Database gerçekten oluştu mu?

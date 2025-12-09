@@ -14,65 +14,44 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
         private readonly IAppDbContextFactory _dbContextFactory;
         private readonly ITenantSQLiteMigrationManager _migrationManager;
         private readonly ITenantSQLiteBackupManager _backupManager;
-        public TenantSQLiteDatabaseManager(ILogger<TenantSQLiteDatabaseManager> logger, IAppDbContextFactory dbContextFactory, ITenantSQLiteMigrationManager migrationManager, ITenantSQLiteBackupManager backupManager)
+
+        public TenantSQLiteDatabaseManager(
+            ILogger<TenantSQLiteDatabaseManager> logger,
+            IAppDbContextFactory dbContextFactory,
+            ITenantSQLiteMigrationManager migrationManager,
+            ITenantSQLiteBackupManager backupManager)
         {
             _logger = logger;
             _dbContextFactory = dbContextFactory;
             _migrationManager = migrationManager;
             _backupManager = backupManager;
         }
+
         public async Task<bool> CreateDatabaseAsync(string databaseName, CancellationToken cancellationToken = default)
         {
             try
             {
-                bool databaseExists = await DatabaseExists(databaseName);
-
-                if (databaseExists)
+                if(await DatabaseExists(databaseName))
                 {
-                    // Boyut geçerli mi?
-                    bool isValidSize = _dbContextFactory.IsDatabaseSizeValid(databaseName);
-
-                    if (isValidSize)
-                    {
-                        // ⭐ BOYUTU AL ve LOG'LA
-                        long fileSizeBytes = _dbContextFactory.GetDatabaseSize(databaseName);
-
-                        _logger.LogDebug("Database already exists: {DatabaseName} ({Size} bytes)",
-                            databaseName, fileSizeBytes); // ⭐ fileSizeBytes (long)
-                        return true;
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Database file exists but is empty (0 bytes): {DatabaseName}",
-                            databaseName);
-
-                        // Boş dosyayı sil
-                        string filePath = _dbContextFactory.GetTenantDatabaseFilePath(databaseName);
-                        File.Delete(filePath);
-                    }
+                    _logger.LogWarning("Database already exists: {DatabaseName}", databaseName);
+                    return false;
                 }
-
                 _logger.LogInformation("Creating new database: {DatabaseName}", databaseName);
-                using var context = _dbContextFactory.CreateContext(databaseName);
-                var canConnect = await context.Database.CanConnectAsync(cancellationToken);
-                if(!canConnect)
-                {
-                    _logger.LogInformation("First created database: {DatabaseName}", databaseName);
-                    await context.Database.MigrateAsync();                    
-                }
+                var migrationResult = await _migrationManager.FirstInitializingDatabaseAsync(
+                    databaseName,
+                    cancellationToken);
 
                 _logger.LogInformation("Database created successfully: {DatabaseName}", databaseName);
-                return true;
-            }
-            catch (Exception ex)
+                return migrationResult;
+            } catch(Exception ex)
             {
                 _logger.LogError(ex, "Failed to create database: {DatabaseName}", databaseName);
                 return false;
             }
         }
 
-        public async Task<bool> DatabaseExists(string databaseName)
-        => await Task.Run(() => _dbContextFactory.TenantDatabaseFileExists(databaseName));
+        public async Task<bool> DatabaseExists(string databaseName) => await Task.Run(
+            () => _dbContextFactory.TenantDatabaseFileExists(databaseName));
 
         public async Task<bool> DeleteDatabaseAsync(string databaseName, CancellationToken cancellationToken = default)
         {
@@ -82,7 +61,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                 return false;
             }
 
-            var databaseExists = _dbContextFactory.TenantDatabaseFileExists(databaseName);
+            var databaseExists = await DatabaseExists(databaseName);
 
             if(!databaseExists)
             {
@@ -100,7 +79,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                     // Attempt sayısına göre bekleme süresi
                     await Task.Delay(100 * attempt, cancellationToken);
 
-                    File.Delete(_dbContextFactory.GetTenantDatabaseFilePath(databaseName));                    
+                    File.Delete(_dbContextFactory.GetTenantDatabaseFilePath(databaseName));
 
                     _logger.LogInformation(
                         "Database deleted: {DatabaseName} (attempt {Attempt})",
@@ -122,13 +101,15 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
             return false;
         }
 
-        public async Task<DatabaseHealthInfo> GetHealthStatusAsync(string databaseName, CancellationToken cancellationToken = default)
+        public async Task<DatabaseHealthInfo> GetHealthStatusAsync(
+            string databaseName,
+            CancellationToken cancellationToken = default)
         {
             try
             {
                 var healthInfo = new DatabaseHealthInfo();
-                var testResult =  await _dbContextFactory.TestConnectionAsync(databaseName, cancellationToken);
-                if (testResult)
+                var testResult = await _dbContextFactory.TestConnectionAsync(databaseName, cancellationToken);
+                if(testResult)
                 {
                     using var context = _dbContextFactory.CreateContext(databaseName);
                     var canConnect = await context.Database.CanConnectAsync(cancellationToken);
@@ -151,9 +132,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
                     healthInfo = healtStatus;
                 }
                 return healthInfo;
-
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 return new DatabaseHealthInfo { HasError = true, ErrorMessage = ex.Message };
             }

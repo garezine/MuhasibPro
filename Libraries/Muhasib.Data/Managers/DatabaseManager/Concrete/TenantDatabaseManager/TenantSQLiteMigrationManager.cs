@@ -1,10 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Muhasib.Data.DataContext;
 using Muhasib.Data.DataContext.Factories;
+using Muhasib.Data.Managers.DatabaseManager.Contracts.Infrastructure;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantDatabaseManager;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager;
-using Muhasib.Data.Managers.DatabaseManager.Models;
 using Muhasib.Domain.Entities.MuhasebeEntity.DegerlerEntities;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
@@ -14,15 +13,18 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
         private readonly IAppDbContextFactory _appDbContextFactory;
         private readonly ILogger<TenantSQLiteMigrationManager> _logger;
         private readonly ITenantSQLiteBackupManager _tenantSQLiteBackupManager;
+        private readonly IApplicationPaths _applicationPaths;
 
         public TenantSQLiteMigrationManager(
             IAppDbContextFactory appDbContextFactory,
             ILogger<TenantSQLiteMigrationManager> logger,
-            ITenantSQLiteBackupManager tenantSQLiteBackupManager)
+            ITenantSQLiteBackupManager tenantSQLiteBackupManager,
+            IApplicationPaths applicationPaths)
         {
             _appDbContextFactory = appDbContextFactory;
             _logger = logger;
             _tenantSQLiteBackupManager = tenantSQLiteBackupManager;
+            _applicationPaths = applicationPaths;
         }
 
         private string CalculateSimpleHash(string input)
@@ -70,26 +72,6 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
             {
                 // Herhangi bir hatada default versiyon
                 return "1.0.0";
-            }
-        }
-
-        private async Task<bool> TableExistsAsync(AppDbContext context, string tableName)
-        {
-            try
-            {
-                // SQL injection'dan kaçınmak için parametre kullan
-                var result = await context.Database
-                        .SqlQueryRaw<TableExistsResult>(
-                            @"SELECT COUNT(*) as TableCount 
-          FROM sqlite_master 
-          WHERE type='table' AND name = @p0",
-                            $"{tableName}")
-                        .FirstOrDefaultAsync();
-
-                return result?.TableCount > 0;
-            } catch
-            {
-                return false;
             }
         }
 
@@ -154,20 +136,14 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
                 return new List<string>();
             }
         }
-        
 
-        public async Task<bool> RunMigrationsAsync(string databaseName)
+
+        public async Task<bool> RunMigrationsAsync(string databaseName, CancellationToken cancellationToken = default)
         {
             try
             {
                 using var context = _appDbContextFactory.CreateContext(databaseName);
-                var canConnect = await context.Database.CanConnectAsync();
-                if(!canConnect)
-                {
-                    _logger.LogWarning("Cannot connect to database: {DatabaseName}", databaseName);
-                    return false;
-                }
-
+                var canConnect = await context.Database.CanConnectAsync(cancellationToken);
                 var pendingMigrations = await GetPendingMigrationsAsync(databaseName);
 
                 if(!pendingMigrations.Any())
@@ -183,15 +159,15 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
 
                 // ⚠️ Backup yavaşlatıyor - ilk oluşturmada gereksiz
                 // Sadece mevcut DB'de migration yapılıyorsa yap
-                var tableExists = await TableExistsAsync(context, "TenantDatabaseVersions");
+                
 
-                if(tableExists)
+                if(pendingMigrations.Count > 0)
                     await _tenantSQLiteBackupManager.CreateBackupAsync(databaseName);
 
                 // ✅ Migration timeout'u artır (varsayılan 30sn yetersiz olabilir)
                 context.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
 
-                await context.Database.MigrateAsync();
+                await context.Database.MigrateAsync(cancellationToken);
 
                 var migrationVersion = GetLatestMigrationVersion(await context.Database.GetAppliedMigrationsAsync());
                 await UpdateTenantDatabaseVersionAsync(databaseName, migrationVersion);
@@ -202,6 +178,29 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
             {
                 _logger.LogError(ex, "Migration çalıştırma hatası: {databaseName}", databaseName);
                 return false;
+            }
+        }
+
+        public async Task<bool> FirstInitializingDatabaseAsync(string databaseName, CancellationToken cancellationToken=default)
+        {
+            try
+            {
+                if (!_applicationPaths.TenantDatabaseFileExists(databaseName))
+                {
+                    using var context = _appDbContextFactory.CreateContext(databaseName);
+                    await context.Database.MigrateAsync(cancellationToken);
+                    if (_applicationPaths.TenantDatabaseFileExists(databaseName))
+                    {
+                        await RunMigrationsAsync(databaseName,cancellationToken);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            catch (Exception)
+            {
+
+                throw;
             }
         }
     }
