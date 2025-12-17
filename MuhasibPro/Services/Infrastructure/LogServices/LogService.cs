@@ -1,7 +1,7 @@
 ﻿using Muhasib.Business.Services.Contracts.BaseServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Data.Contracts.SistemRepositories;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 
 namespace MuhasibPro.Services.Infrastructure.LogServices
 {

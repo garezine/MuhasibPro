@@ -30,8 +30,12 @@
                                 VerticalAlignment="Stretch"
                                 HorizontalContentAlignment="Stretch"
                                 VerticalContentAlignment="Stretch"
+                                AlternateRowForeground="{StaticResource TextBoxButtonForegroundThemeBrush}"
                                 AutoGenerateColumns="False"
+                                CornerRadius="5"
                                 DoubleTapped="{x:Bind dataList.ConfigControl.Selection.OnDoubleTapped}"
+                                GridLinesVisibility="Horizontal"
+                                HeaderGridLinesVisibility="Vertical"
                                 IsMultiSelectCheckBoxEnabled="{x:Bind ViewModel.IsMultipleSelection, Mode=OneWay}"
                                 IsReadOnly="True"
                                 ItemsSource="{x:Bind ViewModel.ItemsSource, Mode=OneWay}"
@@ -43,12 +47,12 @@
                                     <tv:TableViewTemplateColumn Width="32">
                                         <tv:TableViewTemplateColumn.CellTemplate>
                                             <DataTemplate x:DataType="models:FirmaModel">
-                                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                    <PersonPicture                                                    
-                                                    Width="28"
-                                                    Height="28"
-                                                    ProfilePicture="{x:Bind LogoOnizlemeSource,Mode=OneWay, Converter={StaticResource ObjectToImageConverter}}"
-                                                    x:Phase="1" />
+                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <PersonPicture
+                                                        Width="28"
+                                                        Height="28"
+                                                        ProfilePicture="{x:Bind LogoOnizlemeSource,Mode=OneWay, Converter={StaticResource ObjectToImageConverter}}"
+                                                        x:Phase="1" />
                                                 </StackPanel>
                                             </DataTemplate>
                                         </tv:TableViewTemplateColumn.CellTemplate>

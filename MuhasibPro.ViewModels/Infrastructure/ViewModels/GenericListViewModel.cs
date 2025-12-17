@@ -1,7 +1,7 @@
 ﻿using Muhasib.Business.Models.Common;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Domain.Enum;
 using Muhasib.Domain.Exceptions;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Extensions;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using System.Windows.Input;

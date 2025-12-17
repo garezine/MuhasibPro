@@ -1,9 +1,9 @@
 ﻿using Muhasib.Business.Models.SistemModel;
-using Muhasib.Business.Services.Contracts.SistemServices;
+using Muhasib.Business.Services.Contracts.AppServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Data.Common;
 using Muhasib.Domain.Entities.SistemEntity;
 using Muhasib.Domain.Enum;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Linq.Expressions;

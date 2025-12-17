@@ -1,7 +1,7 @@
-﻿using Muhasib.Business.Services.Contracts.UtilityServices;
+﻿using Muhasib.Business.Services.Contracts.CommonServices;
+using Muhasib.Business.Services.Contracts.UtilityServices;
 using Muhasib.Domain.Models;
 using MuhasibPro.Helpers;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;

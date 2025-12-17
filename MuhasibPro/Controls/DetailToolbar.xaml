@@ -41,7 +41,7 @@
             Label="Sil"
             LabelPosition="Default"
             Style="{StaticResource ModernToolBarButtonStyle}"
-            Tag="delete" />
+            Tag="delete" />       
 
         <AppBarButton
             x:Name="buttonCancel"

@@ -1,6 +1,6 @@
 ﻿using Muhasib.Domain.Models;
 
-namespace MuhasibPro.ViewModels.Contracts.Services.CommonServices;
+namespace Muhasib.Business.Services.Contracts.CommonServices;
 
 public interface IFilePickerService
 {

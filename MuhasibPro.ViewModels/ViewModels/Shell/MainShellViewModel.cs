@@ -1,9 +1,9 @@
 ﻿using Muhasib.Business.Services.Contracts.BaseServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Data.Common;
 using Muhasib.Domain.Entities.MuhasebeEntity.DegerlerEntities;
 using Muhasib.Domain.Entities.SistemEntity;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs;

@@ -1,6 +1,6 @@
-﻿using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
+﻿using Muhasib.Business.Services.Contracts.CommonServices;
+using Muhasib.Business.Services.Contracts.DatabaseServices.SistemDatabase;
 using Muhasib.Data.Managers.UpdataManager;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using System.Diagnostics;
 using Velopack;
 using Velopack.Locators;

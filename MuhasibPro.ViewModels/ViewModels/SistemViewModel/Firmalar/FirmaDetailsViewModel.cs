@@ -1,9 +1,9 @@
 ﻿using FluentValidation;
 using Muhasib.Business.Models.SistemModel;
-using Muhasib.Business.Services.Contracts.SistemServices;
+using Muhasib.Business.Services.Contracts.AppServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Validations.SistemValidations;
 using Muhasib.Domain.Enum;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Windows.Input;
@@ -15,7 +15,6 @@ public class FirmaDetailsArgs
     public static FirmaDetailsArgs CreateDefault() => new FirmaDetailsArgs();
 
     public long FirmaId { get; set; }
-
     public bool IsNew => FirmaId <= 0;
 }
 
@@ -49,9 +48,8 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
         ViewModelArgs = args ?? FirmaDetailsArgs.CreateDefault();
 
         if(ViewModelArgs.IsNew)
-        {
-            var firmaKodu = await FirmaService.GetYeniFirmaKodu();
-            Item = new FirmaModel { FirmaKodu = firmaKodu };
+        {           
+            Item = new FirmaModel { };
             IsEditMode = true;
         } else
         {
@@ -118,7 +116,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
             startMessage: "Logo seçiliyor",
             startMessageType: StatusMessageType.Info);
     }
-
+   
     protected async override Task<bool> SaveItemAsync(FirmaModel model)
     {
         try
@@ -144,6 +142,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
         {
             await FirmaService.DeleteFirmaAsync(model);
             LogSistemWarning($"{Header}", "Sil", $"{Header} silindi", $"'{TitleEdit}' silindi");
+           
             return true;
         }  catch(Exception ex)
         {
@@ -161,6 +160,7 @@ public class FirmaDetailsViewModel : GenericDetailsViewModel<FirmaModel>
             "Sil",
             "İptal");
     }
+    
     protected override IEnumerable<AbstractValidator<FirmaModel>> GetValidationConstraints(FirmaModel model)
     { yield return new FirmaValidator(); }
 

@@ -202,32 +202,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 _logger.LogError(ex, "Health check failed for databaseName: {databaseName}", databaseName);
                 return new ErrorApiDataResponse<DatabaseHealthInfo>(null, ex.Message);
             }
-        }
-
-        public async Task<ApiDataResponse<bool>> CreateDatabaseAsync(string databaseName)
-        {
-            try
-            {                
-                if (string.IsNullOrEmpty(databaseName))
-                {
-                    return new ErrorApiDataResponse<bool>(false, "Database adı bulunamadı");
-                }
-
-                _logger.LogInformation("Preparing database for dbName: {dbName}", databaseName);
-                var result = await _sqliteDatabaseManager.CreateDatabaseAsync(databaseName);
-                if (!result)
-                {
-                    return new ErrorApiDataResponse<bool>(false, "Veritabanı hazırlanamadı");
-                }
-
-                return new SuccessApiDataResponse<bool>(true, "Veritabanı başarıyla hazırlandı");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Database preparation failed for databaseName: {databaseName}", databaseName);
-                return new ErrorApiDataResponse<bool>(false, $"Hazırlama hatası: {ex.Message}");
-            }
-        }
+        }      
         
 
         public async Task<ApiDataResponse<bool>> RestoreBackupAsync(string databaseName, string backupFilePath)

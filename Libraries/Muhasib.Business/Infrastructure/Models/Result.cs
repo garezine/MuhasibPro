@@ -14,7 +14,7 @@
 
 using System;
 
-namespace MuhasibPro.ViewModels.Infrastructure.Common
+namespace Muhasib.Business.Infrastructure.Models
 {
     public class Result
     {

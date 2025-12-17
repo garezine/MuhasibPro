@@ -1,15 +1,16 @@
 ﻿using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using Muhasib.Business.Services.Contracts.BaseServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.Extensions.Common;
 using MuhasibPro.Extensions.ExtensionService;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.Services.Infrastructure.CommonServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.ViewModels.Settings;
 using MuhasibPro.ViewModels.ViewModels.Shell;
+using MuhasibPro.Views.Login;
 using System.Windows.Input;
 using Windows.System;
 
@@ -197,7 +198,7 @@ namespace MuhasibPro.Views.Shell
                 authentication.Logout();
                 if (Frame.CanGoBack)
                 {
-                    Frame.GoBack();
+                    Frame.Navigate(typeof(LoginView),ViewModel.ViewModelArgs);                    
                 }
             }
             else if (logout == ContentDialogResult.Secondary)

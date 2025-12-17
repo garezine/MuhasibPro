@@ -6,11 +6,12 @@ namespace Muhasib.Business.Services.Contracts.BaseServices
     public interface IAuthenticationService
     {
         KullaniciModel CurrentAccount { get; }
-        bool IsLoggedIn { get; set; }
+        bool IsAuthenticated { get; }
         Task<RegistrationResult> Register(string email, string username, string password, string confirmPassword);
         Task Login(string username, string password);
         void Logout();
         string CurrentUsername { get; }
         long CurrentUserId { get; }
+        event Action StateChanged;
     }
 }

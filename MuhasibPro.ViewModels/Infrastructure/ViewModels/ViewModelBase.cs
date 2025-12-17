@@ -1,7 +1,7 @@
 ﻿using Muhasib.Business.Models.Common;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Domain.Enum;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 
 namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 {
@@ -16,11 +16,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
             LogService = commonServices.LogService;
             NotificationService = commonServices.NotificationService;
             StatusBarService = commonServices.StatusBarService;
-            //MessageService'e context'i kaydet(WinUI 3 için)
-            if (MessageService is IMessageService msgService)
-            {
-                MessageService.RegisterContext(ContextService.ContextId, ContextService);
-            }
+            
         }
         public IContextService ContextService { get; private set; }
         public INavigationService NavigationService { get; private set; }
@@ -123,10 +119,9 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 
         public void EnableThisView(string message = null)
         {
-            message ??= "Hazır";
+            message = message ?? "Hazır";
             MessageService.Send(this, "EnableThisView", message);
         }
-
         public void DisableThisView(string message)
         {
             MessageService.Send(this, "DisableThisView", message);
@@ -134,10 +129,9 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 
         public void EnableOtherViews(string message = null)
         {
-            message ??= "Hazır";
+            message = message ?? "Hazır";
             MessageService.Send(this, "EnableOtherViews", message);
         }
-
         public void DisableOtherViews(string message)
         {
             MessageService.Send(this, "DisableOtherViews", message);
@@ -145,64 +139,12 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
 
         public void EnableAllViews(string message = null)
         {
-            message ??= "Hazır";
+            message = message ?? "Hazır";
             MessageService.Send(this, "EnableAllViews", message);
         }
-
         public void DisableAllViews(string message)
         {
             MessageService.Send(this, "DisableAllViews", message);
-        }
-
-        public async Task EnableThisViewAsync(string message = null)
-        {
-            message ??= "Hazır";
-            if (MessageService is IMessageService msgService)
-                await msgService.SendAsync(this, "EnableThisView", message);
-            else
-                MessageService.Send(this, "EnableThisView", message);
-        }
-
-        public async Task DisableThisViewAsync(string message)
-        {
-            if (MessageService is IMessageService msgService)
-                await msgService.SendAsync(this, "DisableThisView", message);
-            else
-                MessageService.Send(this, "DisableThisView", message);
-        }
-
-        public async Task EnableOtherViewsAsync(string message = null)
-        {
-            message ??= "Hazır";
-            if (MessageService is IMessageService msgService)
-                await msgService.SendAsync(this, "EnableOtherViews", message);
-            else
-                MessageService.Send(this, "EnableOtherViews", message);
-        }
-
-        public async Task DisableOtherViewsAsync(string message)
-        {
-            if (MessageService is IMessageService msgService)
-                await msgService.SendAsync(this, "DisableOtherViews", message);
-            else
-                MessageService.Send(this, "DisableOtherViews", message);
-        }
-
-        public async Task EnableAllViewsAsync(string message = null)
-        {
-            message ??= "Hazır";
-            if (MessageService is IMessageService msgService)
-                await msgService.SendAsync(this, "EnableAllViews", message);
-            else
-                MessageService.Send(this, "EnableAllViews", message);
-        }
-
-        public async Task DisableAllViewsAsync(string message)
-        {
-            if (MessageService is IMessageService msgService)
-                await msgService.SendAsync(this, "DisableAllViews", message);
-            else
-                MessageService.Send(this, "DisableAllViews", message);
         }
 
         #endregion

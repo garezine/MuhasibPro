@@ -2,8 +2,8 @@
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
 using Microsoft.UI.Xaml.Navigation;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
 
 namespace MuhasibPro.Views.MaliDonem

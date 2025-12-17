@@ -1,7 +1,7 @@
 ﻿using Microsoft.UI.Dispatching;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Domain.Enum;
 using MuhasibPro.Contracts.CoreServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using System.ComponentModel;
 using System.Diagnostics;
 

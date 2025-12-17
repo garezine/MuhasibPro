@@ -1,11 +1,7 @@
-﻿using CommunityToolkit.WinUI;
-using Microsoft.UI.Dispatching;
-using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
-using Muhasib.Domain.Enum;
-using MuhasibPro.Helpers;
+﻿using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.Services.Infrastructure.CommonServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
 using MuhasibPro.ViewModels.ViewModels.Login;
 using MuhasibPro.ViewModels.ViewModels.Settings;
@@ -21,7 +17,6 @@ using MuhasibPro.Views.Login;
 using MuhasibPro.Views.MaliDonem;
 using MuhasibPro.Views.Settings;
 using MuhasibPro.Views.Shell;
-using System.Diagnostics;
 
 namespace MuhasibPro.Configurations
 {
@@ -47,6 +42,9 @@ namespace MuhasibPro.Configurations
             NavigationService.Register<ShellViewModel, ShellView>();
             NavigationService.Register<MainShellViewModel, MainShellView>();
             NavigationService.Register<LoginViewModel, LoginView>();
+            NavigationService.Register<FirmaWithMaliDonemSelectViewModel,FirmaWithMaliDonemSelectView>();
+            
+            
 
             NavigationService.Register<DashboardViewModel, DashboardView>();
             NavigationService.Register<SettingsViewModel, SettingsView>();
@@ -101,32 +99,11 @@ namespace MuhasibPro.Configurations
                 return false;
             }
         }
-
-        private async Task ShowNotificationAsync(string title, string message = "Bilgi")
-        {
-            try
-            {
-                var dispatcherQueue = App.MainWindow?.DispatcherQueue ??
-                    CustomWindowHelper.CurrentWindow?.DispatcherQueue;
-                // UI thread'de çalıştır
-                if(dispatcherQueue != null)
-                {
-                    var taskCompletionSource = new TaskCompletionSource<bool>();
-                    await dispatcherQueue.EnqueueAsync(
-                        async () =>
-                        {
-                            var dialogService = ServiceLocator.Current.GetService<IDialogService>();
-                            if (dialogService != null)
-                            {
-                                await dialogService.ShowAsync(message, title);
-                            }
-                        });
-                    await taskCompletionSource.Task;
-                }
-            } catch(Exception ex)
-            {
-                Debug.WriteLine($"Notification failed: {ex.Message}");
-            }
-        }
+        /// <summary>
+        /// Sistemde en az bir firma olup olmadığını kontrol eder
+        /// </summary>
+       
     }
+
+
 }

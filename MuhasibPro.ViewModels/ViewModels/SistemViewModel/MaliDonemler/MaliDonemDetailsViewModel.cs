@@ -1,9 +1,9 @@
 ﻿using Muhasib.Business.Models.SistemModel;
 using Muhasib.Business.Models.TenantModel;
+using Muhasib.Business.Services.Contracts.AppServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
-using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Domain.Enum;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Windows.Input;
@@ -38,15 +38,13 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
 
 
 
-        private string Header => "Mali Dönem";
+        private string Header => "Mali Dönem";       
 
-        public override string Title => base.Title;
-
-        public string TitleNew => Item?.FirmaModel == null
+        public override string Title => Item?.IsNew ?? true
             ? "Yeni Mali Dönem"
-            : $"Yeni Mali Dönem, {Item?.FirmaModel.KisaUnvani}";
+            : TitleEdit;
 
-        public string TitleEdit => Item == null ? "Mali Dönem" : $"Mali Dönem #{Item?.Id}";
+        public string TitleEdit => Item == null ? "Mali Dönem" : $"Mali Dönem #{Item?.MaliYil}";
 
         public override bool ItemIsNew => Item?.IsNew ?? true;
 
@@ -113,7 +111,9 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
             {
                 var request = new TenantDeletingRequest
                 {
-                    MaliDonemId = model.Id
+                    MaliDonemId = model.Id,
+                    IsDeleteDatabase=true,
+                    DatabaseName= model.DBName,
 
                 };
                 bool success = false;
@@ -172,9 +172,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
                 {
                     FirmaId = model.FirmaId,
                     MaliYil = model.MaliYil,
-                    AutoCreateDatabase = true,
-                    RunMigrations = true,
-                    CreateInitialBackup = true,
+                    AutoCreateDatabase = true,                    
                 };
                 bool success = false;
                 await ExecuteWithProgressAsync(

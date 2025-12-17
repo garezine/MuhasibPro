@@ -1,7 +1,7 @@
 ﻿using Muhasib.Business.Models.SistemModel;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Domain.Enum;
 using Muhasib.Domain.Exceptions;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 
 namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Loggings.SistemLogs

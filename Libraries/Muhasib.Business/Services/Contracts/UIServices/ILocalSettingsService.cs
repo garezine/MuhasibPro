@@ -1,4 +1,4 @@
-﻿namespace MuhasibPro.Contracts.CoreServices;
+﻿namespace Muhasib.Business.Services.Contracts.UIServices;
 
 public interface ILocalSettingsService
 {

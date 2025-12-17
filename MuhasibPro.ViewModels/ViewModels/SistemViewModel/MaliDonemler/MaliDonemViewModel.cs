@@ -1,7 +1,7 @@
 ﻿using Muhasib.Business.Models.SistemModel;
+using Muhasib.Business.Services.Contracts.AppServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
-using Muhasib.Business.Services.Contracts.SistemServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 
 namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler

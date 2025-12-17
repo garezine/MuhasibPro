@@ -1,6 +1,6 @@
-﻿using MuhasibPro.ViewModels.Infrastructure.Common;
+﻿using Muhasib.Business.Infrastructure.Models;
 
-namespace MuhasibPro.ViewModels.Contracts.Services.CommonServices;
+namespace Muhasib.Business.Services.Contracts.CommonServices;
 public interface IDialogService
 {
     // Mevcut metotlar

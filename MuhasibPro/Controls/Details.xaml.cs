@@ -93,7 +93,7 @@ namespace MuhasibPro.Controls
 
         public static readonly DependencyProperty DefaultCommandsProperty = DependencyProperty.Register(nameof(DefaultCommands), typeof(string), typeof(Details), new PropertyMetadata("edit,delete"));
         #endregion
-
+       
 
         #region BackCommand
         public ICommand BackCommand
@@ -176,6 +176,7 @@ namespace MuhasibPro.Controls
                 case ToolbarButton.Cancel:
                     CancelCommand?.TryExecute();
                     break;
+               
             }
         }
 

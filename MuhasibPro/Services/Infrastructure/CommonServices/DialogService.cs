@@ -1,8 +1,8 @@
-﻿using MuhasibPro.Contracts.CoreServices;
+﻿using Muhasib.Business.Infrastructure.Models;
+using Muhasib.Business.Services.Contracts.CommonServices;
+using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.Controls;
 using MuhasibPro.Helpers;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure.Common;
 
 namespace MuhasibPro.Services.Infrastructure.CommonServices
 {
@@ -15,13 +15,13 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
             _themeSelectorService = themeSelectorService;
         }
 
-        private ModernContentDialog CreateDialog(string title, object content, ModernContentDialog.DialogIcon icon)
+        private CustomContentDialog CreateDialog(string title, object content, CustomContentDialog.DialogIcon icon)
         {
             var xamlRoot = CustomWindowHelper.CurrentXamlRoot;
             if (xamlRoot == null)
                 throw new InvalidOperationException("Aktif pencere bulunamadı.");
 
-            var dialog = new ModernContentDialog
+            var dialog = new CustomContentDialog
             {
                 XamlRoot = xamlRoot,
                 RequestedTheme = _themeSelectorService.Theme,
@@ -51,7 +51,7 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
 
         public async Task<bool> ShowAsync(string title, string content, string ok = "Tamam", string cancel = null)
         {
-            var dialog = CreateDialog(title, content, ModernContentDialog.DialogIcon.Info);
+            var dialog = CreateDialog(title, content, CustomContentDialog.DialogIcon.Info);
             dialog.PrimaryButtonText = ok;
 
             if (!string.IsNullOrEmpty(cancel))
@@ -66,35 +66,35 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
         // YENİ MODERN METOTLAR
         public async Task ShowSuccessAsync(string title, string content, string ok = "Tamam")
         {
-            var dialog = CreateDialog(title, content, ModernContentDialog.DialogIcon.Success);
+            var dialog = CreateDialog(title, content, CustomContentDialog.DialogIcon.Success);
             dialog.PrimaryButtonText = ok;
             await dialog.ShowAsync();
         }
 
         public async Task ShowErrorAsync(string title, string content, string ok = "Tamam")
         {
-            var dialog = CreateDialog(title, content, ModernContentDialog.DialogIcon.Error);
+            var dialog = CreateDialog(title, content, CustomContentDialog.DialogIcon.Error);
             dialog.PrimaryButtonText = ok;
             await dialog.ShowAsync();
         }
 
         public async Task ShowWarningAsync(string title, string content, string ok = "Tamam")
         {
-            var dialog = CreateDialog(title, content, ModernContentDialog.DialogIcon.Warning);
+            var dialog = CreateDialog(title, content, CustomContentDialog.DialogIcon.Warning);
             dialog.PrimaryButtonText = ok;
             await dialog.ShowAsync();
         }
 
         public async Task ShowInfoAsync(string title, string content, string ok = "Tamam")
         {
-            var dialog = CreateDialog(title, content, ModernContentDialog.DialogIcon.Info);
+            var dialog = CreateDialog(title, content, CustomContentDialog.DialogIcon.Info);
             dialog.PrimaryButtonText = ok;
             await dialog.ShowAsync();
         }
 
         public async Task<bool> ShowConfirmationAsync(string title, string content, string confirmText = "Evet", string cancelText = "Hayır")
         {
-            var dialog = CreateDialog(title, content, ModernContentDialog.DialogIcon.Question);
+            var dialog = CreateDialog(title, content, CustomContentDialog.DialogIcon.Question);
             dialog.PrimaryButtonText = confirmText;
             dialog.SecondaryButtonText = cancelText;
 
@@ -126,7 +126,7 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
 
             stackPanel.Children.Add(textBox);
 
-            var dialog = CreateDialog(title, stackPanel, ModernContentDialog.DialogIcon.Edit);
+            var dialog = CreateDialog(title, stackPanel, CustomContentDialog.DialogIcon.Edit);
             dialog.PrimaryButtonText = "Tamam";
             dialog.SecondaryButtonText = "İptal";
 

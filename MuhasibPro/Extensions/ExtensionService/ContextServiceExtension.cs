@@ -1,5 +1,5 @@
-﻿using MuhasibPro.Helpers;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
+﻿using Muhasib.Business.Services.Contracts.CommonServices;
+using MuhasibPro.Helpers;
 
 namespace MuhasibPro.Extensions.ExtensionService
 {

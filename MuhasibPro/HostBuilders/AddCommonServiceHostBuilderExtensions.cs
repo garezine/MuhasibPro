@@ -1,13 +1,14 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.LogServices;
+using Muhasib.Business.Services.Contracts.UIServices;
 using Muhasib.Business.Services.Contracts.UtilityServices;
 using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.Services.BaseServices;
 using MuhasibPro.Services.Infrastructure.CommonServices;
 using MuhasibPro.Services.Infrastructure.LogServices;
 using MuhasibPro.Services.Infrastructure.UtilityService;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 
 namespace MuhasibPro.HostBuilders
 {
@@ -23,7 +24,6 @@ namespace MuhasibPro.HostBuilders
                 services.AddSingleton<IActivationService, ActivationService>();
                 services.AddSingleton<IUpdateService, UpdateService>();
                 services.AddSingleton<ISettingsService, SettingsService>();
-                services.AddSingleton<IMessageService, MessageService>();
                 services.AddSingleton<ILogService, LogService>();
                 services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton<IFilePickerService, FilePickerService>();
@@ -31,6 +31,7 @@ namespace MuhasibPro.HostBuilders
                 services.AddSingleton<IAppLogService, AppLogService>();
                 services.AddSingleton<IFileService, FileService>();
                 services.AddSingleton<INotificationService, NotificationService>();
+                services.AddSingleton<IMessageService, MessageService>();
 
 
 

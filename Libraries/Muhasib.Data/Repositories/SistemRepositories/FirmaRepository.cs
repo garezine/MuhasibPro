@@ -76,6 +76,7 @@ namespace Muhasib.Data.Repositories.SistemRepositories
                         GuncellemeTarihi = r.GuncellemeTarihi,
                         GuncelleyenId = r.GuncelleyenId,
                         Id = r.Id,
+                        FirmaKodu = r.FirmaKodu,
                         Il = r.Il,
                         Ilce = r.Ilce,
                         KaydedenId = r.KaydedenId,
@@ -129,6 +130,7 @@ namespace Muhasib.Data.Repositories.SistemRepositories
             else
             {
                 firma.Id = UIDGenerator.GenerateModuleId(UIDModuleType.Sistem);
+                firma.FirmaKodu = await GetYeniFirmaKodu();
                 firma.KayitTarihi = DateTime.UtcNow;
                 await AddAsync(firma);
             }

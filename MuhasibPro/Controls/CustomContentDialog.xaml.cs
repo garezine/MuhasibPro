@@ -1,10 +1,10 @@
 namespace MuhasibPro.Controls
 {
-    public sealed partial class ModernContentDialog : ContentDialog
+    public sealed partial class CustomContentDialog : ContentDialog
     {
         private string _titleText = string.Empty;
 
-        public ModernContentDialog()
+        public CustomContentDialog()
         {
             InitializeComponent();
         }

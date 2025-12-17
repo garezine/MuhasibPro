@@ -1,53 +1,17 @@
-﻿#region copyright
-// ******************************************************************
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-// IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-// TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH
-// THE CODE OR THE USE OR OTHER DEALINGS IN THE CODE.
-// ******************************************************************
-#endregion
-
-
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
-using MuhasibPro.ViewModels.Infrastructure.ViewModels;
+﻿using Muhasib.Business.Services.Contracts.CommonServices;
 
 namespace MuhasibPro.Services.Infrastructure.CommonServices
 {
     public class MessageService : IMessageService
     {
         private object _sync = new Object();
+
         private List<Subscriber> _subscribers = new List<Subscriber>();
-
-        // ContextService integration için eklenen bölüm
-        private readonly Dictionary<int, IContextService> _contextServices = new();
-        private readonly object _contextLock = new object();
-
-        public void RegisterContext(int contextId, IContextService contextService)
-        {
-            lock (_contextLock)
-            {
-                _contextServices[contextId] = contextService;
-            }
-        }
-
-        public void UnregisterContext(int contextId)
-        {
-            lock (_contextLock)
-            {
-                _contextServices.Remove(contextId);
-            }
-        }
 
         public void Subscribe<TSender>(object target, Action<TSender, string, object> action) where TSender : class
         {
             Subscribe<TSender, Object>(target, action);
         }
-
         public void Subscribe<TSender, TArgs>(object target, Action<TSender, string, TArgs> action) where TSender : class
         {
             if (target == null)
@@ -85,7 +49,6 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
                 }
             }
         }
-
         public void Unsubscribe<TSender, TArgs>(object target) where TSender : class
         {
             if (target == null)
@@ -104,7 +67,6 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
                 }
             }
         }
-
         public void Unsubscribe(object target)
         {
             if (target == null)
@@ -120,45 +82,6 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
             }
         }
 
-        // Async Send metodu - ContextService ile UI thread'de çalışır
-        public async Task SendAsync<TSender, TArgs>(TSender sender, string message, TArgs args) where TSender : class
-        {
-            if (sender == null)
-                throw new ArgumentNullException(nameof(sender));
-
-            var tasks = new List<Task>();
-            var subscribers = GetSubscribersSnapshot();
-
-            foreach (var subscriber in subscribers)
-            {
-                // Avoid sending message to self
-                if (subscriber.Target != sender && subscriber.Target != null)
-                {
-                    // ViewModel ise context'ini al ve UI thread'de çalıştır
-                    if (subscriber.Target is ViewModelBase viewModel)
-                    {
-                        var contextService = viewModel.ContextService;
-                        var task = contextService.RunAsync(() =>
-                        {
-                            subscriber.TryInvoke(sender, message, args);
-                        });
-                        tasks.Add(task);
-                    }
-                    else
-                    {
-                        // Normal invoke
-                        subscriber.TryInvoke(sender, message, args);
-                    }
-                }
-            }
-
-            if (tasks.Any())
-            {
-                await Task.WhenAll(tasks);
-            }
-        }
-
-        // Orijinal Send metodu - geriye uyumluluk için
         public void Send<TSender, TArgs>(TSender sender, string message, TArgs args) where TSender : class
         {
             if (sender == null)
@@ -185,6 +108,7 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
         class Subscriber
         {
             private WeakReference _reference = null;
+
             private Dictionary<Type, Subscriptions> _subscriptions;
 
             public Subscriber(object target)
@@ -211,7 +135,6 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices
             {
                 _subscriptions.Remove(typeof(TSender));
             }
-
             public void RemoveSubscription<TSender, TArgs>()
             {
                 if (_subscriptions.TryGetValue(typeof(TSender), out Subscriptions subscriptions))

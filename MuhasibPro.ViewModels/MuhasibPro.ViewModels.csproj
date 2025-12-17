@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Velopack" Version="0.0.1298" />
+    <ProjectReference Include="..\Libraries\Muhasib.Business\Muhasib.Business.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Libraries\Muhasib.Business\Muhasib.Business.csproj" />
+    <Folder Include="Contracts\" />
   </ItemGroup>
 
 </Project>

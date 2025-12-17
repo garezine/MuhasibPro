@@ -19,8 +19,7 @@ public static class AddAppViewHostBuilderExtensions
             services.AddTransient<DashboardView>();
             services.AddTransient<FirmaView>();
             services.AddTransient<UpdateView>();
-
-
+            services.AddTransient<SettingsView>();
         });
         return host;
     }

@@ -7,7 +7,6 @@ using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantDatabaseManager;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager;
 using Muhasib.Data.Managers.DatabaseManager.Models;
 using Muhasib.Data.Utilities.Responses;
-using Muhasib.Domain.Enum;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 {
@@ -29,9 +28,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             _selectionManager = selectionManager;
             _logService = logService;
             _logger = logger;
-        }
-
-        private DatabaseType DatabaseType_Sqlite => DatabaseType.SQLite;
+        }        
 
         public void ClearCurrentTenant() => _selectionManager.ClearCurrentTenant();
         public bool IsConnected
@@ -137,14 +134,14 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 
                 // 3. Tenant değiştir
                 var tenantContext = await _selectionManager.SwitchToTenantAsync(databaseName);
-
+                GetCurrentTenant().Data = tenantContext;
                 await _logService.SistemLogService
                     .SistemLogInformation(
                         nameof(TenantSQLiteConnectionService),
                         nameof(SwitchTenantAsync),
                         $"Tenant başarıyla değiştirildi. databaseName: {databaseName}, Database: {tenantContext.DatabaseName}",
                         string.Empty);
-
+               
                 return new SuccessApiDataResponse<TenantContext>(
                     tenantContext,
                     $"Mali dönem başarıyla değiştirildi: {databaseName}");

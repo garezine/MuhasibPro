@@ -1,6 +1,6 @@
 ﻿using Muhasib.Business.Models.SistemModel;
-using Muhasib.Business.Services.Contracts.SistemServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
+using Muhasib.Business.Services.Contracts.AppServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
 
@@ -8,7 +8,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar
 {
     public class FirmaDetailsWithMaliDonemlerViewModel : ViewModelBase
     {
-        public FirmaDetailsWithMaliDonemlerViewModel(ICommonServices commonServices,IFirmaService firmaService,IFilePickerService filePickerService, IMaliDonemService maliDonemService) : base(commonServices)
+        public FirmaDetailsWithMaliDonemlerViewModel(ICommonServices commonServices, IFirmaService firmaService, IFilePickerService filePickerService, IMaliDonemService maliDonemService) : base(commonServices)
         {
             FirmaDetails = new FirmaDetailsViewModel(commonServices,filePickerService,firmaService);
             MaliDonemList = new MaliDonemListViewModel(commonServices, maliDonemService);
@@ -20,6 +20,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar
             await FirmaDetails.LoadAsync(args);
 
             long firmaId = args?.FirmaId ?? 0;
+            
             if (firmaId > 0) 
             {
                 await MaliDonemList.LoadAsync(new MaliDonemListArgs { FirmaId = args.FirmaId },silent:true);
@@ -56,6 +57,8 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar
                 await MaliDonemList.LoadAsync(new MaliDonemListArgs { FirmaId = firma.Id });
             }
         }
+        
+        
 
     }
 }

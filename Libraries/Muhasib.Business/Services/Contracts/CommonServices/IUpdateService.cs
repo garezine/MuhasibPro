@@ -2,7 +2,7 @@
 using Muhasib.Data.Managers.UpdataManager;
 using Velopack;
 
-namespace MuhasibPro.ViewModels.Contracts.Services.CommonServices
+namespace Muhasib.Business.Services.Contracts.CommonServices
 {
     public interface IUpdateService
     {

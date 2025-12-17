@@ -1,8 +1,8 @@
 ﻿using Muhasib.Business.Infrastructure.Extensions;
 using Muhasib.Business.Models.SistemModel;
+using Muhasib.Business.Services.Contracts.AppServices;
 using Muhasib.Business.Services.Contracts.BaseServices;
 using Muhasib.Business.Services.Contracts.LogServices;
-using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Business.Services.Contracts.UtilityServices;
 using Muhasib.Data.BaseRepositories.Contracts;
 using Muhasib.Data.Common;
@@ -311,7 +311,34 @@ namespace Muhasib.Business.Services.Concrete.SistemServices
             target.GuncellemeTarihi = source.GuncellemeTarihi;
             target.GuncelleyenId = source.GuncelleyenId;
         }
+       
 
-        public async Task<string> GetYeniFirmaKodu() { return await _firmaRepository.GetYeniFirmaKodu(); }
+        public async Task<ApiDataResponse<IList<FirmaModel>>> GetFirmalarWithUserId(long userId)
+        {
+            try
+            {
+                var models = new List<FirmaModel>();
+                var items = await _firmaRepository.GetAllAsync();
+                if (items == null)
+                {
+                    return new ErrorApiDataResponse<IList<FirmaModel>>(data: null, message: "Hiç veri bulunamadı");
+                }
+                if(items != null)
+                {
+                    var userFirma = items.Where(r => r.KaydedenId == userId);
+                    foreach(var firma in userFirma)
+                    {
+                        models.Add(await CreateFirmaModelAsync(firma,includeAllFields:true,_bitmapTools));
+                    }
+                }
+                return new SuccessApiDataResponse<IList<FirmaModel>>(models, "Firmalar başarıyla listelendi");
+            }
+            catch (Exception ex)
+            {
+                await _logService.SistemLogService
+                    .SistemLogException(nameof(FirmaService), nameof(GetFirmalarAsync), ex);
+                return new ErrorApiDataResponse<IList<FirmaModel>>(data: null, message: ex.Message);
+            }
+        }
     }
 }

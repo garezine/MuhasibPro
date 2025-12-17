@@ -10,126 +10,174 @@
     d:DesignHeight="600"
     d:DesignWidth="320">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" >
-        <StackPanel Margin="12 0,12 12">
-            <!--Header Card-->
-            <Border>
-                <Grid Style="{StaticResource ElevatedCard}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <!-- Profile Picture with Modern Styling -->
-                    <Grid>
-                        <PersonPicture
-                         Width="{StaticResource CardPictureRadius}"
-                         Height="{StaticResource CardPictureRadius}"
-                         ProfilePicture="{x:Bind Item.FirmaModel.LogoSource, Mode=OneWay, Converter={StaticResource ObjectToImageConverter}}" />
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <!--Header Card-->
+        <Border Padding="5">            
+            <Grid Style="{StaticResource ElevatedCard}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <!-- Profile Picture with Modern Styling -->
+                <Grid>
+                    <PersonPicture
+                        Width="{StaticResource CardPictureRadius}"
+                        Height="{StaticResource CardPictureRadius}"
+                        ProfilePicture="{x:Bind Item.FirmaModel.LogoSource, Mode=OneWay, Converter={StaticResource ObjectToImageConverter}}" />
 
-                    </Grid>
-                    <!-- Company Name and Quick Actions -->
-                    <StackPanel
-                     Grid.Column="1"
-                     Margin="20,0,0,0"
-                     VerticalAlignment="Center">
-                        <TextBlock
-                         Margin="0,0,0,12"
-                         FontSize="18"
-                         FontWeight="SemiBold"
-                         Foreground="{ThemeResource AccentAAFillColorSecondaryBrush}"
-                         Text="{x:Bind Item.FirmaModel.KisaUnvani, Mode=OneWay}"
-                         TextWrapping="Wrap" />
+                </Grid>
+                <!-- Company Name and Quick Actions -->
+                <StackPanel
+                    Grid.Column="1"
+                    Margin="20,0,0,0"
+                    VerticalAlignment="Center">
+                    <TextBlock
+                        Margin="0,0,0,12"
+                        FontSize="18"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource AccentAAFillColorSecondaryBrush}"
+                        Text="{x:Bind Item.FirmaModel.KisaUnvani, Mode=OneWay}"
+                        TextWrapping="Wrap" />
+
+                </StackPanel>
+            </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12 0,12 12">
+
+                <!-- General Information Card -->
+                <Grid Style="{StaticResource CompactInfoRow}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ModernSectionHeader}" Text="Genel Bilgiler" />
+
+                        <Grid Style="{StaticResource ElevatedCard}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Glyph="&#xE8D7;"
+                                Style="{StaticResource InfoIcon}" />
+                            <AppBarSeparator Grid.Column="1" HorizontalAlignment="Center" />
+                            <StackPanel Grid.Column="2" Margin="5 0">
+                                <TextBlock Style="{StaticResource InfoLabel}" Text="FirmaID" />
+                                <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.Id, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Style="{StaticResource ElevatedCard}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Glyph="&#xEC08;"
+                                Style="{StaticResource InfoIcon}" />
+                            <AppBarSeparator Grid.Column="1" HorizontalAlignment="Center" />
+                            <StackPanel Grid.Column="2" Margin="5 0">
+                                <TextBlock Style="{StaticResource InfoLabel}" Text="Firma Kodu" />
+                                <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.FirmaKodu, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Style="{StaticResource ElevatedCard}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Glyph="&#xE932;"
+                                Style="{StaticResource InfoIcon}" />
+                            <AppBarSeparator Grid.Column="1" HorizontalAlignment="Center" />
+                            <StackPanel Grid.Column="2" Margin="5 0">
+                                <TextBlock Style="{StaticResource InfoLabel}" Text="Tam Ünvan" />
+                                <TextBlock
+                                    Style="{StaticResource InfoValue}"
+                                    Text="{x:Bind Item.FirmaModel.TamUnvani, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
 
                     </StackPanel>
                 </Grid>
-            </Border>
+                <!-- Contact Information Card -->
+                <Grid Style="{StaticResource CompactInfoRow}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource ModernSectionHeader}" Text="İletişim Bilgileri" />
 
-            <!-- General Information Card -->
-            <Grid Style="{StaticResource CompactInfoRow}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource ModernSectionHeader}" Text="Genel Bilgiler" />
+                        <Grid Style="{StaticResource ElevatedCard}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Glyph="&#xE939;"
+                                Style="{StaticResource InfoIcon}" />
+                            <AppBarSeparator Grid.Column="1" HorizontalAlignment="Center" />
+                            <StackPanel Grid.Column="2" Margin="5 0">
+                                <TextBlock Style="{StaticResource InfoLabel}" Text="Yetkili Kişi" />
+                                <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.YetkiliKisi, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
 
-                    <Grid Style="{StaticResource ElevatedCard}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE8D7;" Style="{StaticResource InfoIcon}" />
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Style="{StaticResource InfoLabel}" Text="FirmaID" />
-                            <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.Id, Mode=OneWay}" />
-                        </StackPanel>
-                    </Grid>
-                    <Grid Style="{StaticResource ElevatedCard}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xEC08;" Style="{StaticResource InfoIcon}" />
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Style="{StaticResource InfoLabel}" Text="Firma Kodu" />
-                            <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.FirmaKodu, Mode=OneWay}" />
-                        </StackPanel>
-                    </Grid>
-                    <Grid Style="{StaticResource ElevatedCard}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE932;" Style="{StaticResource InfoIcon}" />
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Style="{StaticResource InfoLabel}" Text="Tam Ünvan"/>
-                            <TextBlock Style="{StaticResource InfoValue}" TextWrapping="Wrap" Text="{x:Bind Item.FirmaModel.TamUnvani, Mode=OneWay}"/>
-                        </StackPanel>
-                    </Grid>
+                        <Grid Style="{StaticResource ElevatedCard}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                Glyph="&#xE717;"
+                                Style="{StaticResource InfoIcon}" />
+                            <AppBarSeparator Grid.Column="1" HorizontalAlignment="Center" />
+                            <StackPanel Grid.Column="2" Margin="5 0">
+                                <TextBlock Style="{StaticResource InfoLabel}" Text="Telefon" />
+                                <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.Telefon1, Mode=OneWay}" />
+                            </StackPanel>
+                        </Grid>
 
-                </StackPanel>
-            </Grid>
-            <!-- Contact Information Card -->
-            <Grid Style="{StaticResource CompactInfoRow}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource ModernSectionHeader}" Text="İletişim Bilgileri" />
-
-                    <Grid Style="{StaticResource ElevatedCard}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE939;" Style="{StaticResource InfoIcon}" />
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Style="{StaticResource InfoLabel}" Text="Yetkili Kişi" />
-                            <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.YetkiliKisi, Mode=OneWay}" />
-                        </StackPanel>
-                    </Grid>
-
-                    <Grid Style="{StaticResource ElevatedCard}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Style="{StaticResource InfoIcon}" Glyph="&#xE717;"/>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Style="{StaticResource InfoLabel}" Text="Telefon"/>
-                            <TextBlock Style="{StaticResource InfoValue}" Text="{x:Bind Item.FirmaModel.Telefon1, Mode=OneWay}" />
-                        </StackPanel>
-                    </Grid>
-
-                    <Grid Style="{StaticResource ElevatedCard}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Style="{StaticResource InfoIcon}" Glyph="&#xE707;"/>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Style="{StaticResource InfoLabel}" Text="Adres"/>
-                            <TextBlock Style="{StaticResource InfoValue}" TextWrapping="Wrap" Text="{x:Bind Item.FirmaModel.Adres, Mode=OneWay}"/>
-                        </StackPanel>
-                    </Grid>
+                        <Grid Style="{StaticResource ElevatedCard}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                FontSize="20"
+                                Glyph="&#xE707;"
+                                Style="{StaticResource InfoIcon}" 
+                                VerticalAlignment="Center"/>
+                            <AppBarSeparator Grid.Column="1" HorizontalAlignment="Center" />
+                            <StackPanel Grid.Column="2" Margin="5 0">
+                                <TextBlock Style="{StaticResource InfoLabel}" Text="Adres" />
+                                <TextBlock
+                                    Style="{StaticResource InfoValue}"
+                                    Text="{x:Bind Item.FirmaModel.Adres, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
 
 
-                </StackPanel>
-            </Grid>
+                    </StackPanel>
+                </Grid>
 
-        </StackPanel>
-    </ScrollViewer>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

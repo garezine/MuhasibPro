@@ -26,7 +26,8 @@ namespace Muhasib.Data.Repositories.SistemRepositories
             if (userName == null)
                 throw new ArgumentNullException("userName");
             return await DbSet
-                .FirstOrDefaultAsync(u => u.KullaniciAdi == userName)
+                .Include(a=> a.Rol)
+                .FirstOrDefaultAsync(u => u.KullaniciAdi == userName)                
                 .ConfigureAwait(false);
         }
     }

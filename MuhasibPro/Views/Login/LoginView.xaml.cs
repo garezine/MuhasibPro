@@ -1,9 +1,9 @@
 ﻿using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.Extensions;
 using MuhasibPro.Extensions.ExtensionService;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Login;
 using MuhasibPro.ViewModels.ViewModels.Shell;
 
@@ -19,19 +19,18 @@ namespace MuhasibPro.Views.Login
     {
         public LoginView()
         {
-            ViewModel = ServiceLocator.Current.GetService<LoginViewModel>();
+            ViewModel = ServiceLocator.Current.GetService<LoginViewModel>();            
             InitializeContext();
             InitializeComponent();
         }
 
         public LoginViewModel ViewModel { get; }
-
+      
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             _currentEffectMode = EffectMode.None;
-            await ViewModel.LoadAsync(e.Parameter as ShellArgs);
-            
-            
+            await ViewModel.LoadAsync(e.Parameter as ShellArgs);           
+          
             InitializeNavigation();
         }
 
@@ -41,14 +40,15 @@ namespace MuhasibPro.Views.Login
 
             if (_navigationService != null && Frame != null)
                 _navigationService.Initialize(Frame);
-        }
-
+        }       
         public void InitializeContext()
         {
             var _contextService = ServiceLocator.Current.GetService<IContextService>();
             _contextService.InitializeWithContext(dispatcher: DispatcherQueue, viewElement: this);
         }
+        
 
+        #region Effect
         private void OnBackgroundFocus(object sender, RoutedEventArgs e) { DoEffectIn(); }
 
         private void OnForegroundFocus(object sender, RoutedEventArgs e) { DoEffectOut(); }
@@ -59,7 +59,7 @@ namespace MuhasibPro.Views.Login
             {
                 DoEffectOut();
                 await Task.Delay(100);
-                ViewModel.Login();
+                await ViewModel.Login();
             }
             base.OnKeyDown(e);
         }
@@ -96,6 +96,7 @@ namespace MuhasibPro.Views.Login
             Background,
             Foreground,
             Disabled
-        }
+        } 
+        #endregion
     }
 }

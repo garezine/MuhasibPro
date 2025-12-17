@@ -1,8 +1,8 @@
 ﻿using DevWinUI;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using System.Collections.Concurrent;
 using WinRT.Interop;
 

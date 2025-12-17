@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace MuhasibPro.ViewModels.Contracts.Services.CommonServices
+namespace Muhasib.Business.Services.Contracts.CommonServices
 {
     /// <summary>
     /// StatusBar üst bilgileri yönetimi (User, Database, Save status)

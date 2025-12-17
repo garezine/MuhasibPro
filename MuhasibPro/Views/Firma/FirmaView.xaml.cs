@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml.Navigation;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 using System.Threading.Tasks;
 
@@ -25,7 +25,7 @@ namespace MuhasibPro.Views.Firma
         {
             ViewModel.Subscribe();
             await ViewModel.LoadAsync(e.Parameter as FirmaDetailsArgs);
-
+           
             if (ViewModel.FirmaDetails.IsEditMode)
             {
                 await Task.Delay(100);

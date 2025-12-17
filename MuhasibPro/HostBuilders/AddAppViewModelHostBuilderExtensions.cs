@@ -16,13 +16,15 @@ public static class AddAppViewModelHostBuilderExtensions
         host.ConfigureServices(services =>
         {
             services.AddTransient<DashboardViewModel>();
-            services.AddTransient<ShellViewModel>();
             services.AddTransient<LoginViewModel>();
+                        
+            services.AddTransient<ShellViewModel>();
             services.AddTransient<MainShellViewModel>();
             services.AddTransient<SettingsViewModel>();
             services.AddTransient<UpdateViewModel>();
 
 
+            services.AddTransient<FirmaWithMaliDonemSelectViewModel>();
             services.AddTransient<FirmalarViewModel>();
             services.AddTransient<FirmaDetailsViewModel>();
             services.AddTransient<FirmaDetailsWithMaliDonemlerViewModel>();

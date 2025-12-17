@@ -1,5 +1,6 @@
 ﻿using Muhasib.Business.Models.SistemModel;
 using Muhasib.Business.Services.Contracts.BaseServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.UtilityServices;
 using Muhasib.Data.Contracts.SistemRepositories.Authentication;
 using Muhasib.Domain.Entities.SistemEntity;
@@ -11,34 +12,37 @@ namespace Muhasib.Business.Services.Concrete.BaseServices
     {
         private readonly IAuthenticator _authenticator;
         private readonly IBitmapToolsService _bitmapTools;
+        private readonly IMessageService _messageService;
+        private KullaniciModel _currentAccount;
 
-        public AuthenticationService(IAuthenticator authenticator, IBitmapToolsService bitmapTools)
+        public AuthenticationService(
+            IAuthenticator authenticator,
+            IBitmapToolsService bitmapTools,
+            IMessageService messageService)
         {
             _authenticator = authenticator;
             _bitmapTools = bitmapTools;
+            _messageService = messageService;
         }
 
         public KullaniciModel CurrentAccount
         {
-            get { return CreateKullaniciModel(_authenticator.CurrentAccount, true); }
+            get => _currentAccount;
             private set
             {
-                var currentAccut = CreateKullaniciModel(_authenticator.CurrentAccount, true);
-                currentAccut = value;
-                StateChanged?.Invoke();
+                if(_currentAccount != value)
+                {
+                    _currentAccount = value;
+                    StateChanged?.Invoke();
+                    _messageService.Send(this, "AuthenticationChanged", IsAuthenticated);
+                }
             }
         }
 
         public event Action StateChanged;
 
-        public bool IsLoggedIn 
-        { 
-            get => CurrentAccount != null;
-            set
-            {
-               
-            }
-        } 
+        public bool IsAuthenticated => CurrentAccount != null;
+
 
         public string CurrentUsername => CurrentAccount?.KullaniciAdi ?? "App";
 
@@ -46,10 +50,15 @@ namespace Muhasib.Business.Services.Concrete.BaseServices
 
         public async Task Login(string username, string password)
         {
-            CurrentAccount = CreateKullaniciModel(await _authenticator.Login(username, password).ConfigureAwait(false), includeAllFields: true);
+            var kullanici = await _authenticator.Login(username, password);
+            CurrentAccount = CreateKullaniciModel(kullanici, includeAllFields: true);
         }
 
-        public void Logout() => _authenticator.Logout();
+        public void Logout()
+        {
+            _authenticator.Logout();
+            CurrentAccount = null;
+        }
 
         public async Task<RegistrationResult> Register(
             string email,
@@ -60,8 +69,7 @@ namespace Muhasib.Business.Services.Concrete.BaseServices
             try
             {
                 return await _authenticator.Register(email, username, password, confirmPassword).ConfigureAwait(false);
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 throw new Exception("Kullanıcı kaydedilmedi", ex);
             }
@@ -88,18 +96,41 @@ namespace Muhasib.Business.Services.Concrete.BaseServices
                     Resim = source.Resim,
                     KaydedenId = source.KaydedenId,
                     ResimSource = source.Resim,
-                    AktifMi = source.AktifMi
+                    AktifMi = source.AktifMi,
+                    Rol = CreateKullaniciRol(source.Rol),
                 };
-                if (includeAllFields)
-                {
+                if(includeAllFields)
+                {                    
                     model.Resim = source.Resim;
                     model.ResimSource = _bitmapTools.CreateLazyImageLoader(model.Resim);
                 }
                 return model;
-            }
-            catch (Exception ex)
+            } catch(Exception ex)
             {
                 throw new Exception("Kullanıcı oluşturulurken hata oluştu", ex);
+            }
+        }
+
+        private KullaniciRolModel CreateKullaniciRol(KullaniciRol source)
+        {
+            try
+            {
+                var model = new KullaniciRolModel
+                {
+                    Aciklama = source.Aciklama,
+                    RolAdi = source.RolAdi,
+                    //Base Entity
+                    Id = source.Id,
+                    AktifMi = source.AktifMi,
+                    GuncellemeTarihi = source.GuncellemeTarihi,
+                    GuncelleyenId = source.GuncelleyenId,
+                    KaydedenId = source.KaydedenId,
+                    KayitTarihi = source.KayitTarihi,
+                };
+                return model;
+            } catch(Exception)
+            {
+                throw;
             }
         }
     }

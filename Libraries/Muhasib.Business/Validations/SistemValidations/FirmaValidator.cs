@@ -10,11 +10,7 @@ namespace Muhasib.Business.Validations.SistemValidations
             string mesaj = "Gerekli alan!";
             ClassLevelCascadeMode = CascadeMode.Continue;
             RuleLevelCascadeMode = CascadeMode.Stop;
-
-            RuleFor(p => p.FirmaKodu)
-                .NotEmpty()
-                .WithMessage(mesaj)
-                .MinimumLength(5);
+           
             RuleFor(p => p.KisaUnvani)
                .NotEmpty()
                .WithMessage(mesaj)

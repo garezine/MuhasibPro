@@ -182,7 +182,7 @@ namespace MuhasibPro.Views.Splash
         {
             try
             {
-                var activationInfo = ActivationInfo.CreateDefault();
+                var activationInfo = ActivationInfo.CreateListFirma();
                 var shellArgs = new ShellArgs
                 {
                     ViewModel = activationInfo.EntryViewModel,

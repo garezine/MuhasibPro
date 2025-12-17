@@ -45,7 +45,7 @@
                         controls:FluidGrid.ColumnSpan="2"
                         Style="{StaticResource FormsSection}"
                         Text="Veritabanı Bilgileri" />
-                    <controls:FormTextBox
+                    <controls:FormTextBox                        
                         Header="Veritabanı Adı"
                         Mode="ReadOnly"
                         Text="{x:Bind EditableItem.DBName, Mode=TwoWay}" />
@@ -71,7 +71,7 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MaxWidth="360" />
+            <ColumnDefinition Width="*" MaxWidth="320" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Border>

@@ -7,9 +7,9 @@
     xmlns:converters="using:MuhasibPro.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewMali="using:MuhasibPro.Views.Firmalar.Details"
     xmlns:viewmodels="using:MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar"
     xmlns:views="using:MuhasibPro.Views.Firma"
-    xmlns:viewMali="using:MuhasibPro.Views.Firmalar.Details"
     mc:Ignorable="d"
     d:DesignHeight="600"
     d:DesignWidth="800">
@@ -27,18 +27,19 @@
                         controls:FluidGrid.ColumnSpan="2"
                         Style="{StaticResource FormsSection}"
                         Text="Firma Bilgileri" />
+                    <controls:FormTextBox
+                        controls:ValidationHelper.PropertyName="KisaUnvani"
+                        Header="Kısa Ünvan"
+                        Text="{x:Bind EditableItem.KisaUnvani,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+                    <controls:FormTextBox                        
+                        Header="Firma Kodu"
+                        IsReadOnly="True"
+                        Text="{x:Bind Item.FirmaKodu,Mode=OneWay}"
+                        Visibility="{x:Bind ItemIsNew, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
 
                     <controls:FormTextBox
-                        controls:ValidationHelper.PropertyName="FirmaKodu"
-                        Header="Firma Kodu"
-                        Text="{x:Bind Item.FirmaKodu,Mode=OneWay}"                       
-                        IsReadOnly="True"/>
-                    <controls:FormTextBox 
-                        controls:ValidationHelper.PropertyName="KisaUnvani"
-                        Header="Kısa Ünvan" Text="{x:Bind EditableItem.KisaUnvani,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
-                    <controls:FormTextBox
-                        controls:ValidationHelper.PropertyName="TamUnvani"                        
                         controls:FluidGrid.ColumnSpan="2"
+                        controls:ValidationHelper.PropertyName="TamUnvani"
                         Header="Tam Ünvan"
                         Text="{x:Bind EditableItem.TamUnvani, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
                         TextWrapping="Wrap" />
@@ -128,31 +129,21 @@
                 Item="{x:Bind ViewModel.FirmaDetails.Item, Mode=OneWay}"
                 ViewModel="{x:Bind ViewModel.FirmaDetails}" />
         </Border>
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="auto"/>
-            </Grid.RowDefinitions>
-            <controls:Details
+
+        <controls:Details
             x:Name="details"
             Grid.Column="1"
             Margin="6"
-                
             BackCommand="{x:Bind ViewModel.FirmaDetails.BackCommand}"
             CancelCommand="{x:Bind ViewModel.FirmaDetails.CancelCommand}"
             CanGoBack="{x:Bind ViewModel.FirmaDetails.CanGoBack}"
             DeleteCommand="{x:Bind ViewModel.FirmaDetails.DeleteCommand}"
             DetailsContent="{x:Bind ViewModel.FirmaDetails}"
             DetailsTemplate="{StaticResource DetailsTemplate}"
-                
             EditCommand="{x:Bind ViewModel.FirmaDetails.EditCommand}"
             IsEditMode="{x:Bind ViewModel.FirmaDetails.IsEditMode, Mode=OneWay}"
             SaveCommand="{x:Bind ViewModel.FirmaDetails.SaveCommand}" />
-            <!--<Border Grid.Row="1" BorderThickness="0,1,0,0" Visibility="{x:Bind ViewModel.FirmaDetails.ItemIsNew, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                <controls:Section Header="Mali Dönemler" >
-                    <viewMali:FirmaMaliDonemler ViewModel="{x:Bind ViewModel.MaliDonemList}" />
-                </controls:Section>
-            </Border>-->
-        </Grid>
+
+
     </Grid>
 </UserControl>

@@ -9,7 +9,7 @@ namespace MuhasibPro.Views.Firma
     {
         public FirmaDetails()
         {
-            InitializeComponent();
+            InitializeComponent();            
         }
         #region ViewModel
         public FirmaDetailsWithMaliDonemlerViewModel ViewModel
@@ -17,7 +17,7 @@ namespace MuhasibPro.Views.Firma
             get { return (FirmaDetailsWithMaliDonemlerViewModel)GetValue(ViewModelProperty); }
             set { SetValue(ViewModelProperty, value); }
         }
-
+        
         public static readonly DependencyProperty ViewModelProperty = DependencyProperty.Register(nameof(ViewModel), typeof(FirmaDetailsWithMaliDonemlerViewModel), typeof(FirmaDetails), new PropertyMetadata(null));
         #endregion
         public void SetFocus()
@@ -28,5 +28,6 @@ namespace MuhasibPro.Views.Firma
         {
             return isItemNew ? 2 : 1;
         }
+      
     }
 }

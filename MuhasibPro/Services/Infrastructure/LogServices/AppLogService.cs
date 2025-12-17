@@ -1,11 +1,11 @@
 ﻿using Muhasib.Business.Models.MuhasebeModel;
 using Muhasib.Business.Services.Contracts.BaseServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Data.Common;
 using Muhasib.Data.Contracts.SistemRepositories;
 using Muhasib.Domain.Entities.MuhasebeEntity.DegerlerEntities;
 using Muhasib.Domain.Enum;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 
 namespace MuhasibPro.Services.Infrastructure.LogServices
 {

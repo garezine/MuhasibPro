@@ -1,9 +1,9 @@
 ﻿using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.Converters;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using System.ComponentModel;
 
 
@@ -62,7 +62,7 @@ namespace MuhasibPro.Views.Shell
                         NotifyPropertyChanged(nameof(StatusGlyph));
                         break;
                     case nameof(IStatusMessageService.IsProgressVisible):
-                    case nameof(ViewModels.Contracts.Services.CommonServices.IStatusMessageService.IsProgressIndeterminate):
+                    case nameof(Muhasib.Business.Services.Contracts.CommonServices.IStatusMessageService.IsProgressIndeterminate):
                         NotifyPropertyChanged(nameof(ShowProgressBarVisibility));
                         break;
                 }
@@ -80,6 +80,7 @@ namespace MuhasibPro.Views.Shell
 
         private void InitializeTimer()
         {
+          
             _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _timer.Tick += (s, e) => TimeDisplay.Text = DateTime.Now.ToString("HH:mm:ss");
             _timer.Start();

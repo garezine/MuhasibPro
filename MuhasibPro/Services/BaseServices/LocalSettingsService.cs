@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using Muhasib.Business.Services.Contracts.UIServices;
 using Muhasib.Domain.Models;
 using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.Extensions.Common;

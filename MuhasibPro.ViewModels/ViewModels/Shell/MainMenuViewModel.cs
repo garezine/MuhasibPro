@@ -1,5 +1,5 @@
 ﻿using Muhasib.Business.Services.Contracts.BaseServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
 using MuhasibPro.ViewModels.ViewModels.Settings;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;

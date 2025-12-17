@@ -1,9 +1,9 @@
 ﻿using Microsoft.UI.Xaml.Navigation;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using MuhasibPro.Extensions.ExtensionService;
 using MuhasibPro.Helpers;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.Services.Infrastructure.CommonServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.ViewModels.Shell;
 
 // To learn more about WinUI, the WinUI project structure,

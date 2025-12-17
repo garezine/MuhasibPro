@@ -3,7 +3,7 @@ using Muhasib.Data.Common;
 using Muhasib.Data.Utilities.Responses;
 using Muhasib.Domain.Entities.SistemEntity;
 
-namespace Muhasib.Business.Services.Contracts.SistemServices
+namespace Muhasib.Business.Services.Contracts.AppServices
 {
     public interface IMaliDonemService
     {

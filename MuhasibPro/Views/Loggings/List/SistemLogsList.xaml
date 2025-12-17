@@ -19,6 +19,8 @@
                         SelectedItem="{x:Bind ViewModel.SelectedItem, Mode=TwoWay}">
                         <controls:CoreDataConfig.ListContent>
                             <tv:TableView
+                                AlternateRowForeground="{StaticResource TextBoxButtonForegroundThemeBrush}"
+                                
                                 HeaderGridLinesVisibility="Vertical"                                
                                 GridLinesVisibility="Horizontal"
                                 x:Name="pageTableView"

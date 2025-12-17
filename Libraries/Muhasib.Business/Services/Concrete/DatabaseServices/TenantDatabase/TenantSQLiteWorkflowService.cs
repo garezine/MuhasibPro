@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging;
 using Muhasib.Business.Infrastructure.Extensions;
 using Muhasib.Business.Models.SistemModel;
 using Muhasib.Business.Models.TenantModel;
+using Muhasib.Business.Services.Contracts.AppServices;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.LogServices;
-using Muhasib.Business.Services.Contracts.SistemServices;
 using Muhasib.Data.BaseRepositories.Contracts;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.Infrastructure;
@@ -183,7 +183,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 );
 
                 // ============================================
-                // STEP 5: SQL Server Database Oluştur
+                // STEP 5: SQLite Database Oluştur
                 // ============================================
                 if (request.AutoCreateDatabase)
                 {
@@ -298,20 +298,17 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             try
             {
                 // Step 1: Tenant Veritabanı (Mali dönem) kontrolü
-                var tenantResponse = await _selectionService.GetTenantDetailsAsync(request.MaliDonemId);
-                if (!tenantResponse.Success || tenantResponse.Data == null)
+                var tenantDetails = await _selectionService.GetTenantDetailsAsync(request.MaliDonemId);
+                if (!tenantDetails.Success || tenantDetails.Data == null)
                 {
                     return new ErrorApiDataResponse<TenantDeletingResult>(
                         null,
                         $"Mali Dönem bulunamadı (MaliDonemId: {request.MaliDonemId})",
                         false,
                         ResultCodes.HATA_Bulunamadi);
-                }
-
-                var tenantDetails = tenantResponse.Data;
-                result.DatabaseName = tenantDetails.DatabaseName;
-                result.MaliDonemId = tenantDetails.MaliDonemId;
-                result.DatabaseFilePath = tenantResponse.Data.DatabasePath;
+                }                
+                result.DatabaseName = request.DatabaseName;
+                result.MaliDonemId = request.MaliDonemId;                                
 
                 // ✅ Aktif tenant kontrolü
                 bool isCurrentTenantDeleting = false;
@@ -321,11 +318,11 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                     var currentTenantResponse = _connectionService.GetCurrentTenant();
                     if (currentTenantResponse.Success && currentTenantResponse.Data != null)
                     {
-                        isCurrentTenantDeleting = currentTenantResponse.Data.DatabaseName == tenantDetails.DatabaseName;
+                        isCurrentTenantDeleting = currentTenantResponse.Data.DatabaseName == request.DatabaseName;
 
                         _logger.LogInformation(
                             "Aktif tenant kontrolü: Silinen={TenantToDelete}, Aktif={CurrentTenant}, Sonuç={IsCurrent}",
-                            tenantDetails.DatabaseName,
+                            request.DatabaseName,
                             currentTenantResponse.Data.DatabaseName,
                             isCurrentTenantDeleting);
                     }
@@ -345,11 +342,11 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                             // ✅ Aktif tenant siliniyorsa backup al
                             if (isCurrentTenantDeleting)
                             {
-                                var sourceDbPath = _applicationPaths.GetTenantDatabaseFilePath(tenantDetails.DatabaseName);
+                                var sourceDbPath = _applicationPaths.GetTenantDatabaseFilePath(request.DatabaseName);
                                 if (File.Exists(sourceDbPath))
                                 {
                                     var backupPath = _applicationPaths.GetTenantBackupFolderPath();
-                                    var backupFileName = $"safety_{tenantDetails.DatabaseName}_{DateTime.Now:yyyyMMdd_HHmmss}.db";
+                                    var backupFileName = $"safety_{request.DatabaseName}_{DateTime.Now:yyyyMMdd_HHmmss}.db";
                                     var backupFilePath = Path.Combine(backupPath, backupFileName);
 
                                     SqliteConnection.ClearAllPools();
@@ -362,16 +359,16 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                                 }
                             }
 
-                            var dbDeleteResponse = await _lifecycleService.DeleteDatabaseAsync(tenantDetails.DatabaseName);
+                            var dbDeleteResponse = await _lifecycleService.DeleteDatabaseAsync(request.DatabaseName);
                             if (!dbDeleteResponse.Success)
                             {
                                 throw new InvalidOperationException($"Database silinemedi: {dbDeleteResponse.Message}");
                             }
 
                             result.DatabaseDeleted = true;
-                            _logger.LogInformation("Veritabanı silindi: {DatabaseName}", tenantDetails.DatabaseName);
+                            _logger.LogInformation("Veritabanı silindi: {DatabaseName}", request.DatabaseName);
 
-                            return tenantDetails.DatabaseName;
+                            return request.DatabaseName;
                         },
                         compensate: async (dbName) =>
                         {
@@ -381,7 +378,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                                 try
                                 {
                                     var restoreResponse = await _operationService.RestoreBackupAsync(
-                                        tenantDetails.DatabaseName,
+                                        request.DatabaseName,
                                         request.BackupFilePath);
 
                                     if (restoreResponse.Success)
@@ -407,13 +404,13 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                         {
                             try
                             {
-                                var deleteMaliDonem = new MaliDonemModel { Id = tenantDetails.MaliDonemId };
+                                var deleteMaliDonem = new MaliDonemModel { Id = request.MaliDonemId };
                                 await _maliDonemService.DeleteMaliDonemAsync(deleteMaliDonem);
                                 await _unitOfWork.SaveChangesAsync();
                                 await transaction.CommitAsync();
 
-                                _logger.LogInformation("MaliDonem kaydı silindi: {MaliDonemId}", tenantDetails.MaliDonemId);
-                                return tenantDetails.MaliDonemId;
+                                _logger.LogInformation("MaliDonem kaydı silindi: {MaliDonemId}", request.MaliDonemId);
+                                return request.MaliDonemId;
                             }
                             catch (Exception ex)
                             {
@@ -431,11 +428,11 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                             {
                                 var maliDonem = new MaliDonemModel
                                 {
-                                    FirmaId = tenantDetails.FirmaId,
-                                    MaliYil = tenantDetails.MaliYil,
-                                    DBName = tenantDetails.DatabaseName,
-                                    Directory = tenantDetails.Directory,
-                                    DBPath = tenantDetails.DatabasePath,
+                                    FirmaId = tenantDetails.Data.FirmaId,
+                                    MaliYil = tenantDetails.Data.MaliYil,
+                                    DBName = tenantDetails.Data.DatabaseName,
+                                    Directory = tenantDetails.Data.Directory,
+                                    DBPath = tenantDetails.Data.DatabasePath,
                                     DatabaseType = DatabaseType.SQLite,
                                     AktifMi = true
                                 };
@@ -455,7 +452,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 if (isCurrentTenantDeleting)
                 {
                     _connectionService.ClearCurrentTenant();
-                    _logger.LogWarning("Aktif tenant silindi, bağlantı kesildi: {DatabaseName}", tenantDetails.DatabaseName);
+                    _logger.LogWarning("Aktif tenant silindi, bağlantı kesildi: {DatabaseName}", request.DatabaseName);
                 }
 
                 result.Message = "Tenant başarıyla silindi";
@@ -463,7 +460,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 await _logService.SistemLogService.SistemLogInformation(
                     nameof(TenantSQLiteWorkflowService),
                     nameof(DeleteTenantCompleteAsync),
-                    $"Tenant silindi. DB: {tenantDetails.DatabaseName}, MaliDonemId: {tenantDetails.MaliDonemId}",
+                    $"Tenant silindi. DB: {request.DatabaseName}, MaliDonemId: {request.MaliDonemId}",
                     string.Empty);
                 if (!string.IsNullOrEmpty(request.BackupFilePath))
                 {

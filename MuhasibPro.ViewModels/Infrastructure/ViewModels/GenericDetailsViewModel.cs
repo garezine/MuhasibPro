@@ -1,9 +1,11 @@
 ﻿using FluentValidation;
+using Muhasib.Business.Infrastructure.Models;
 using Muhasib.Business.Models.Common;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Domain.Enum;
 using Muhasib.Domain.Models;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.Infrastructure.ViewModels;
@@ -18,7 +20,7 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
 
     public bool IsDataUnavailable => !IsDataAvailable;
 
-    public bool CanGoBack => !IsMainWindow && NavigationService.CanGoBack;
+    public bool CanGoBack => !IsMainWindow;
 
 
     private TModel _item = null;
@@ -53,12 +55,12 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
 
     public ICommand BackCommand => new RelayCommand(OnBack);
 
-    virtual protected void OnBack()
+    virtual protected async void OnBack()
     {
         StatusReady();
-        if(NavigationService.CanGoBack)
+        if(!IsMainWindow)
         {
-            NavigationService.GoBack();
+            await NavigationService.CloseViewAsync();
         }
     }
 
@@ -187,16 +189,22 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
 
     virtual public async Task DeleteAsync()
     {
-        if (Item == null) return;
+        var model = Item;
+        if (model == null) return;
 
         await ExecuteActionAsync(
             action: async () =>
             {
-                IsEnabled = false;
-                if (await DeleteItemAsync(Item))
+                if(model != null)
                 {
-                    MessageService.Send(this, "ItemDeleted", Item);
+                    IsEnabled = false;
+                    if (await DeleteItemAsync(model))
+                    {
+                        MessageService.Send(this, "ItemDeleted", model);
+                        await NavigationService.CloseViewAsync();
+                    }
                 }
+                
                 IsEnabled = true;
             },
             startMessage: $"{Title} siliniyor",

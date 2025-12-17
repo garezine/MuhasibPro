@@ -1,5 +1,5 @@
-﻿using Muhasib.Business.Services.Contracts.LogServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
+﻿using Muhasib.Business.Services.Contracts.CommonServices;
+using Muhasib.Business.Services.Contracts.LogServices;
 
 namespace MuhasibPro.Services.Infrastructure.CommonServices;
 public class CommonServices : ICommonServices

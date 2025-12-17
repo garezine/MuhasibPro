@@ -1,4 +1,5 @@
-﻿using MuhasibPro.Contracts.CoreServices;
+﻿using Muhasib.Business.Services.Contracts.UIServices;
+using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.Extensions.Common;
 using MuhasibPro.Helpers;
 

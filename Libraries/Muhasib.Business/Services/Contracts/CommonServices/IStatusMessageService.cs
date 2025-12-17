@@ -1,7 +1,7 @@
 ﻿using Muhasib.Domain.Enum;
 using System.ComponentModel;
 
-namespace MuhasibPro.ViewModels.Contracts.Services.CommonServices
+namespace Muhasib.Business.Services.Contracts.CommonServices
 {
     /// <summary>
     /// StatusBar mesaj yönetimi için servis

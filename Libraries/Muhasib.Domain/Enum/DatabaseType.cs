@@ -2,8 +2,8 @@
 {
     public enum DatabaseType
     {
-        SqlServer,
         SQLite,
+        SqlServer,
         Diger
     }
 }

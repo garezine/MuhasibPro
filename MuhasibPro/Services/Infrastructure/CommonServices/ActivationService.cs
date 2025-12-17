@@ -1,5 +1,5 @@
-﻿using MuhasibPro.Contracts.CoreServices;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
+﻿using Muhasib.Business.Services.Contracts.CommonServices;
+using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.ViewModels.ViewModels.Dashboard;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 using MuhasibPro.Views.Splash;
@@ -10,7 +10,7 @@ namespace MuhasibPro.Services.Infrastructure.CommonServices;
 public class ActivationInfo()
 {
     public static ActivationInfo CreateDefault() => Create<DashboardViewModel>();
-    public static ActivationInfo CreateNewFirma() => Create<FirmaDetailsViewModel>();
+    public static ActivationInfo CreateListFirma() => Create<FirmaListViewModel>(new FirmaListArgs());
     public static ActivationInfo Create<TViewModel>(object entryArgs = null) where TViewModel : class
     {
         return new ActivationInfo
@@ -18,7 +18,6 @@ public class ActivationInfo()
     }
     public Type EntryViewModel { get; set; }
     public object EntryArgs { get; set; }
-
 }
 public class ActivationService : IActivationService
 {
@@ -30,6 +29,9 @@ public class ActivationService : IActivationService
     {
         _themeSelectorService = themeSelectorService;
     }
+    
+    
+    
     public async Task ActivateAsync(object activationArgs)
     {
         // Execute tasks before activation.

@@ -4,11 +4,11 @@ using Microsoft.UI.Dispatching;
 using Microsoft.Windows.Globalization;
 using Muhasib.Business.HostBuilders;
 using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
+using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.LogServices;
 using MuhasibPro.Contracts.CoreServices;
 using MuhasibPro.Helpers;
 using MuhasibPro.HostBuilders;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using System.Diagnostics;
 using Velopack;
 
@@ -17,7 +17,7 @@ public partial class App : Application
 {
     private readonly IHost _host;
    
-    private DispatcherQueue _dispatcherQueue;
+    private static DispatcherQueue _dispatcherQueue;
     public App()
     {
         this.InitializeComponent();
@@ -134,7 +134,7 @@ public partial class App : Application
                 });
         }
     }
-    private async Task ShowNotificationAsync(string message, string title = "Bilgi")
+    public static async Task ShowNotificationAsync(string message, string title = "Bilgi")
     {
         try
         {

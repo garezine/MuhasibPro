@@ -1,6 +1,6 @@
-﻿using Muhasib.Data.Managers.UpdataManager;
+﻿using Muhasib.Business.Services.Contracts.CommonServices;
+using Muhasib.Data.Managers.UpdataManager;
 using Muhasib.Domain.Enum;
-using MuhasibPro.ViewModels.Contracts.Services.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
 using MuhasibPro.ViewModels.Infrastructure.ViewModels;
 using System.Windows.Input;

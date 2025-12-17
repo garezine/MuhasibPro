@@ -61,6 +61,7 @@
                     Source="/Assets/AppIcon.ico" />
                 <TextBlock
                     x:Name="AppTitleBarText"
+                    Text="{x:Bind ViewModel.SelectedFirma.KisaUnvani}"
                     Margin="18,0,0,0"
                     VerticalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}"
@@ -117,9 +118,6 @@
                 </StackPanel>
             </NavigationView.PaneFooter>
         </NavigationView>
-
-
-
 
         <!-- Status Bar -->
         <Grid Grid.Row="2">

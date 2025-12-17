@@ -3,13 +3,12 @@ using Muhasib.Data.Common;
 using Muhasib.Data.Utilities.Responses;
 using Muhasib.Domain.Entities.SistemEntity;
 
-namespace Muhasib.Business.Services.Contracts.SistemServices
+namespace Muhasib.Business.Services.Contracts.AppServices
 {
     public interface IFirmaService
-    {
-        Task<string> GetYeniFirmaKodu();
-        Task<bool> IsFirma();
-
+    {        
+        Task<bool> IsFirma();        
+        Task<ApiDataResponse<IList<FirmaModel>>> GetFirmalarWithUserId(long userId);
         Task<ApiDataResponse<FirmaModel>> GetByFirmaIdAsync(long id);
         Task<ApiDataResponse<IList<FirmaModel>>> GetFirmalarAsync(int skip, int take, DataRequest<Firma> request);
         Task<int> GetFirmalarCountAsync(DataRequest<Firma> request);
