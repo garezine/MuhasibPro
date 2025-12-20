@@ -7,7 +7,7 @@
 
         // Opsiyonel - sadece ihtiyaç varsa ekleyin
         bool TenantDatabaseFileExists(string databaseName);
-        bool IsDatabaseSizeValid(string databaseName);
+        bool IsTenantDatabaseSizeValid(string databaseName);
         string GetTenantDatabaseFilePath(string databaseName);
         long GetDatabaseSize(string databaseName);
     }

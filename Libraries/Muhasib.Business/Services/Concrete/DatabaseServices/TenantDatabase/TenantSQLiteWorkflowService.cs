@@ -9,6 +9,7 @@ using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Data.BaseRepositories.Contracts;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.Infrastructure;
+using Muhasib.Data.Managers.DatabaseManager.Models;
 using Muhasib.Data.Utilities.Responses;
 using Muhasib.Domain.Enum;
 
@@ -18,8 +19,8 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
     {
         private readonly ITenantSQLiteDatabaseLifecycleService _lifecycleService;
         private readonly ITenantSQLiteDatabaseOperationService _operationService;
-        private readonly ITenantSQLiteInfoService _selectionService;
-        private readonly ITenantSQLiteConnectionService _connectionService;
+        private readonly ITenantSQLiteInfoService _infoService;
+        private readonly ITenantSQLiteSelectionService _selectionService;
         private readonly IFirmaService _firmaService;
         private readonly IMaliDonemService _maliDonemService;
         private readonly IApplicationPaths _applicationPaths;
@@ -30,25 +31,26 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         public TenantSQLiteWorkflowService(
             ITenantSQLiteDatabaseLifecycleService lifecycleService,
             ITenantSQLiteDatabaseOperationService operationService,
-            ITenantSQLiteInfoService selectionService,
-            ITenantSQLiteConnectionService connectionService,
+            ITenantSQLiteInfoService infoService,
+
             IFirmaService firmaService,
             IMaliDonemService maliDonemService,
             IApplicationPaths applicationPaths,
             IUnitOfWork<SistemDbContext> unitOfWork,
             ILogService logService,
-            ILogger<TenantSQLiteWorkflowService> logger)
+            ILogger<TenantSQLiteWorkflowService> logger,
+            ITenantSQLiteSelectionService selectionService)
         {
             _lifecycleService = lifecycleService;
             _operationService = operationService;
-            _selectionService = selectionService;
+            _infoService = infoService;
             _firmaService = firmaService;
             _maliDonemService = maliDonemService;
             _applicationPaths = applicationPaths;
             _unitOfWork = unitOfWork;
             _logService = logService;
             _logger = logger;
-            _connectionService = connectionService;
+            _selectionService = selectionService;
         }
 
         public async Task<ApiDataResponse<TenantCreationResult>> CreateNewTenantAsync(TenantCreationRequest request)
@@ -193,7 +195,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                         stepName: "CreateDatabase",
                         action: async () =>
                         {
-                            var dbCreateResponse = await _lifecycleService.CreateDatabaseAsync(result.DatabaseName);
+                            var dbCreateResponse = await _lifecycleService.CreateOrUpdateDatabaseAsync(result.DatabaseName);
                             if (!dbCreateResponse.Success)
                             {
                                 throw new InvalidOperationException(
@@ -298,7 +300,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             try
             {
                 // Step 1: Tenant Veritabanı (Mali dönem) kontrolü
-                var tenantDetails = await _selectionService.GetTenantDetailsAsync(request.MaliDonemId);
+                var tenantDetails = await _infoService.GetTenantDetailsAsync(request.MaliDonemId);
                 if (!tenantDetails.Success || tenantDetails.Data == null)
                 {
                     return new ErrorApiDataResponse<TenantDeletingResult>(
@@ -313,9 +315,9 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 // ✅ Aktif tenant kontrolü
                 bool isCurrentTenantDeleting = false;
 
-                if (_connectionService.IsConnected)
+                if (_selectionService.IsConnected)
                 {
-                    var currentTenantResponse = _connectionService.GetCurrentTenant();
+                    var currentTenantResponse = _selectionService.GetCurrentTenant();
                     if (currentTenantResponse.Success && currentTenantResponse.Data != null)
                     {
                         isCurrentTenantDeleting = currentTenantResponse.Data.DatabaseName == request.DatabaseName;
@@ -451,7 +453,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 // ✅ KRİTİK: Aktif tenant silindiyse bağlantıyı kes
                 if (isCurrentTenantDeleting)
                 {
-                    _connectionService.ClearCurrentTenant();
+                    _selectionService.ClearCurrentTenant();
                     _logger.LogWarning("Aktif tenant silindi, bağlantı kesildi: {DatabaseName}", request.DatabaseName);
                 }
 
@@ -548,6 +550,15 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 _logger.LogWarning(ex, "Backup dosyası temizleme hatası: {BackupPath}", backupFilePath);
             }
         }
+
+        public async Task<ApiDataResponse<bool>> ValidateConnectionAsync(string databaseName, CancellationToken cancellationToken = default)
+        => await _operationService.ValidateConnectionAsync(databaseName, cancellationToken);
+
+        public async Task<ApiDataResponse<TenantContext>> SwitchTenantAsync(string databaseName)
+        => await _selectionService.SwitchTenantAsync(databaseName);
+
+        public Task<ApiDataResponse<DatabaseHealthInfo>> GetHealthStatusAsync(string databaseName)
+        => _operationService.GetHealthStatusAsync(databaseName);
     }
 
 }

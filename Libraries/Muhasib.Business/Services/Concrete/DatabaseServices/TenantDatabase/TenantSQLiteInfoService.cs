@@ -26,7 +26,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             _logger = logger;
         }
 
-
         public async Task<ApiDataResponse<TenantDetailsModel>> GetTenantDetailsAsync(long maliDonemId)
         {
             try
@@ -104,36 +103,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             }
         }
 
-        public async Task<ApiDataResponse<List<TenantSelectionModel>>> SearchTenantsAsync(string searchTerm)
-        {
-            try
-            {
-                if(string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    return await GetTenantsForSelectionAsync();
-                }
-
-                var allTenants = await GetTenantsForSelectionAsync();
-                if(!allTenants.Success)
-                {
-                    return allTenants;
-                }
-
-                var filtered = allTenants.Data
-                    .Where(
-                        t => t.FirmaKodu.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                            t.FirmaKisaUnvani.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                            t.MaliYil.ToString().Contains(searchTerm))
-                    .ToList();
-
-                return new SuccessApiDataResponse<List<TenantSelectionModel>>(
-                    filtered,
-                    $"{filtered.Count} adet sonuç bulundu");
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Search tenants failed: {SearchTerm}", searchTerm);
-                return new ErrorApiDataResponse<List<TenantSelectionModel>>(null, ex.Message);
-            }
-        }
+        
     }
 }

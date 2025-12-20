@@ -144,28 +144,7 @@
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
-    <!-- Action Buttons -->
-    <Style x:Key="ActionButton" TargetType="Button">
-        <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
-        <Setter Property="Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{ThemeResource AccentControlElevationBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="{StaticResource SmallCardCornerRadius}"/>
-        <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="Margin" Value="0,0,8,0"/>
-        <Setter Property="FontSize" Value="13"/>
-    </Style>
-
-    <Style x:Key="CompactActionButton" TargetType="Button">
-        <Setter Property="Background" Value="{ThemeResource AccentFillColorSecondaryBrush}"/>
-        <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{ThemeResource AccentControlElevationBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="{StaticResource CompactCardCornerRadius}"/>
-        <Setter Property="Padding" Value="8,6"/>
-        <Setter Property="Margin" Value="0,0,6,0"/>
-        <Setter Property="FontSize" Value="12"/>
-    </Style>
+   
 
     <!-- Hero Card with Modern Effects -->
     <Style x:Key="HeroCard" TargetType="Border">
@@ -185,7 +164,18 @@
         <Setter Property="Padding" Value="10"/>
         <Setter Property="CornerRadius" Value="{StaticResource CardCornerRadius}"/>
     </Style>
-
+    <Style x:Key="GlassGridPanel" TargetType="Grid">
+        <Setter Property="Background" Value="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="BorderThickness" Value="0.5"/>
+        <Setter Property="Padding" Value="10"/>
+        <Setter Property="CornerRadius" Value="{StaticResource CardCornerRadius}"/>
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <ThemeShadow />
+            </Setter.Value>
+        </Setter>
+    </Style>
     <!-- Elevated Card Style with Effects -->
     <Style x:Key="ElevatedCard" TargetType="Grid">
         <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>

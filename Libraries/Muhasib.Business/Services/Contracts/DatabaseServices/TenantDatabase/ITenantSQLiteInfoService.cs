@@ -7,8 +7,7 @@ namespace Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase
 {
     public interface ITenantSQLiteInfoService
     {
-        Task<ApiDataResponse<List<TenantSelectionModel>>> GetTenantsForSelectionAsync(long? firmaId = null, DataRequest<MaliDonem> request = null);
-        Task<ApiDataResponse<List<TenantSelectionModel>>> SearchTenantsAsync(string searchTerm);
+        Task<ApiDataResponse<List<TenantSelectionModel>>> GetTenantsForSelectionAsync(long? firmaId = null, DataRequest<MaliDonem> request = null);        
         Task<ApiDataResponse<TenantDetailsModel>> GetTenantDetailsAsync(long maliDonemId);        
     }
 }

@@ -7,14 +7,13 @@ namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
         /// <summary>
         /// Yeni database oluşturur (migration'ları çalıştırır)
         /// </summary>
-        Task<bool> CreateDatabaseAsync(string databaseName, CancellationToken cancellationToken = default);
-
+        Task<bool> CreateOrUpdateDatabaseAsync(string databaseName, CancellationToken cancellationToken = default);
         /// <summary>
         /// Database'i siler
         /// </summary>
         Task<bool> DeleteDatabaseAsync(string databaseName, CancellationToken cancellationToken = default);
-        Task<DatabaseHealthInfo> GetHealthStatusAsync(string databaseName, CancellationToken cancellationToken = default);
-        Task<bool> DatabaseExists(string databaseName);
+        Task<DatabaseHealthInfo> GetHealthStatusAsync(string databaseName, CancellationToken cancellationToken = default);        
+        Task<(bool IsValid, string Message)> ValidateTenantDatabaseAsync(string databaseName,CancellationToken cancellationToken = default);
 
 
     }

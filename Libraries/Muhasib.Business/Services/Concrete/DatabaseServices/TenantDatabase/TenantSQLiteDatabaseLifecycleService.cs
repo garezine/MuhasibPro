@@ -15,24 +15,23 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
         private readonly ILogger<TenantSQLiteDatabaseLifecycleService> _logger;        
         private readonly IDatabaseNamingService _databaseNamingService;
         private readonly ITenantSQLiteDatabaseManager _sqliteDatabaseManager;
-        
-
 
         public TenantSQLiteDatabaseLifecycleService(
             ILogService logService,
             ILogger<TenantSQLiteDatabaseLifecycleService> logger,
             IDatabaseNamingService databaseNamingService,
             ITenantSQLiteDatabaseManager sqliteDatabaseManager
-        )
+,
+            ITenantSQLiteDatabaseOperationService tenantDatabaseOperationService)
         {
             _logService = logService;
             _logger = logger;
             _databaseNamingService = databaseNamingService;
             _sqliteDatabaseManager = sqliteDatabaseManager;
-        
+            TenantDatabaseOperationService = tenantDatabaseOperationService;
         }
-
-        public async Task<ApiDataResponse<string>> CreateDatabaseAsync(string databaseName)
+        public ITenantSQLiteDatabaseOperationService TenantDatabaseOperationService { get;}
+        public async Task<ApiDataResponse<string>> CreateOrUpdateDatabaseAsync(string databaseName)
         {
             try
             {
@@ -40,24 +39,24 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                     return new ErrorApiDataResponse<string>(null, "Database adı boş olamaz");
 
                 // ✅ Önce database'in var olup OLMADIĞINI kontrol et
-                var existsResponse = await _sqliteDatabaseManager.DatabaseExists(databaseName);
-                if (existsResponse) // Data=true ise database VAR
+                var existsResponse = await ValidateConnectionAsync(databaseName);
+                if (!existsResponse.Success && !existsResponse.Data) // Data=true ise database VAR
                 {
                     return new ErrorApiDataResponse<string>(
                         databaseName,
-                        $"'{databaseName}' veritabanı zaten mevcut",
+                        $"'{databaseName}' veritabanı bulunamadı!",
                         false,
-                        ResultCodes.HATA_ZatenVar); // Özel result code
+                        ResultCodes.HATA_Bulunamadi); // Özel result code
                 }
 
                 // ✅ Create database
-                var created = await _sqliteDatabaseManager.CreateDatabaseAsync(databaseName);
+                var created = await _sqliteDatabaseManager.CreateOrUpdateDatabaseAsync(databaseName);
                 if (!created)
                     return new ErrorApiDataResponse<string>(null, "Veritabanı oluşturulamadı");
 
                 // ✅ Double-check: Database gerçekten oluştu mu?
-                var verifyResponse = await _sqliteDatabaseManager.DatabaseExists(databaseName);
-                if (!verifyResponse)
+                var verifyResponse = await ValidateConnectionAsync(databaseName);
+                if (!verifyResponse.Success || !verifyResponse.Data)
                 {
                     _logger.LogWarning("Database oluşturuldu ama doğrulama başarısız: {DatabaseName}", databaseName);
                     // Kritik değil, sadece warning
@@ -65,7 +64,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 
                 await _logService.SistemLogService.SistemLogInformation(
                     nameof(TenantSQLiteDatabaseLifecycleService),
-                    nameof(CreateDatabaseAsync),
+                    nameof(CreateOrUpdateDatabaseAsync),
                     $"Tenant veritabanı başarıyla oluşturuldu: {databaseName}",
                     databaseName);
 
@@ -80,7 +79,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 _logger.LogError(ex, "Database creation failed: {DatabaseName}", databaseName);
                 await _logService.SistemLogService.SistemLogException(
                     nameof(TenantSQLiteDatabaseLifecycleService),
-                    nameof(CreateDatabaseAsync),
+                    nameof(CreateOrUpdateDatabaseAsync),
                     ex);
 
                 return new ErrorApiDataResponse<string>(
@@ -150,5 +149,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 return new ErrorApiDataResponse<string>(null, ex.Message);
             }
         }
+        public Task<ApiDataResponse<bool>> ValidateConnectionAsync(string databaseName)
+           => TenantDatabaseOperationService.ValidateConnectionAsync(databaseName);
     }
 }

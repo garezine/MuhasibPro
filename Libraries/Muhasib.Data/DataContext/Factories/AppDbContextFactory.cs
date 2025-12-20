@@ -120,7 +120,7 @@ namespace Muhasib.Data.DataContext.Factories
         /// <summary>
         /// Database dosyası var mı ve boş değil mi kontrol eder
         /// </summary>
-        public bool IsDatabaseSizeValid(string databaseName) => _applicationPaths.IsTenantDatabaseSizeValid(databaseName);
+        public bool IsTenantDatabaseSizeValid(string databaseName) => _applicationPaths.IsTenantDatabaseSizeValid(databaseName);
 
 
         public long GetDatabaseSize(string databaseName) => _applicationPaths.GetTenantDatabaseSize(databaseName);

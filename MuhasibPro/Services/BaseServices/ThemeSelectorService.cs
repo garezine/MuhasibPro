@@ -9,7 +9,9 @@ public class ThemeSelectorService : IThemeSelectorService
 {
     private const string SettingsKey = "AppBackgroundRequestedTheme";
     public event EventHandler<ElementTheme> ThemeChanged;
+    private List<WeakReference<Window>> _subscribedWindows = new();
 
+    
     private ElementTheme _theme = ElementTheme.Default;
     public ElementTheme Theme
     {

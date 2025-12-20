@@ -8,6 +8,7 @@ using MuhasibPro.Extensions.ExtensionService;
 using MuhasibPro.HostBuilders;
 using MuhasibPro.Services.Infrastructure.CommonServices;
 using MuhasibPro.ViewModels.Infrastructure.Common;
+using MuhasibPro.ViewModels.ViewModels.Login;
 using MuhasibPro.ViewModels.ViewModels.Settings;
 using MuhasibPro.ViewModels.ViewModels.Shell;
 using MuhasibPro.Views.Login;
@@ -26,10 +27,11 @@ namespace MuhasibPro.Views.Shell
     {
         private INavigationService _navigationService = null;
         private IThemeSelectorService themeSelectorService = ServiceLocator.Current.GetService<IThemeSelectorService>();
-
+        public INotificationService NotificationService { get; }
         public MainShellView()
         {
             ViewModel = ServiceLocator.Current.GetService<MainShellViewModel>();
+            NotificationService = ServiceLocator.Current.GetService<INotificationService>();
             this.InitializeComponent();
             InitializeContext();
             InitializeNavigation();
@@ -149,6 +151,10 @@ namespace MuhasibPro.Views.Shell
             TitleBarHelper.UpdateTitleBar(RequestedTheme);
             KeyboardAccelerators.Add(BuildKeyboardAccelerator(VirtualKey.Left, VirtualKeyModifiers.Menu));
             KeyboardAccelerators.Add(BuildKeyboardAccelerator(VirtualKey.GoBack));
+            NotificationService.InitializeNotificationService(ValidationInfoBar); if (ViewModel != null)
+            {
+                ViewModel.NotificationService = NotificationService;
+            }
         }
         private static KeyboardAccelerator BuildKeyboardAccelerator(
             VirtualKey key,
@@ -198,6 +204,7 @@ namespace MuhasibPro.Views.Shell
                 authentication.Logout();
                 if (Frame.CanGoBack)
                 {
+                    ViewModel.ViewModelArgs.ViewModel = typeof(LoginViewModel);
                     Frame.Navigate(typeof(LoginView),ViewModel.ViewModelArgs);                    
                 }
             }

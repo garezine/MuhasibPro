@@ -8,11 +8,11 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
 {
     public class TenantSQLiteSelectionManager : ITenantSQLiteSelectionManager
     {
-        private readonly IAppDbContextFactory _dbContextFactory;
+        
         private readonly ITenantSQLiteConnectionStringFactory _connectionStringFactory;
-        private TenantContext _currentTenant;
         private readonly ILogger<TenantSQLiteSelectionManager> _logger;
         private readonly object _tenantLock = new object();
+        private TenantContext _currentTenant;
 
         // ⭐ Constructor düzeltildi: Kullanılmayan dependency çıkarıldı
         public TenantSQLiteSelectionManager(
@@ -20,8 +20,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
             ITenantSQLiteConnectionStringFactory connectionStringFactory,
             ILogger<TenantSQLiteSelectionManager> logger) // ⭐ connectionManager ÇIKARILDI
         {
-            _currentTenant = TenantContext.Empty;
-            _dbContextFactory = dbContextFactory;
+            _currentTenant = TenantContext.Empty;            
             _connectionStringFactory = connectionStringFactory;
             _logger = logger;
         }
@@ -69,22 +68,6 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantSqliteManager
             _logger.LogInformation("Tenant değiştirildi: {DatabaseName}", databaseName);
             return _currentTenant;
         }
-
-        public AppDbContext CreateTenantDbContext()
-        {
-            var currentTenant = GetCurrentTenant();
-
-            if (!currentTenant.IsLoaded)
-            {
-                _logger.LogWarning("Aktif tenant seçilmemiş");
-                throw new InvalidOperationException(
-                    "Aktif tenant seçilmemiş. Önce SwitchToTenantAsync() ile tenant seçin.");
-            }
-
-            _logger.LogDebug("Creating DbContext for: {DatabaseName}", currentTenant.DatabaseName);
-            return _dbContextFactory.CreateContext(currentTenant.DatabaseName);
-        }
-
         // ⭐ Metod ismi ve imzası düzeltildi
         public Task<string> GetCurrentTenantConnectionStringAsync()
         {

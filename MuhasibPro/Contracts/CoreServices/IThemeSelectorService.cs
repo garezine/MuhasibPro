@@ -12,4 +12,5 @@ public interface IThemeSelectorService
     Task SetThemeAsync(ElementTheme theme);
 
     Task SetRequestedThemeAsync();
+   
 }

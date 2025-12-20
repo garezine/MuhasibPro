@@ -2,7 +2,6 @@
 using Muhasib.Business.Infrastructure.Extensions;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.LogServices;
-using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantDatabaseManager;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager;
 using Muhasib.Data.Managers.DatabaseManager.Models;
 using Muhasib.Data.Utilities.Responses;
@@ -14,7 +13,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
     {        
         private readonly ITenantSQLiteDatabaseManager _sqliteDatabaseManager;
         private readonly ITenantSQLiteBackupManager _sqliteBackupManager;
-        private readonly ITenantSQLiteMigrationManager _sqlitemigrationManager;
+        
         private readonly ILogService _logService;
         private readonly ILogger<TenantSQLiteDatabaseOperationService> _logger;
 
@@ -23,45 +22,43 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             ITenantSQLiteDatabaseManager sqliteDatabaseManager,
             ILogService logService,
             ILogger<TenantSQLiteDatabaseOperationService> logger,
-            ITenantSQLiteBackupManager sqliteBackupManager,
-            ITenantSQLiteMigrationManager sqlitemigrationManager)
+            ITenantSQLiteBackupManager sqliteBackupManager)
         {
-
             _sqliteDatabaseManager = sqliteDatabaseManager;
             _logService = logService;
-            _sqliteBackupManager = sqliteBackupManager;
-            _sqlitemigrationManager = sqlitemigrationManager;
+            _sqliteBackupManager = sqliteBackupManager;        
             _logger = logger;
         }
         
-        public async Task<ApiDataResponse<bool>> RunMigrationsAsync(string databaseName)
+        public async Task<ApiDataResponse<DatabaseHealthInfo>> GetHealthStatusAsync(string databaseName)
         {
             try
-            {
-                _logger.LogInformation("Running migrations for MaliDonemId: {MaliDonemId}", databaseName);
-
-                var result = await _sqlitemigrationManager.RunMigrationsAsync(databaseName);
-                if (!result)
+            {                
+                if (string.IsNullOrEmpty(databaseName))
                 {
-                    return new ErrorApiDataResponse<bool>(false, "Migration çalıştırılamadı");
+                    return new ErrorApiDataResponse<DatabaseHealthInfo>(null, "Database adı bulunamadı");
                 }
 
-                await _logService.SistemLogService.SistemLogInformation(
-                    nameof(TenantSQLiteDatabaseOperationService),
-                    nameof(RunMigrationsAsync),
-                    $"Migration başarıyla tamamlandı. databaseName: {databaseName}", string.Empty);
-
-                return new SuccessApiDataResponse<bool>(true, "Migration başarıyla tamamlandı");
+                var healthInfo = await _sqliteDatabaseManager.GetHealthStatusAsync(databaseName);
+                return new SuccessApiDataResponse<DatabaseHealthInfo>(healthInfo, "Sağlık durumu alındı");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Migration failed for databaseName: {databaseName}", databaseName);
-                await _logService.SistemLogService.SistemLogException(
-                    nameof(TenantSQLiteDatabaseOperationService),
-                    nameof(RunMigrationsAsync),
-                    ex);
-
-                return new ErrorApiDataResponse<bool>(false, $"Migration hatası: {ex.Message}");
+                _logger.LogError(ex, "Health check failed for databaseName: {databaseName}", databaseName);
+                return new ErrorApiDataResponse<DatabaseHealthInfo>(null, ex.Message);
+            }
+        }
+        public async Task<ApiDataResponse<bool>> ValidateConnectionAsync(string databaseName, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _sqliteDatabaseManager.ValidateTenantDatabaseAsync(databaseName, cancellationToken);
+                return new SuccessApiDataResponse<bool>(result.IsValid, result.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Connection validation failed for Sistem Database: {databaseName}", databaseName);
+                return new ErrorApiDataResponse<bool>(false, ex.Message);
             }
         }
         public async Task<ApiDataResponse<bool>> CreateBackupAsync(string databaseName)
@@ -140,23 +137,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                     false,
                     ResultCodes.HATA_Olusturulamadi);
             }
-        }
-
-        private string FormatFileSize(long bytes)
-        {
-            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
-            int order = 0;
-            double len = bytes;
-            while (len >= 1024 && order < sizes.Length - 1)
-            {
-                order++;
-                len /= 1024;
-            }
-            return $"{len:0.##} {sizes[order]}";
-        }
-
-        //todo: backup info doldurulacak
-
+        }       
         public async Task<ApiDataResponse<List<BackupFileInfo>>> GetBackupHistoryAsync(string databaseName)
         {
             try
@@ -184,27 +165,7 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 return new ErrorApiDataResponse<List<BackupFileInfo>>(null, ex.Message);
             }
         }
-
-        public async Task<ApiDataResponse<DatabaseHealthInfo>> GetHealthStatusAsync(string databaseName)
-        {
-            try
-            {                
-                if (string.IsNullOrEmpty(databaseName))
-                {
-                    return new ErrorApiDataResponse<DatabaseHealthInfo>(null, "Database adı bulunamadı");
-                }
-
-                var healthInfo = await _sqliteDatabaseManager.GetHealthStatusAsync(databaseName);
-                return new SuccessApiDataResponse<DatabaseHealthInfo>(healthInfo, "Sağlık durumu alındı");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Health check failed for databaseName: {databaseName}", databaseName);
-                return new ErrorApiDataResponse<DatabaseHealthInfo>(null, ex.Message);
-            }
-        }      
-        
-
+       
         public async Task<ApiDataResponse<bool>> RestoreBackupAsync(string databaseName, string backupFilePath)
         {
             try
@@ -244,6 +205,17 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 return new ErrorApiDataResponse<bool>(false, $"Backup geri yükleme hatası: {ex.Message}");
             }
         }
-        
+        private string FormatFileSize(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            int order = 0;
+            double len = bytes;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len /= 1024;
+            }
+            return $"{len:0.##} {sizes[order]}";
+        }
     }
 }

@@ -3,6 +3,7 @@
     public enum ConnectionTestResult
     {
         Success,
+        RequiredUpdating,
         DatabaseNotFound,
         ConnectionFailed,
         InvalidParameter,

@@ -60,7 +60,7 @@ public class FirmalarViewModel : ViewModelBase
         }
     }
 
-    private async void OnItemSelected()
+    public async void OnItemSelected()
     {
         if (FirmaDetails.IsEditMode)
         {

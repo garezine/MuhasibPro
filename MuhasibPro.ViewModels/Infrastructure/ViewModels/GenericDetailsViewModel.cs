@@ -141,40 +141,33 @@ public abstract class GenericDetailsViewModel<TModel> : ViewModelBase where TMod
 
     virtual public async Task SaveAsync()
     {
-        await ExecuteActionAsync(
-            action: async () =>
+        IsEnabled = false;
+        bool isNew = ItemIsNew;
+
+        if (await SaveItemAsync(EditableItem))
+        {
+            Item.Merge(EditableItem);
+            Item.NotifyChanges();
+            NotifyPropertyChanged(nameof(Title));
+            EditableItem = Item;
+
+            if (isNew)
             {
-                IsEnabled = false;
-                bool isNew = ItemIsNew;
+                MessageService.Send(this, "NewItemSaved", Item);
+                NotificationService?.ShowSuccess("Başarılı", "Yeni kayıt başarıyla oluşturuldu.");
+            }
+            else
+            {
+                MessageService.Send(this, "ItemChanged", Item);
+                NotificationService?.ShowSuccess("Başarılı", "Değişiklikler başarıyla kaydedildi.");
+            }
 
-                if (await SaveItemAsync(EditableItem))
-                {
-                    Item.Merge(EditableItem);
-                    Item.NotifyChanges();
-                    NotifyPropertyChanged(nameof(Title));
-                    EditableItem = Item;
+            IsEditMode = false;
+            NotifyPropertyChanged(nameof(ItemIsNew));
+        }
 
-                    if (isNew)
-                    {
-                        MessageService.Send(this, "NewItemSaved", Item);
-                        NotificationService?.ShowSuccess("Başarılı", "Yeni kayıt başarıyla oluşturuldu.");
-                    }
-                    else
-                    {
-                        MessageService.Send(this, "ItemChanged", Item);
-                        NotificationService?.ShowSuccess("Başarılı", "Değişiklikler başarıyla kaydedildi.");
-                    }
-
-                    IsEditMode = false;
-                    NotifyPropertyChanged(nameof(ItemIsNew));
-                }
-
-                IsEnabled = true;
-            },
-            startMessage: $"Kaydediliyor",
-            startMessageType: StatusMessageType.Saving, // 💾
-            successMessage: $"Kaydedildi"       // ✅
-        );
+        IsEnabled = true;           
+        
     }
     public ICommand DeleteCommand => new RelayCommand(OnDelete);
 

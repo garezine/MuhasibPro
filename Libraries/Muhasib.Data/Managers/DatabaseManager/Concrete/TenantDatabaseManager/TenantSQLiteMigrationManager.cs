@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Muhasib.Data.DataContext.Factories;
-using Muhasib.Data.Managers.DatabaseManager.Contracts.Infrastructure;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantDatabaseManager;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager;
 using Muhasib.Domain.Entities.MuhasebeEntity.DegerlerEntities;
@@ -13,34 +12,122 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
         private readonly IAppDbContextFactory _appDbContextFactory;
         private readonly ILogger<TenantSQLiteMigrationManager> _logger;
         private readonly ITenantSQLiteBackupManager _tenantSQLiteBackupManager;
-        private readonly IApplicationPaths _applicationPaths;
+
 
         public TenantSQLiteMigrationManager(
             IAppDbContextFactory appDbContextFactory,
             ILogger<TenantSQLiteMigrationManager> logger,
-            ITenantSQLiteBackupManager tenantSQLiteBackupManager,
-            IApplicationPaths applicationPaths)
+            ITenantSQLiteBackupManager tenantSQLiteBackupManager
+           )
         {
             _appDbContextFactory = appDbContextFactory;
             _logger = logger;
             _tenantSQLiteBackupManager = tenantSQLiteBackupManager;
-            _applicationPaths = applicationPaths;
+            
         }
-
-        private string CalculateSimpleHash(string input)
+        public async Task<bool> RunMigrationsAsync(string databaseName, CancellationToken cancellationToken = default)
         {
-            // Basit bir hash (CRC32 veya basit checksum)
-            unchecked
+            try
             {
-                int hash = 17;
-                foreach(char c in input)
+                using var context = _appDbContextFactory.CreateContext(databaseName);
+                
+                var pendingMigrations = await GetPendingMigrationsAsync(databaseName);
+
+                if(!pendingMigrations.Any())
                 {
-                    hash = hash * 31 + c;
+                    _logger.LogInformation("No pending migrations for {DatabaseName}", databaseName);
+                    return true; // Zaten güncel
                 }
-                return Math.Abs(hash).ToString("X8").Substring(0, 6);
+
+                _logger.LogInformation(
+                    "Found {Count} pending migrations for {DatabaseName}",
+                    pendingMigrations.Count(),
+                    databaseName);
+
+                // ⚠️ Backup yavaşlatıyor - ilk oluşturmada gereksiz
+                // Sadece mevcut DB'de migration yapılıyorsa yap
+                
+
+                if(pendingMigrations.Count > 0)
+                    await _tenantSQLiteBackupManager.CreateBackupAsync(databaseName);
+                var tableExists = await TableExistsAsync(databaseName, "AppLogs");
+
+                if (tableExists)
+                    await _tenantSQLiteBackupManager.CreateBackupAsync(databaseName,cancellationToken);
+                // ✅ Migration timeout'u artır (varsayılan 30sn yetersiz olabilir)
+                context.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
+
+                await context.Database.MigrateAsync(cancellationToken);
+
+                var migrationVersion = GetLatestMigrationVersion(await context.Database.GetAppliedMigrationsAsync());
+                await UpdateTenantDatabaseVersionAsync(databaseName, migrationVersion);
+
+                _logger.LogInformation("Database initialized successfully: {DatabaseName}", databaseName);
+                return true;
+            } catch(Exception ex)
+            {
+                _logger.LogError(ex, "Migration çalıştırma hatası: {databaseName}", databaseName);
+                return false;
             }
         }
 
+        public async Task<bool> InitializingDatabaseAsync(string databaseName, CancellationToken cancellationToken=default)
+        {
+            try
+            {
+                try
+                {
+                    return await RunMigrationsAsync(databaseName,cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Initialize database hatası: {DatabaseName}", databaseName);
+                    return false;
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+        public async Task<IList<string>> GetPendingMigrationsAsync(string databaseName)
+        {
+            try
+            {
+                using var dbContext = _appDbContextFactory.CreateContext(databaseName);
+                var migrationList = await dbContext.Database.GetPendingMigrationsAsync();
+
+                _logger.LogDebug(
+                    "Bekleyen migration sayısı: {Count} - {DatabaseName}",
+                    migrationList.Count(),
+                    databaseName);
+
+                return migrationList.ToList();
+            } catch(Exception ex)
+            {
+                _logger.LogError(ex, "Bekleyen migration'lar getirilemedi: {DatabaseName}", databaseName);
+                return new List<string>();
+            }
+        }
+        private async Task<bool> TableExistsAsync(string databaseName,string tableName)
+        {
+            try
+            {
+                using var context = _appDbContextFactory.CreateContext(databaseName);
+               
+                // SQL injection'dan kaçınmak için parametre kullan
+                var sql = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name= {0}";
+
+                var result = await context.Database.SqlQueryRaw<int>(sql, tableName).FirstOrDefaultAsync();
+
+                return result > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
         private string GetLatestMigrationVersion(IEnumerable<string> appliedMigrations)
         {
             try
@@ -74,7 +161,19 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
                 return "1.0.0";
             }
         }
-
+        private string CalculateSimpleHash(string input)
+        {
+            // Basit bir hash (CRC32 veya basit checksum)
+            unchecked
+            {
+                int hash = 17;
+                foreach(char c in input)
+                {
+                    hash = hash * 31 + c;
+                }
+                return Math.Abs(hash).ToString("X8").Substring(0, 6);
+            }
+        }
         private async Task<bool> UpdateTenantDatabaseVersionAsync(string databaseName, string newVersion)
         {
             try
@@ -106,102 +205,16 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.TenantDatabaseManager
 
                 await context.SaveChangesAsync();
                 _logger.LogInformation(
-                    "Muhasebe version updated to {Version} for {DatabaseName}",
+                    "Tenant version updated to {Version} for {DatabaseName}",
                     newVersion,
                     databaseName);
                 return true;
             } catch(Exception ex)
             {
-                _logger.LogError(ex, "Failed to update muhasebe version for {DatabaseName}", databaseName);
+                _logger.LogError(ex, "Failed to update tenant version for {DatabaseName}", databaseName);
                 return false;
             }
         }
-
-        public async Task<List<string>> GetPendingMigrationsAsync(string databaseName)
-        {
-            try
-            {
-                using var dbContext = _appDbContextFactory.CreateContext(databaseName);
-                var migrationList = await dbContext.Database.GetPendingMigrationsAsync();
-
-                _logger.LogDebug(
-                    "Bekleyen migration sayısı: {Count} - {DatabaseName}",
-                    migrationList.Count(),
-                    databaseName);
-
-                return migrationList.ToList();
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Bekleyen migration'lar getirilemedi: {DatabaseName}", databaseName);
-                return new List<string>();
-            }
-        }
-
-
-        public async Task<bool> RunMigrationsAsync(string databaseName, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                using var context = _appDbContextFactory.CreateContext(databaseName);
-                var canConnect = await context.Database.CanConnectAsync(cancellationToken);
-                var pendingMigrations = await GetPendingMigrationsAsync(databaseName);
-
-                if(!pendingMigrations.Any())
-                {
-                    _logger.LogInformation("No pending migrations for {DatabaseName}", databaseName);
-                    return true; // Zaten güncel
-                }
-
-                _logger.LogInformation(
-                    "Found {Count} pending migrations for {DatabaseName}",
-                    pendingMigrations.Count(),
-                    databaseName);
-
-                // ⚠️ Backup yavaşlatıyor - ilk oluşturmada gereksiz
-                // Sadece mevcut DB'de migration yapılıyorsa yap
-                
-
-                if(pendingMigrations.Count > 0)
-                    await _tenantSQLiteBackupManager.CreateBackupAsync(databaseName);
-
-                // ✅ Migration timeout'u artır (varsayılan 30sn yetersiz olabilir)
-                context.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
-
-                await context.Database.MigrateAsync(cancellationToken);
-
-                var migrationVersion = GetLatestMigrationVersion(await context.Database.GetAppliedMigrationsAsync());
-                await UpdateTenantDatabaseVersionAsync(databaseName, migrationVersion);
-
-                _logger.LogInformation("Database initialized successfully: {DatabaseName}", databaseName);
-                return true;
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Migration çalıştırma hatası: {databaseName}", databaseName);
-                return false;
-            }
-        }
-
-        public async Task<bool> FirstInitializingDatabaseAsync(string databaseName, CancellationToken cancellationToken=default)
-        {
-            try
-            {
-                if (!_applicationPaths.TenantDatabaseFileExists(databaseName))
-                {
-                    using var context = _appDbContextFactory.CreateContext(databaseName);
-                    await context.Database.MigrateAsync(cancellationToken);
-                    if (_applicationPaths.TenantDatabaseFileExists(databaseName))
-                    {
-                        await RunMigrationsAsync(databaseName,cancellationToken);
-                        return true;
-                    }
-                }
-                return false;
-            }
-            catch (Exception)
-            {
-
-                throw;
-            }
-        }
+    
     }
 }

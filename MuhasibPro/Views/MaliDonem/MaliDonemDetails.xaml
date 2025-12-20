@@ -9,87 +9,516 @@
     xmlns:local="using:MuhasibPro.Views.MaliDonem"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="using:MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler"
-    xmlns:views="using:MuhasibPro.Views.MaliDonem"
     mc:Ignorable="d"
-    d:DesignHeight="600"
-    d:DesignWidth="800">
+    d:DesignHeight="700"
+    d:DesignWidth="900">
+
     <UserControl.Resources>
         <converters:BindingTypeConverter x:Key="BindingTypeConverter" />
+        <converters:ObjectToImageConverter x:Key="ObjectToImageConverter" />
+
         <DataTemplate x:Key="DetailsTemplate" x:DataType="viewmodels:MaliDonemDetailsViewModel">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <Border Style="{StaticResource GlassPanel}">
-                <controls:FluidGrid
-                    Margin="12,18,6,6"
-                    Columns="2"
-                    ColumnSpacing="12"                    
-                    RowSpacing="12">
-                    <TextBlock
-                        controls:FluidGrid.ColumnSpan="2"
-                        Style="{StaticResource FormsSection}"
-                        Text="Mali Dönem Bilgileri" />
-                    <NumberBox
-                        x:Name="MaliYilNumberBox"
-                        Width="360"
-                        HorizontalAlignment="Left"
-                        Value="{x:Bind EditableItem.MaliYil, Mode=TwoWay}"
-                        controls:FluidGrid.ColumnSpan="2"
-                        Header="Mali Dönem Yılı"
-                        LargeChange="5"
-                        Maximum="2030"
-                        Minimum="2020"
-                        PlaceholderText="Yıl giriniz"
-                        SmallChange="1"
-                        SpinButtonPlacementMode="Inline" />
-                    <TextBlock
-                        Margin="0 5 0 0"
-                        controls:FluidGrid.ColumnSpan="2"
-                        Style="{StaticResource FormsSection}"
-                        Text="Veritabanı Bilgileri" />
-                    <controls:FormTextBox                        
-                        Header="Veritabanı Adı"
-                        Mode="ReadOnly"
-                        Text="{x:Bind EditableItem.DBName, Mode=TwoWay}" />
-                    <controls:FormTextBox
-                        Header="Veritabanı Tipi"
-                       Mode="ReadOnly"
-                        Text="{x:Bind EditableItem.DatabaseType, Mode=TwoWay}" />
-                    <controls:FormTextBox
-                        Header="Veritabanı Klasör"
-                        Mode="ReadOnly"
-                        Text="{x:Bind EditableItem.DBPath,Mode=TwoWay}" />
-                    <controls:FormTextBox
-                        Header="Veritabanı Yolu"
-                        Mode="ReadOnly"
-                        Text="{x:Bind EditableItem.Directory, Mode=TwoWay}" />
+                <!-- Üst Panel - Firma Bilgileri -->
+                <Border 
+                    Grid.Row="0"
+                    Style="{StaticResource GlassPanel}"
+                    Margin="0,0,0,12"
+                    Padding="20,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                </controls:FluidGrid>
+                        <!-- Firma Logo -->
+                        <PersonPicture
+                            Width="64"
+                            Height="64"
+                            ProfilePicture="{x:Bind Item.FirmaModel.LogoSource, Mode=OneWay, Converter={StaticResource ObjectToImageConverter}}"
+                            Margin="0,0,20,0" />
 
+                        <!-- Firma Bilgileri -->
+                        <StackPanel 
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Spacing="4">
+                            <TextBlock
+                                Text="{x:Bind Item.FirmaModel.KisaUnvani, Mode=OneWay}"
+                                FontSize="20"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource AccentAAFillColorSecondaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon 
+                                        Glyph="&#xEC08;" 
+                                        FontSize="14"
+                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    <TextBlock
+                                        Text="{x:Bind Item.FirmaModel.FirmaKodu, Mode=OneWay}"
+                                        FontSize="13"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon 
+                                        Glyph="&#xE8D7;" 
+                                        FontSize="14"
+                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    <TextBlock
+                                        Text="{x:Bind Item.FirmaModel.Id, Mode=OneWay}"
+                                        FontSize="13"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
+                <!-- Orta Panel - İçerik -->
+                <ScrollViewer 
+                    Grid.Row="1"
+                    VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="16">
 
-            </Border>
+                        <!-- Yeni Mali Dönem Oluşturma - ItemIsNew=true -->
+                        <Border 
+                            Style="{StaticResource GlassPanel}"
+                            Padding="32,28"
+                            Visibility="{x:Bind ItemIsNew, Mode=OneWay}">
+                            <StackPanel Spacing="20" HorizontalAlignment="Center">
+
+                                <!-- Başlık -->
+                                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                    <FontIcon 
+                                        Glyph="&#xE946;"
+                                        FontSize="48"
+                                        Foreground="{ThemeResource AccentAAFillColorSecondaryBrush}"
+                                        HorizontalAlignment="Center" />
+                                    <TextBlock
+                                        Text="Yeni Mali Dönem Oluştur"
+                                        FontSize="24"
+                                        FontWeight="SemiBold"
+                                        HorizontalAlignment="Center"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock
+                                        Text="Lütfen mali dönem yılını seçiniz"
+                                        FontSize="14"
+                                        HorizontalAlignment="Center"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+
+                                <!-- Mali Yıl Seçimi -->
+                                <Grid HorizontalAlignment="Center">
+                                    <Border
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                        CornerRadius="12"
+                                        Padding="32,24"
+                                        Opacity="0.1" />
+                                    <NumberBox
+                                        x:Name="MaliYilNumberBox"
+                                        Width="240"
+                                        Value="{x:Bind EditableItem.MaliYil, Mode=TwoWay}"
+                                        FontSize="48"
+                                        FontWeight="Bold"
+                                        HorizontalContentAlignment="Center"
+                                        LargeChange="1"
+                                        Maximum="2035"
+                                        Minimum="2020"
+                                        PlaceholderText="YYYY"
+                                        SmallChange="1"
+                                        SpinButtonPlacementMode="Inline"
+                                        Margin="32,24" />
+                                </Grid>
+
+                                <!-- Bilgilendirme -->
+                                <Border
+                                    Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="20"
+                                    MaxWidth="600">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock
+                                            Text="Oluşturulacak İşlemler"
+                                            FontSize="15"
+                                            FontWeight="SemiBold"
+                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+
+                                        <StackPanel Spacing="8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border
+                                                    Width="32"
+                                                    Height="32"
+                                                    Background="{ThemeResource SystemFillColorSuccessBrush}"
+                                                    CornerRadius="16"
+                                                    Margin="0,0,12,0">
+                                                    <FontIcon
+                                                        Glyph="&#xE73E;"
+                                                        FontSize="14"
+                                                        Foreground="White"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock
+                                                        Text="Yeni veritabanı oluşturulacak"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                    <TextBlock
+                                                        Text="Seçili firmaya özel veritabanı"
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border
+                                                    Width="32"
+                                                    Height="32"
+                                                    Background="{ThemeResource SystemFillColorSuccessBrush}"
+                                                    CornerRadius="16"
+                                                    Margin="0,0,12,0">
+                                                    <FontIcon
+                                                        Glyph="&#xE73E;"
+                                                        FontSize="14"
+                                                        Foreground="White"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock
+                                                        Text="Hesap planı hazırlanacak"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                    <TextBlock
+                                                        Text="Tüm tablolar ve yapılar"
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border
+                                                    Width="32"
+                                                    Height="32"
+                                                    Background="{ThemeResource SystemFillColorSuccessBrush}"
+                                                    CornerRadius="16"
+                                                    Margin="0,0,12,0">
+                                                    <FontIcon
+                                                        Glyph="&#xE73E;"
+                                                        FontSize="14"
+                                                        Foreground="White"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock
+                                                        Text="İşlem birkaç saniye sürer"
+                                                        FontSize="13"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                    <TextBlock
+                                                        Text="Lütfen bekleyiniz"
+                                                        FontSize="12"
+                                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Uyarı -->
+                                <Border
+                                    Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                                    BorderBrush="{ThemeResource SystemFillColorCautionBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="16"
+                                    MaxWidth="600">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon
+                                            Glyph="&#xE7BA;"
+                                            FontSize="20"
+                                            Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                            Margin="0,0,12,0" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="Aynı firma için aynı yıla ait mali dönem zaten mevcutsa işlem başarısız olacaktır."
+                                            FontSize="13"
+                                            TextWrapping="Wrap"
+                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                    </Grid>
+                                </Border>
+
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Mevcut Mali Dönem Görünümü - ItemIsNew=false -->
+                        <Border 
+                            Style="{StaticResource GlassPanel}"
+                            Padding="28,24"
+                            Visibility="{x:Bind ItemIsNew, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            <StackPanel Spacing="24">
+
+                                <!-- Başlık -->
+                                <StackPanel Spacing="8">
+                                    <TextBlock
+                                        Text="Mali Dönem Bilgileri"
+                                        FontSize="20"
+                                        FontWeight="SemiBold"
+                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                    <Border
+                                        Height="3"
+                                        Width="60"
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                        CornerRadius="2"
+                                        HorizontalAlignment="Left" />
+                                </StackPanel>
+
+                                <!-- Mali Dönem Kartı -->
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Mali Yıl -->
+                                    <Border
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="20,16"
+                                        Margin="0,0,6,12">
+                                        <StackPanel Spacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon
+                                                    Glyph="&#xEC92;"
+                                                    FontSize="18"
+                                                    Foreground="{ThemeResource AccentAAFillColorSecondaryBrush}" />
+                                                <TextBlock
+                                                    Text="Mali Yıl"
+                                                    FontSize="13"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <TextBlock
+                                                Text="{x:Bind EditableItem.MaliYil, Mode=OneWay}"
+                                                FontSize="28"
+                                                FontWeight="Bold"
+                                                Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Veritabanı Adı -->
+                                    <Border
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="20,16"
+                                        Margin="6,0,0,12">
+                                        <StackPanel Spacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon
+                                                    Glyph="&#xE8F7;"
+                                                    FontSize="18"
+                                                    Foreground="{ThemeResource AccentAAFillColorSecondaryBrush}" />
+                                                <TextBlock
+                                                    Text="Veritabanı"
+                                                    FontSize="13"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                            <TextBlock
+                                                Text="{x:Bind EditableItem.DBName, Mode=OneWay}"
+                                                FontSize="16"
+                                                FontWeight="SemiBold"
+                                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Bilgilendirme Kartı -->
+                                    <Border
+                                        Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                                        BorderBrush="{ThemeResource SystemFillColorSuccessBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="20,16">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon
+                                                Glyph="&#xE73E;"
+                                                FontSize="24"
+                                                Foreground="{ThemeResource SystemFillColorSuccessBrush}"
+                                                Margin="0,0,16,0" />
+                                            <StackPanel Grid.Column="1" Spacing="4">
+                                                <TextBlock
+                                                    Text="Mali dönem aktif"
+                                                    FontSize="15"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock
+                                                    Text="Bu mali dönem kullanıma hazır durumda. Tüm işlemlerinizi bu dönem üzerinden gerçekleştirebilirsiniz."
+                                                    FontSize="13"
+                                                    TextWrapping="Wrap"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Alt Panel - Butonlar -->
+                <Border
+                    Grid.Row="2"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="20,16"
+                    Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Sol - Bilgi -->
+                        <StackPanel
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Spacing="8"
+                            Visibility="{x:Bind ItemIsNew, Mode=OneWay}">
+                            <FontIcon
+                                Glyph="&#xE765;"
+                                FontSize="14"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                            <TextBlock
+                                Text="Ctrl+S ile hızlı oluştur"
+                                FontSize="12"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
+
+                        <!-- Sağ - Butonlar -->
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="12">
+
+                            <!-- İptal/Geri Butonu -->
+                            <Button
+                                Style="{StaticResource ActionCancelButton}"
+                                Content="İptal"
+                                Command="{x:Bind CancelCommand}"
+                                MinWidth="120"
+                                Height="40"
+                                Visibility="{x:Bind ItemIsNew, Mode=OneWay}">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="Escape" />
+                                </Button.KeyboardAccelerators>
+                            </Button>
+
+                            <!-- Oluştur Butonu - Sadece IsNew=true -->
+                            <Button
+                                Command="{x:Bind SaveCommand}"
+                                Style="{StaticResource ActionButton}"
+                                MinWidth="140"
+                                Height="40"
+                                Visibility="{x:Bind ItemIsNew, Mode=OneWay}">
+                                <Button.Content>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon
+                                            Glyph="&#xE710;"
+                                            FontSize="16" />
+                                        <TextBlock
+                                            Text="Oluştur"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button.Content>
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator
+                                        Key="S"
+                                        Modifiers="Control" />
+                                </Button.KeyboardAccelerators>
+                            </Button>
+
+                            <!-- Sil Butonu - Sadece IsNew=false -->
+                            <Button
+                                Style="{StaticResource ActionDangerButton}"
+                                Command="{x:Bind DeleteCommand}"                                
+                                MinWidth="140"
+                                Height="40"
+                                Visibility="{x:Bind ItemIsNew, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                <Button.Content>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon
+                                            Glyph="&#xE74D;"
+                                            FontSize="16"
+                                            Foreground="White" />
+                                        <TextBlock
+                                            Text="Mali Dönemi Sil"
+                                            Foreground="White"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button.Content>
+                            </Button>
+
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+            </Grid>
         </DataTemplate>
     </UserControl.Resources>
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MaxWidth="320" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Border>
-            <views:MaliDonemCard Margin="6" Item="{x:Bind ViewModel.Item, Mode=OneWay}" />
-        </Border>
 
-        <controls:Details
-            x:Name="details"
-            Grid.Column="1"
-            Margin="6"
-            BackCommand="{x:Bind ViewModel.BackCommand}"
-            CancelCommand="{x:Bind ViewModel.CancelCommand}"
-            CanGoBack="{x:Bind ViewModel.CanGoBack}"
-            DeleteCommand="{x:Bind ViewModel.DeleteCommand}"
-            DetailsContent="{x:Bind ViewModel}"
-            DetailsTemplate="{StaticResource DetailsTemplate}"
-            EditCommand="{x:Bind ViewModel.EditCommand}"
-            IsEditMode="{x:Bind ViewModel.IsEditMode, Mode=OneWay}"
-            SaveCommand="{x:Bind ViewModel.SaveCommand}" />
+    <Grid Padding="24,16">
+        <ContentControl
+            Content="{x:Bind ViewModel}"
+            ContentTemplate="{StaticResource DetailsTemplate}"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch" />
     </Grid>
+
 </UserControl>

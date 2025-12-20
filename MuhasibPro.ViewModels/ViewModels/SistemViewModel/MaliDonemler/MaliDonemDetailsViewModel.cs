@@ -198,11 +198,13 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
                                 "Kayıt",
                                 $"{Header} 'Veritabanı' oluşturulamadı.",
                                 $"{Header} {model.FirmaModel.FirmaKodu} '{model.MaliYil}' veritabanı oluşturulamadı");
+                            throw new InvalidOperationException(result.Message);
                         }
                     },
                     progressMessage: "Veritabanı oluşturuluyor",
                     measureTime: true,
                     successMessage: "Veritabanı oluşturuldu",
+                    errorMessage:$"{Header} oluşturma hatası",
                     successAutoHideSeconds: -1);
                 return success;
             } catch(Exception ex)

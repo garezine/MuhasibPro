@@ -1,5 +1,4 @@
 ﻿using Muhasib.Data.DataContext;
-using Muhasib.Domain.Enum;
 
 namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
 {
@@ -9,8 +8,7 @@ namespace Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager
         // Current State
         TenantContext GetCurrentTenant();
         Task<string> GetCurrentTenantConnectionStringAsync();
-        bool IsTenantLoaded { get; }
-        AppDbContext CreateTenantDbContext();
+        bool IsTenantLoaded { get; }        
         // Events (optional - for UI notifications)
         event Action<TenantContext> TenantChanged;
         void ClearCurrentTenant();

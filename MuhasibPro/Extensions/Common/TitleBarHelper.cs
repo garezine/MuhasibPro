@@ -22,72 +22,87 @@ internal class TitleBarHelper
 
     public static void UpdateTitleBar(ElementTheme theme)
     {
-        if (App.MainWindow.ExtendsContentIntoTitleBar)
+        if (App.MainWindow == null || !App.MainWindow.ExtendsContentIntoTitleBar)
+            return;
+
+        try
         {
+            // Tema belirlenmemişse, sistem temasını kullan
             if (theme == ElementTheme.Default)
             {
                 var uiSettings = new UISettings();
                 var background = uiSettings.GetColorValue(UIColorType.Background);
-
                 theme = background == Colors.White ? ElementTheme.Light : ElementTheme.Dark;
             }
 
-            if (theme == ElementTheme.Default)
+            var titleBar = App.MainWindow.AppWindow.TitleBar;
+
+            // Başlık çubuğu düğmeleri için renkleri ayarla
+            if (theme == ElementTheme.Dark)
             {
-                theme = Application.Current.RequestedTheme == ApplicationTheme.Light ? ElementTheme.Light : ElementTheme.Dark;
+                // Koyu tema
+                titleBar.ButtonForegroundColor = Colors.White;
+                titleBar.ButtonHoverForegroundColor = Colors.White;
+                titleBar.ButtonPressedForegroundColor = Colors.White;
+                titleBar.ButtonHoverBackgroundColor = Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF);
+                titleBar.ButtonPressedBackgroundColor = Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF);
+                titleBar.ButtonInactiveForegroundColor = Color.FromArgb(0xFF, 0x99, 0x99, 0x99);
+            }
+            else
+            {
+                // Açık tema
+                titleBar.ButtonForegroundColor = Colors.Black;
+                titleBar.ButtonHoverForegroundColor = Colors.Black;
+                titleBar.ButtonPressedForegroundColor = Colors.Black;
+                titleBar.ButtonHoverBackgroundColor = Color.FromArgb(0x33, 0x00, 0x00, 0x00);
+                titleBar.ButtonPressedBackgroundColor = Color.FromArgb(0x66, 0x00, 0x00, 0x00);
+                titleBar.ButtonInactiveForegroundColor = Color.FromArgb(0xFF, 0x66, 0x66, 0x66);
             }
 
-            App.MainWindow.AppWindow.TitleBar.ButtonForegroundColor = theme switch
-            {
-                ElementTheme.Dark => Colors.White,
-                ElementTheme.Light => Colors.Black,
-                _ => Colors.Transparent
-            };
+            // Şeffaf arka plan
+            titleBar.BackgroundColor = Colors.Transparent;
+            titleBar.InactiveBackgroundColor = Colors.Transparent;
 
-            App.MainWindow.AppWindow.TitleBar.ButtonHoverForegroundColor = theme switch
-            {
-                ElementTheme.Dark => Colors.White,
-                ElementTheme.Light => Colors.Black,
-                _ => Colors.Transparent
-            };
+            // Pencereyi yeniden etkinleştir (başlık çubuğunu yenilemek için)
+            RefreshWindow();
+        }
+        catch (Exception ex)
+        {
+            // Hata durumunda loglama yapabilirsiniz
+            System.Diagnostics.Debug.WriteLine($"TitleBar güncellenirken hata: {ex.Message}");
+        }
+    }
 
-            App.MainWindow.AppWindow.TitleBar.ButtonHoverBackgroundColor = theme switch
-            {
-                ElementTheme.Dark => Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF),
-                ElementTheme.Light => Color.FromArgb(0x33, 0x00, 0x00, 0x00),
-                _ => Colors.Transparent
-            };
-
-            App.MainWindow.AppWindow.TitleBar.ButtonPressedBackgroundColor = theme switch
-            {
-                ElementTheme.Dark => Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF),
-                ElementTheme.Light => Color.FromArgb(0x66, 0x00, 0x00, 0x00),
-                _ => Colors.Transparent
-            };
-
-            App.MainWindow.AppWindow.TitleBar.BackgroundColor = Colors.Transparent;
-
+    private static void RefreshWindow()
+    {
+        try
+        {
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
             if (hwnd == GetActiveWindow())
             {
+                // Pencere aktifse, geçici olarak inaktif yapıp tekrar aktif yap
                 SendMessage(hwnd, WMACTIVATE, WAINACTIVE, nint.Zero);
                 SendMessage(hwnd, WMACTIVATE, WAACTIVE, nint.Zero);
             }
             else
             {
+                // Pencere inaktifse, geçici olarak aktif yapıp tekrar inaktif yap
                 SendMessage(hwnd, WMACTIVATE, WAACTIVE, nint.Zero);
                 SendMessage(hwnd, WMACTIVATE, WAINACTIVE, nint.Zero);
             }
+        }
+        catch
+        {
+            // SendMessage hatalarını görmezden gel
         }
     }
 
     public static void ApplySystemThemeToCaptionButtons()
     {
-        var frame = App.AppTitleBar as FrameworkElement;
-        if (frame != null)
-        {
-            UpdateTitleBar(frame.ActualTheme);
-        }
+        if (App.MainWindow == null) return;
+
+        // Ana pencerenin temasını kullan
+        UpdateTitleBar(App.ThemeService.Theme);
     }
 }
 

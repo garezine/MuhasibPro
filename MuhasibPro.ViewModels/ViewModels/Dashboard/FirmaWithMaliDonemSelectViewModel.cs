@@ -5,10 +5,7 @@ using Muhasib.Business.Services.Contracts.BaseServices;
 using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.DatabaseServices.TenantDatabase;
 using Muhasib.Business.Services.Contracts.UIServices;
-using Muhasib.Data.DataContext;
 using MuhasibPro.ViewModels.Infrastructure.Common;
-using MuhasibPro.ViewModels.Infrastructure.ViewModels;
-using MuhasibPro.ViewModels.ViewModels.Login;
 using MuhasibPro.ViewModels.ViewModels.Shell;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.Firmalar;
 using MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler;
@@ -16,59 +13,49 @@ using System.Windows.Input;
 
 namespace MuhasibPro.ViewModels.ViewModels.Dashboard
 {
-    public class FirmaWithMaliDonemSelectViewModel : ViewModelBase
+    public class FirmaWithMaliDonemSelectViewModel : FirmalarViewModel
     {
-        #region Services & Dependencies
         public IAuthenticationService AuthenticationService { get; }
-        public IFirmaWithMaliDonemSelectedService FirmaWithMaliDonemSelectedService { get; set; }
-        public ITenantSQLiteConnectionService TenantSQLiteConnectionService { get; }
-        public IFirmaService FirmaService { get; }
-
-        public IMaliDonemService MaliDonemService { get; }
 
         public ILocalSettingsService LocalSettingsService { get; }
-        #endregion
 
-        #region Child ViewModels
-        public FirmaListViewModel FirmalarList { get; }
+        public IFirmaWithMaliDonemSelectedService SelectedFirmaService { get; }
 
-        public MaliDonemListViewModel MaliDonemList { get; }
-        #endregion
+        public ITenantSQLiteWorkflowService TenantWorkflowService { get; }
 
-        #region Constructor
+
+        public MaliDonemViewModel MaliDonemViewModel { get; }
+
         public FirmaWithMaliDonemSelectViewModel(
             ICommonServices commonServices,
-            IAuthenticationService authenticationService,
-            ILocalSettingsService localSettingsService,
             IFirmaService firmaService,
+            IFilePickerService filePickerService,
             IMaliDonemService maliDonemService,
-            IFirmaWithMaliDonemSelectedService firmaWithMaliDonemSelectedService,
-            ITenantSQLiteConnectionService tenantSQLiteConnectionService) : base(commonServices)
+            ILocalSettingsService localSettingsService,
+            IFirmaWithMaliDonemSelectedService selectedFirmaService,
+            IAuthenticationService authenticationService,
+            ITenantSQLiteWorkflowService tenantWorkflowService) : base(
+            commonServices,
+            firmaService,
+            filePickerService,
+            maliDonemService)
         {
-            AuthenticationService = authenticationService;
-            FirmaService = firmaService;
-            MaliDonemService = maliDonemService;
             LocalSettingsService = localSettingsService;
+            SelectedFirmaService = selectedFirmaService;
 
-            // Child ViewModels
-            FirmalarList = new FirmaListViewModel(commonServices, FirmaService);
-            MaliDonemList = new MaliDonemListViewModel(commonServices, MaliDonemService);
-
-            // Commands
+            AuthenticationService = authenticationService;
+            TenantWorkflowService = tenantWorkflowService;
+            MaliDonemViewModel = new MaliDonemViewModel(commonServices, maliDonemService, tenantWorkflowService);
             DevamEtCommand = new AsyncRelayCommand(ExecuteDevamEt, CanExecuteDevamEt);
 
-            CikisYapCommand = new AsyncRelayCommand(ExecuteCikisYap);
             PropertyChanged += (s, e) =>
             {
-                if (e.PropertyName == nameof(CanProceed))
+                if(e.PropertyName == nameof(HasSelection))
                 {
                     (DevamEtCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
                 }
             };
-            FirmaWithMaliDonemSelectedService = firmaWithMaliDonemSelectedService;
-            TenantSQLiteConnectionService = tenantSQLiteConnectionService;
         }
-        #endregion
 
         #region Properties
         public ShellArgs ViewModelArgs { get; set; }
@@ -85,9 +72,7 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
                     NotifyPropertyChanged(nameof(IsFirmaSelected));
                     NotifyPropertyChanged(nameof(HasSelection));
                     NotifyPropertyChanged(nameof(FirmaBilgisi));
-                    NotifyPropertyChanged(nameof(CanProceed));
-                    NotifyPropertyChanged(nameof(SecimOzeti));                   
-                    (DevamEtCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+                    NotifyPropertyChanged(nameof(SecimOzeti));
                 }
             }
         }
@@ -104,10 +89,10 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
                     NotifyPropertyChanged(nameof(IsMaliDonemSelected));
                     NotifyPropertyChanged(nameof(HasSelection));
                     NotifyPropertyChanged(nameof(DonemBilgisi));
-                    NotifyPropertyChanged(nameof(VeriTabaniBilgisi));
-                    NotifyPropertyChanged(nameof(CanProceed));
+                    NotifyPropertyChanged(nameof(VeritabaniBilgisi));
+                    NotifyPropertyChanged(nameof(VeritabaniBaglantiDurumu));
                     NotifyPropertyChanged(nameof(SecimOzeti));
-                    (DevamEtCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();                   
+                    _ = CheckDatabaseHealthAsync();
                 }
             }
         }
@@ -118,8 +103,6 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
         public bool IsMaliDonemSelected => SelectedMaliDonem != null;
 
         public bool HasSelection => IsFirmaSelected && IsMaliDonemSelected;
-
-        public bool CanProceed => HasSelection && !IsBusy;
 
         // Özet Panel Properties
         public string SecimOzeti => HasSelection
@@ -132,9 +115,17 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
             ? $"{SelectedMaliDonem.MaliYil} Mali Dönemi"
             : "Dönem seçilmedi";
 
-        public string VeriTabaniBilgisi => IsMaliDonemSelected
+        public string VeritabaniBilgisi => IsMaliDonemSelected
             ? $"{SelectedMaliDonem.DatabaseType} - {SelectedMaliDonem.DBName}"
             : "";
+
+        private string _veritabaniBaglantiDurumu = "Bağlantı durumu bekleniyor...";
+
+        public string VeritabaniBaglantiDurumu
+        {
+            get => _veritabaniBaglantiDurumu;
+            private set => Set(ref _veritabaniBaglantiDurumu, value);
+        }
 
         public string KullaniciBilgisi => AuthenticationService.IsAuthenticated
             ? $"{AuthenticationService.CurrentAccount?.Adi} {AuthenticationService.CurrentAccount?.Soyadi}"
@@ -142,29 +133,23 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
         #endregion
 
         #region Commands
-        public ICommand DevamEtCommand { get; }
+        private bool CanExecuteDevamEt() { return HasSelection; }
 
-        public ICommand CikisYapCommand { get; }
+        public ICommand DevamEtCommand { get; }
         #endregion
 
-        #region Load & Initialize
+        #region Load &Initialize
         public async Task LoadAsync(ShellArgs args)
         {
             ViewModelArgs = args;
-
             try
             {
-                // Firma listesini yükle
-                await FirmalarList.LoadAsync(new FirmaListArgs());
-
-                // Eğer hiç firma yoksa
-                if(FirmalarList.Items == null || FirmalarList.Items.Count == 0)
+                await base.LoadAsync(new FirmaListArgs());
+                if(FirmaList.Items == null || FirmaList.Items.Count == 0)
                 {
                     await HandleNoFirmaFound();
                     return;
                 }
-
-                // Son seçilen firma/dönemi hatırla
                 await LoadLastSelection();
             } catch(Exception ex)
             {
@@ -187,11 +172,9 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
             if(result)
             {
                 await NavigationService.CreateNewViewAsync<FirmaDetailsViewModel>(new FirmaDetailsArgs());
-            } else
-            {
-                await ExecuteCikisYap();
             }
         }
+
 
         private async Task LoadLastSelection()
         {
@@ -201,12 +184,12 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
                 var lastFirmaId = await LocalSettingsService.ReadSettingAsync<long>("LastSelectedFirmaId");
                 if(lastFirmaId > 0)
                 {
-                    var lastFirma = FirmalarList.Items.FirstOrDefault(f => f.Id == lastFirmaId);
+                    var lastFirma = FirmaList.Items.FirstOrDefault(f => f.Id == lastFirmaId);
                     if(lastFirma != null)
                     {
                         // Firma seçimini otomatik yap
-                        FirmalarList.SelectedItem = lastFirma;
-                        await OnFirmaSelected(lastFirma);
+                        FirmaList.SelectedItem = lastFirma;
+                        base.OnItemSelected();
 
                         // Son seçilen dönemi al
                         var lastDonemId = await LocalSettingsService.ReadSettingAsync<long>("LastSelectedDonemId");
@@ -225,114 +208,32 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
             {
                 // Son seçim yüklenemezse sessizce devam et
                 LogSistemException("FirmaDonemSelect", "LoadLastSelection", ex);
-            }
-        }
-
-        public void Subscribe()
-        {
-            MessageService.Subscribe<FirmaListViewModel>(this, OnFirmaMessage);
-            MessageService.Subscribe<MaliDonemListViewModel>(this, OnMaliDonemMessage);
-
-            FirmalarList.Subscribe();
-            MaliDonemList.Subscribe();
-        }
-
-        public void Unsubscribe()
-        {
-            MessageService.Unsubscribe(this);
-            FirmalarList.Unsubscribe();
-            MaliDonemList.Unsubscribe();
-        }
-
-        public void Unload()
-        {
-            FirmalarList.Unload();
-            MaliDonemList.Unload();
-        }
-        #endregion
-
-        #region Message Handlers
-        private async void OnFirmaMessage(FirmaListViewModel viewModel, string message, object args)
-        {
-            if(viewModel == FirmalarList && message == "ItemSelected")
-            {
-                await ContextService.RunAsync(
-                    async () =>
-                    {
-                        var selected = FirmalarList.SelectedItem;
-                        if(selected != null && !selected.IsEmpty)
-                        {
-                            await OnFirmaSelected(selected);
-                        }
-                    });
-            }
-        }
-
-        private async Task OnFirmaSelected(FirmaModel firma)
-        {
-            IsBusy = true;
-            try
-            {
-                SelectedFirma = firma;
-
-                // Firma detaylarını yükle
-                await PopulateFirmaDetails(firma);
-
-                // Mali dönemleri yükle
-                await MaliDonemList.LoadAsync(new MaliDonemListArgs { FirmaId = firma.Id });
-
-                // Mali dönem yoksa
-                if(MaliDonemList.Items == null || MaliDonemList.Items.Count == 0)
-                {
-                    await HandleNoMaliDonemFound();
-                } else
-                {
-                    // İlk dönemi otomatik seç (genelde en yeni dönem)
-                    var enYeniDonem = MaliDonemList.Items.OrderByDescending(d => d.MaliYil).FirstOrDefault();
-                    if(enYeniDonem != null)
-                    {
-                        MaliDonemList.SelectedItem = enYeniDonem;
-                        SelectedMaliDonem = enYeniDonem;
-                    }
-                }
-            } catch(Exception ex)
-            {
-                await DialogService.ShowAsync("Hata", $"Firma seçilirken hata: {ex.Message}");
-                LogSistemException("FirmaDonemSelect", "OnFirmaSelected", ex);
             } finally
             {
-                NotifyPropertyChanged(nameof(CanProceed));
                 IsBusy = false;
             }
         }
 
-        private async Task PopulateFirmaDetails(FirmaModel firma)
+        public void BaseSubscribe()
         {
-            try
-            {
-                var result = await FirmaService.GetByFirmaIdAsync(firma.Id);
-                if(result.Success && result.Data != null)
-                {
-                    firma.Merge(result.Data);
-                }
-            } catch(Exception ex)
-            {
-                LogSistemException("FirmaDonemSelect", "PopulateFirmaDetails", ex);
-            }
+            MessageService.Subscribe<FirmaListViewModel>(this, OnMessage);
+            MessageService.Subscribe<MaliDonemListViewModel>(this, OnMaliDonemMessage);
+            FirmaList.Subscribe();
+            FirmaDetails.Subscribe();
         }
 
-        private async Task HandleNoMaliDonemFound()
-        {
-            var result = await DialogService.ShowAsync(
-                "Mali Dönem Bulunamadı",
-                $"{SelectedFirma.KisaUnvani} firması için mali dönem bulunamadı. Yeni dönem eklemek ister misiniz?",
-                "Evet",
-                "Hayır");
+        public void BaseUnsubscribe() { base.Unsubscribe(); }
 
-            if(result)
+        private async void OnMessage(FirmaListViewModel viewModel, string message, object args)
+        {
+            if(viewModel == FirmaList && message == "ItemSelected")
             {
-                await NavigationService.CreateNewViewAsync<MaliDonemDetailsViewModel>(
-                    new MaliDonemDetailsArgs { FirmaId = SelectedFirma.Id });
+                await ContextService.RunAsync(
+                    () =>
+                    {
+                        OnItemSelected();
+                        SelectedFirma = FirmaList.SelectedItem;
+                    });
             }
         }
 
@@ -343,26 +244,19 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
                 await ContextService.RunAsync(
                     () =>
                     {
-                        var selected = MaliDonemList.SelectedItem;
-                        if(selected != null && !selected.IsEmpty)
-                        {
-                            SelectedMaliDonem = selected;
-                            NotifyPropertyChanged(nameof(CanProceed));
-                        }
+                        MaliDonemViewModel.OnItemSelected();
+                        SelectedMaliDonem = MaliDonemList.SelectedItem;
+                        NotifyPropertyChanged(nameof(HasSelection));
                     });
             }
         }
         #endregion
 
         #region Command Handlers
-        private bool CanExecuteDevamEt() { return CanProceed; }
-
         private async Task ExecuteDevamEt()
         {
-            if(!CanProceed)
-                return;
-
-            IsBusy = true;
+            if(!HasSelection)
+                return;           
             try
             {
                 // Seçimi kaydet (bir dahaki sefere hatırlansın)
@@ -377,8 +271,8 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
                         $"{SelectedFirma.KisaUnvani} - {SelectedMaliDonem.MaliYil}");
 
                 // ShellArgs'ı güncelle
-                FirmaWithMaliDonemSelectedService.SelectedFirma = SelectedFirma;
-                FirmaWithMaliDonemSelectedService.SelectedMaliDonem = SelectedMaliDonem;
+                SelectedFirmaService.SelectedFirma = SelectedFirma;
+                SelectedFirmaService.SelectedMaliDonem = SelectedMaliDonem;
 
                 await SwitchToTenantAndUpdateState(SelectedMaliDonem.DBName, SelectedFirma, SelectedMaliDonem);
                 ViewModelArgs.ViewModel = typeof(DashboardViewModel);
@@ -407,36 +301,39 @@ namespace MuhasibPro.ViewModels.ViewModels.Dashboard
             }
         }
 
-        private async Task ExecuteCikisYap()
-        {
-            var result = await DialogService.ShowAsync(
-                "Çıkış",
-                "Çıkış yapmak istediğinizden emin misiniz?",
-                "Evet",
-                "Hayır");
-
-            if(result)
-            {
-                AuthenticationService.Logout();
-                NavigationService.Navigate<LoginViewModel>(new ShellArgs());
-            }
-        }
-        #endregion
-        private async Task SwitchToTenantAndUpdateState(
-        string databaseName,
-        FirmaModel firma,
-        MaliDonemModel maliDonem)
+        private async Task SwitchToTenantAndUpdateState(string databaseName, FirmaModel firma, MaliDonemModel maliDonem)
         {
             // 1. Tenant'a bağlan (DI güncellenir)
-            var result = await TenantSQLiteConnectionService.SwitchTenantAsync(databaseName);
+            var result = await TenantWorkflowService.SwitchTenantAsync(databaseName);
 
             // 2. Application State'i güncelle
-            FirmaWithMaliDonemSelectedService.SelectedFirma = firma;
-            FirmaWithMaliDonemSelectedService.SelectedMaliDonem = maliDonem;
-            FirmaWithMaliDonemSelectedService.ConnectedTenantDb = result.Data;
+            SelectedFirmaService.SelectedFirma = firma;
+            SelectedFirmaService.SelectedMaliDonem = maliDonem;
+            SelectedFirmaService.ConnectedTenantDb = result.Data;
 
             // 3. UI güncellenir (StateChanged event otomatik fire olur)
         }
-    }
 
+        private async Task CheckDatabaseHealthAsync()
+        {
+            if(SelectedMaliDonem == null)
+            {
+                VeritabaniBaglantiDurumu = "Mali dönem seçilmedi";
+                return;
+            }
+
+            VeritabaniBaglantiDurumu = "Kontrol ediliyor...";
+
+            try
+            {
+                var result = await TenantWorkflowService.GetHealthStatusAsync(SelectedMaliDonem.DBName);
+
+                VeritabaniBaglantiDurumu = result.Success ? result.Data.HealthStatus : "Bağlantı başarısız";
+            } catch
+            {
+                VeritabaniBaglantiDurumu = "Bağlantı hatası";
+            }
+        }
+        #endregion
+    }
 }

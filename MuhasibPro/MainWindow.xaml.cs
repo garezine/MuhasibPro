@@ -20,10 +20,20 @@ namespace MuhasibPro
         {
             this.InitializeComponent();
             WindowSettings();
+
             dispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+
             settings = new UISettings();
             settings.ColorValuesChanged += Settings_ColorValuesChanged; // cannot use FrameworkElement.ActualThemeChanged event
+            App.ThemeService.ThemeChanged += ThemeService_ThemeChanged;
+            
         }
+
+        private void ThemeService_ThemeChanged(object? sender, ElementTheme e)
+        {
+            TitleBarHelper.UpdateTitleBar(e);
+        }
+
         void WindowSettings()
         {
             if (MicaController.IsSupported())

@@ -88,14 +88,15 @@ namespace Muhasib.Business.HostBuilders
                     services.AddSingleton<ITenantSQLiteConnectionStringFactory, TenantSQLiteConnectionStringFactory>();
                     services.AddSingleton<ITenantSQLiteDatabaseManager, TenantSQLiteDatabaseManager>();
                     services.AddSingleton<ITenantSQLiteBackupManager, TenantSQLiteBackupManager>();
-                    services.AddSingleton<ITenantSQLiteConnectionManager, TenantSQLiteConnectionManager>();
+                    
                     services.AddSingleton<ITenantSQLiteMigrationManager, TenantSQLiteMigrationManager>();
                     services.AddSingleton<ITenantSQLiteSelectionManager, TenantSQLiteSelectionManager>();
 
 
                     //Tenant Database Services                    
-                    services.AddSingleton<ITenantSQLiteConnectionService, TenantSQLiteConnectionService>();
+                    
                     services.AddSingleton<ITenantSQLiteInfoService, TenantSQLiteInfoService>();
+                    services.AddSingleton<ITenantSQLiteSelectionService, TenantSQLiteSelectionService>();
                     services.AddSingleton<ITenantSQLiteWorkflowService, TenantSQLiteWorkflowService>();
                     services.AddSingleton<ITenantSQLiteDatabaseOperationService, TenantSQLiteDatabaseOperationService>();
                     services.AddSingleton<ITenantSQLiteDatabaseLifecycleService, TenantSQLiteDatabaseLifecycleService>();

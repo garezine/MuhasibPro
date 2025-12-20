@@ -29,7 +29,7 @@ namespace MuhasibPro.ViewModels.Infrastructure.ViewModels
         public bool IsMainWindow => ContextService.IsMainView;
 
         private bool _isBusy = false;
-        public bool IsBusy { get => _isBusy; set => Set(ref _isBusy, value); }
+        public virtual bool IsBusy { get => _isBusy; set => Set(ref _isBusy, value); }
 
         public virtual string Title => string.Empty;
 

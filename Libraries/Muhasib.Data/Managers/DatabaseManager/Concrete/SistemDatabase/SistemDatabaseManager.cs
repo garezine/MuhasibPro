@@ -156,10 +156,10 @@ namespace Muhasib.Data.Managers.DatabaseManager.Concrete.SistemDatabase
 
             return result switch
             {
-                ConnectionTestResult.Success => (true, "Tenant bağlantısı başarılı"),
-                ConnectionTestResult.DatabaseNotFound => (false, "Tenant veritabanı bulunamadı"),
-                ConnectionTestResult.ConnectionFailed => (false, "Tenant veritabanına bağlanılamıyor"),
-                ConnectionTestResult.InvalidSchema => (false, "Tenant veritabanı geçersiz şemaya sahip"),
+                ConnectionTestResult.Success => (true, "Sistem veritabanı bağlantısı başarılı"),
+                ConnectionTestResult.DatabaseNotFound => (false, "Sistem veritabanı bulunamadı"),
+                ConnectionTestResult.ConnectionFailed => (false, "Sistem veritabanına bağlanılamıyor"),
+                ConnectionTestResult.InvalidSchema => (false, "Sistem veritabanı geçersiz şemaya sahip"),
                 ConnectionTestResult.UnknownError => (false, "Bilinmeyen bağlantı hatası"),
                 _ => (false, $"Bağlantı hatası: {result}")
             };

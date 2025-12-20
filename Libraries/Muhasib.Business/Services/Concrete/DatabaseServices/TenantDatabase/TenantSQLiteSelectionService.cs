@@ -5,32 +5,30 @@ using Muhasib.Business.Services.Contracts.LogServices;
 using Muhasib.Data.DataContext;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantDatabaseManager;
 using Muhasib.Data.Managers.DatabaseManager.Contracts.TenantSqliteManager;
-using Muhasib.Data.Managers.DatabaseManager.Models;
 using Muhasib.Data.Utilities.Responses;
 
 namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
 {
-    public class TenantSQLiteConnectionService : ITenantSQLiteConnectionService
+    public class TenantSQLiteSelectionService : ITenantSQLiteSelectionService
     {
-        private readonly ITenantSQLiteConnectionManager _connectionManager;
         private readonly ITenantSQLiteSelectionManager _selectionManager;
+        private readonly ITenantSQLiteDatabaseOperationService _operationService;        
         private readonly ILogService _logService;
-        private readonly ILogger<TenantSQLiteConnectionService> _logger;
+        private readonly ILogger<TenantSQLiteSelectionService> _logger;
 
-        public TenantSQLiteConnectionService(
-            ITenantSQLiteConnectionManager connectionManager,
+        public TenantSQLiteSelectionService(
             ITenantSQLiteSelectionManager selectionManager,
-
             ILogService logService,
-            ILogger<TenantSQLiteConnectionService> logger)
+            ILogger<TenantSQLiteSelectionService> logger,
+            ITenantSQLiteDatabaseOperationService operationService,
+            ITenantSQLiteMigrationManager migrationManager)
         {
-            _connectionManager = connectionManager;
             _selectionManager = selectionManager;
             _logService = logService;
             _logger = logger;
-        }        
+            _operationService = operationService;            
+        }
 
-        public void ClearCurrentTenant() => _selectionManager.ClearCurrentTenant();
         public bool IsConnected
         {
             get
@@ -39,22 +37,24 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
                 return currentTenant?.IsLoaded == true;
             }
         }
+
+        public void ClearCurrentTenant() => _selectionManager.ClearCurrentTenant();
+
         public async Task<ApiDataResponse<bool>> DisconnectCurrentTenantAsync()
         {
             try
             {
-
                 var currentTenant = GetCurrentTenant();
-                if (!currentTenant.Success)
+                if(!currentTenant.Success)
                 {
                     return new SuccessApiDataResponse<bool>(true, "Zaten bağlı tenant yok");
-                }                
-                _selectionManager.ClearCurrentTenant();
+                }
+                ClearCurrentTenant();
                 // TenantContext'i sıfırla (Empty state)               
-                
+
                 await _logService.SistemLogService
                     .SistemLogInformation(
-                        nameof(TenantSQLiteConnectionService),
+                        nameof(TenantSQLiteSelectionService),
                         nameof(DisconnectCurrentTenantAsync),
                         "Tenant bağlantısı kesildi",
                         string.Empty);
@@ -64,26 +64,6 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             {
                 _logger.LogError(ex, "Disconnect tenant failed");
                 return new ErrorApiDataResponse<bool>(false, ex.Message);
-            }
-        }
-
-        public async Task<ApiDataResponse<string>> GetConnectionInfoAsync(string databaseName)
-        {
-            try
-            {
-                var connectionInfo = await _connectionManager.GetConnectionStringInfoAsync(
-                    databaseName);
-
-                if(string.IsNullOrEmpty(connectionInfo))
-                {
-                    return new ErrorApiDataResponse<string>(null, "Connection string bilgisi alınamadı");
-                }
-
-                return new SuccessApiDataResponse<string>(connectionInfo, "Connection string bilgisi alındı");
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Get connection info failed for MaliDonemId: {databaseName}", databaseName);
-                return new ErrorApiDataResponse<string>(null, ex.Message);
             }
         }
 
@@ -111,37 +91,34 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             try
             {
                 var currentTenant = GetCurrentTenant();
-                if (currentTenant.Success &&
-                    currentTenant.Data?.DatabaseName == databaseName)
+                if(currentTenant.Success && currentTenant.Data?.DatabaseName == databaseName)
                 {
                     _logger.LogInformation("Zaten bu tenant'a bağlı: {databaseName}", databaseName);
                     return currentTenant;
                 }
                 _logger.LogInformation("Switching to tenant: {databaseName}", databaseName);
                 // 1. MaliDonemDb kaydı var mı kontrol et
-                if (databaseName == null)
+                if(databaseName == null)
                 {
-                    return new ErrorApiDataResponse<TenantContext>(
-                        null,
-                        "Veritabanı kaydı bulunamadı");
+                    return new ErrorApiDataResponse<TenantContext>(null, "Veritabanı kaydı bulunamadı");
                 }
                 // 2. Connection test
-                var testResult = await _connectionManager.TestConnectionDetailedAsync(databaseName);
-                if(testResult != ConnectionTestResult.Success)
+                var testResult = await _operationService.ValidateConnectionAsync(databaseName);
+                if(!testResult.Success)
                 {
                     return new ErrorApiDataResponse<TenantContext>(null, $"Bağlantı testi başarısız: {testResult}");
                 }
 
                 // 3. Tenant değiştir
                 var tenantContext = await _selectionManager.SwitchToTenantAsync(databaseName);
-                GetCurrentTenant().Data = tenantContext;
+                
                 await _logService.SistemLogService
                     .SistemLogInformation(
-                        nameof(TenantSQLiteConnectionService),
+                        nameof(TenantSQLiteSelectionService),
                         nameof(SwitchTenantAsync),
                         $"Tenant başarıyla değiştirildi. databaseName: {databaseName}, Database: {tenantContext.DatabaseName}",
                         string.Empty);
-               
+
                 return new SuccessApiDataResponse<TenantContext>(
                     tenantContext,
                     $"Mali dönem başarıyla değiştirildi: {databaseName}");
@@ -149,49 +126,9 @@ namespace Muhasib.Business.Services.Concrete.DatabaseServices.TenantDatabase
             {
                 _logger.LogError(ex, "Tenant switch failed for databaseName: {databaseName}", databaseName);
                 await _logService.SistemLogService
-                    .SistemLogException(nameof(TenantSQLiteConnectionService), nameof(SwitchTenantAsync), ex);
+                    .SistemLogException(nameof(TenantSQLiteSelectionService), nameof(SwitchTenantAsync), ex);
 
                 return new ErrorApiDataResponse<TenantContext>(null, $"Mali dönem değiştirme hatası: {ex.Message}");
-            }
-        }
-
-
-        public async Task<ApiDataResponse<string>> TestConnectionAsync(string databaseName)
-        {
-            try
-            {
-                var testResult = await _connectionManager.TestConnectionDetailedAsync(databaseName);
-
-                var message = testResult switch
-                {
-                    ConnectionTestResult.Success => "Bağlantı başarılı",
-                    ConnectionTestResult.SqlServerUnavailable => "SQL Server'a erişilemiyor",
-                    ConnectionTestResult.DatabaseNotFound => "Veritabanı bulunamadı",
-                    ConnectionTestResult.ConnectionFailed => "Bağlantı başarısız",
-                    _ => "Bilinmeyen hata"
-                };
-
-                var success = testResult == ConnectionTestResult.Success;
-                return success
-                    ? new SuccessApiDataResponse<string>(message, message)
-                    : new ErrorApiDataResponse<string>(message, message);
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Connection test failed for MaliDonemId: {MaliDonemId}", databaseName);
-                return new ErrorApiDataResponse<string>(null, ex.Message);
-            }
-        }
-
-        public async Task<ApiDataResponse<bool>> ValidateConnectionAsync(string databaseName)
-        {
-            try
-            {
-                var result = await _connectionManager.ValidateTenantAsync(databaseName);
-                return new SuccessApiDataResponse<bool>(result.IsValid, result.Message);
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Connection validation failed for MaliDonemId: {databaseName}", databaseName);
-                return new ErrorApiDataResponse<bool>(false, ex.Message);
             }
         }
     }

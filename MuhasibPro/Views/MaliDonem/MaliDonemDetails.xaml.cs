@@ -23,7 +23,9 @@ namespace MuhasibPro.Views.MaliDonem
         #endregion
         public void SetFocus()
         {
-            details.SetFocus();
+            //details.SetFocus();
         }
+
+       
     }
 }

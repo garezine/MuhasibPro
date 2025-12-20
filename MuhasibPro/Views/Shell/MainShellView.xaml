@@ -42,7 +42,13 @@
             Canvas.ZIndex="1"
             IsHitTestVisible="True">
             <StackPanel Orientation="Horizontal">
-               
+                <InfoBar
+                    x:Name="ValidationInfoBar"
+                    Grid.Row="0"
+                    Margin="6,6,6,0"
+                    HorizontalAlignment="Stretch"
+                    IsClosable="True"
+                    IsOpen="False" />
                 <!-- Pane Button -->
                 <Button
                     x:Name="NavigationViewPaneButton"
@@ -54,17 +60,17 @@
                     IsEnabled="True"
                     Style="{StaticResource PaneToggleCustomButtonStyle}" />
                 <Image
-                    Margin="5 0"
                     Width="20"
                     Height="20"
+                    Margin="5 0"
                     HorizontalAlignment="Left"
                     Source="/Assets/AppIcon.ico" />
                 <TextBlock
                     x:Name="AppTitleBarText"
-                    Text="{x:Bind ViewModel.SelectedFirma.KisaUnvani}"
                     Margin="18,0,0,0"
                     VerticalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}"
+                    Text="{x:Bind ViewModel.SelectedFirma.KisaUnvani}"
                     TextWrapping="NoWrap"
                     x:FieldModifier="public" />
             </StackPanel>
@@ -73,11 +79,11 @@
         <NavigationView
             x:Name="navigationView"
             AlwaysShowHeader="False"
-            Canvas.ZIndex="0"            
-            IsBackEnabled="{x:Bind frame.CanGoBack, Mode=OneWay}"
             BackRequested="navigationView_BackRequested"
+            Canvas.ZIndex="0"
             DisplayModeChanged="NavigationViewControl_DisplayModeChanged"
             ExpandedModeThresholdWidth="1280"
+            IsBackEnabled="{x:Bind frame.CanGoBack, Mode=OneWay}"
             IsEnabled="{x:Bind ViewModel.IsEnabled, Mode=OneWay}"
             IsPaneToggleButtonVisible="False"
             IsSettingsVisible="False"

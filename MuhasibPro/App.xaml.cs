@@ -7,6 +7,7 @@ using Muhasib.Business.Services.Concrete.DatabaseServices.SistemDatabase;
 using Muhasib.Business.Services.Contracts.CommonServices;
 using Muhasib.Business.Services.Contracts.LogServices;
 using MuhasibPro.Contracts.CoreServices;
+using MuhasibPro.Extensions.Common;
 using MuhasibPro.Helpers;
 using MuhasibPro.HostBuilders;
 using System.Diagnostics;
@@ -59,6 +60,7 @@ public partial class App : Application
             .AddAppView();
             
     }
+    public static IThemeSelectorService ThemeService => ServiceLocator.Current.GetService<IThemeSelectorService>();
     public static UIElement? AppTitleBar { get; set; }
     public static Window? MainWindow { get; } = new MainWindow();
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
@@ -93,6 +95,7 @@ public partial class App : Application
                         if (MainWindow?.Content is FrameworkElement rootElement && themeSelectorService != null)
                         {
                             rootElement.RequestedTheme = themeSelectorService.Theme;
+                            TitleBarHelper.UpdateTitleBar(rootElement.RequestedTheme);
                         }
                     });
             }

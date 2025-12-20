@@ -89,16 +89,7 @@
                     </StackPanel>
 
                     <!-- Logout Button -->
-                    <Button
-                        Grid.Column="2"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Command="{x:Bind ViewModel.CikisYapCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon FontSize="16" Glyph="&#xE7E8;" />
-                            <TextBlock Text="Çıkış Yap" />
-                        </StackPanel>
-                    </Button>
+
                 </Grid>
 
             </Grid>
@@ -179,7 +170,7 @@
                         <!-- Firma List Control -->
                         <firmalar:FirmalarList
                             x:Name="firmaList"
-                            ViewModel="{x:Bind ViewModel.FirmalarList, Mode=OneWay}"
+                            ViewModel="{x:Bind ViewModel.FirmaList, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                     </Grid>
                 </Border>
@@ -340,29 +331,49 @@
                                 <TextBlock
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
-                                    Text="{x:Bind ViewModel.VeriTabaniBilgisi, Mode=OneWay}" />
+                                    Text="{x:Bind ViewModel.VeritabaniBilgisi, Mode=OneWay}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon
+                                    FontSize="14"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Glyph="&#xEDA3;" />
+                                <TextBlock
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="{x:Bind ViewModel.VeritabaniBaglantiDurumu, Mode=OneWay}" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Grid>
-
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button
+                        Style="{StaticResource ActionDangerButton}"                        
+                        Margin="20 0"
+                        Click="CıkisYap_Button_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="16" Glyph="&#xE7E8;" />
+                            <TextBlock Text="Çıkış Yap" />
+                        </StackPanel>
+                    </Button>
+                    <Button                        
+                        MinWidth="160"
+                        Command="{x:Bind ViewModel.DevamEtCommand}"
+                        IsEnabled="{x:Bind ViewModel.HasSelection, Mode=OneWay}"
+                        Style="{StaticResource ActionButton}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ProgressRing
+                                Width="16"
+                                Height="16"
+                                IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
+                            <TextBlock Text="Devam Et" />
+                            <FontIcon FontSize="16" Glyph="&#xE8AD;" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
                 <!-- Devam Et Butonu -->
-                <Button
-                    Grid.Column="1"
-                    MinWidth="160"
-                    Command="{x:Bind ViewModel.DevamEtCommand}"
-                    IsEnabled="{x:Bind ViewModel.CanProceed, Mode=OneWay}"
-                    Style="{StaticResource AccentButtonStyle}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ProgressRing
-                            Width="16"
-                            Height="16"
-                            IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
-                            Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay}" />
-                        <TextBlock Text="Devam Et" />
-                        <FontIcon FontSize="16" Glyph="&#xE8AD;" />
-                    </StackPanel>
-                </Button>
+
             </Grid>
         </Border>
     </Grid>

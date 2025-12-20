@@ -66,7 +66,7 @@ namespace MuhasibPro.ViewModels.ViewModels.SistemViewModel.MaliDonemler
                 });
             }
         }
-        private async void OnItemSelected()
+        public async void OnItemSelected()
         {
             if (MaliDonemDetails.IsEditMode)
             {
